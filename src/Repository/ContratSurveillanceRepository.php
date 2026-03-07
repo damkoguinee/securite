@@ -43,12 +43,12 @@ class ContratSurveillanceRepository extends ServiceEntityRepository
     //    }
 
     public function findContrat(
-    $id = null,
-    $site = null,
-    $client = null,
-    $search = null,
-    $modeFacturation = null,
-    $statut = ['actif'],
+        $id = null,
+        $site = null,
+        $client = null,
+        $search = null,
+        $modeFacturation = null,
+        $statut = ['actif'],
     ): array {
         // ✅ Alias principaux
         $qb = $this->createQueryBuilder('cs')

@@ -161,7 +161,8 @@ class FactureRepository extends ServiceEntityRepository
             ->leftJoin('c.bien', 'b')
             ->addSelect('b')
             ->leftJoin('b.client', 'cl')
-            ->addSelect('cl');
+            ->addSelect('cl')
+            ->addOrderBy('b.nom', 'ASC');
         if ($startDate !== null && $endDate !== null) {
             if (!$startDate instanceof \DateTimeInterface) {
                 $startDate = new \DateTime($startDate);

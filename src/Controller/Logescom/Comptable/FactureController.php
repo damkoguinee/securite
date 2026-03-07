@@ -14,9 +14,7 @@ use App\Entity\HistoriqueChangement;
 use App\Repository\CaisseRepository;
 use App\Repository\ClientRepository;
 use App\Repository\FactureRepository;
-use App\Entity\MouvementCollaborateur;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Repository\ConfigDeviseRepository;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Request;
 use App\Repository\ConfigurationSmsRepository;
@@ -27,6 +25,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use App\Repository\DetailPaiementFactureRepository;
 use App\Repository\ConfigZoneRattachementRepository;
 use App\Repository\MouvementCollaborateurRepository;
+use App\Service\Comptable\Facture\FactureGenerator;
 use App\Service\Comptable\Facture\FactureGrouper;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
@@ -34,7 +33,14 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 final class FactureController extends AbstractController
 {
     #[Route('/index/{site}', name: 'app_logescom_comptable_facture_index', methods: ['GET'])]
-    public function index(FactureRepository $factureRep, Site $site, ContratSurveillanceRepository $contratRep, FactureGrouper $factureGroup, Request $request, ConfigZoneRattachementRepository $zoneRep): Response
+    public function index(
+        FactureRepository $factureRep, 
+        Site $site, 
+        ContratSurveillanceRepository $contratRep, 
+        FactureGrouper $factureGroup, 
+        Request $request, 
+        ConfigZoneRattachementRepository $zoneRep
+    ): Response
     {
          // Récupération des filtres de recherche
         $search = $request->query->get("search", '');
@@ -79,388 +85,36 @@ final class FactureController extends AbstractController
     #[Route('/new/{site}', name: 'app_logescom_comptable_facture_new', methods: ['GET', 'POST'])]
     public function new(
         Request $request,
-        EntityManagerInterface $entityManager,
         Site $site,
-        ContratSurveillanceRepository $contratRepo,
-        FactureRepository $factureRepo,
-        ConfigDeviseRepository $deviseRep,
         ClientRepository $clientRep,
-    ): Response {
-
-        if ($request->get('mois') and $request->get('annee')) {
-
-            /* ================================
-            1️⃣ RÉCUPÉRATION DU MOIS
-            ================================= */
-            $mois = (int)$request->get('mois');
-            $annee = (int)$request->get('annee');
-            if (!$mois || !$annee) {
-                $this->addFlash('danger', 'Veuillez sélectionner un mois et une année.');
-                return $this->redirectToRoute('app_logescom_comptable_facture_new', ['site' => $site->getId()]);
-            }
-
-            /* ================================
-            2️⃣ CALCUL PÉRIODE
-            ================================= */
-            $periodeDebut = new \DateTime("$annee-$mois-01");
-            $periodeFin   = (clone $periodeDebut)->modify('last day of this month');
-            // $nbJoursMois  = (int)$periodeFin->format('d');  // nombre de jours dans le mois
-            $nbJoursMois = 30;
-            
-            /* ================================
-            3️⃣ CONTRATS ACTIFS
-            ================================= */
-            if ($request->get('client')) {
-                $client = $clientRep->find($request->get('client'));
-                $contrats = $contratRepo->findContrat(site: $site, client: $client, statut: ['actif']);
-
-            }else{
-
-                $contrats = $contratRepo->findContrat(site: $site, statut: ['actif']);
-            }
-            $nbFacturesCreees = 0;
-
-            foreach ($contrats as $contrat) {
-            
-                /* ================================
-                4️⃣ CONDITIONS D’ÉLIGIBILITÉ
-                ================================= */
-                
-                if ($contrat->getDateDebut() > $periodeFin) continue;
-
-                if ($contrat->getDateFin() !== null && $contrat->getDateFin() < $periodeDebut) continue;
-
-                if (!in_array($contrat->getModeFacturation(), ['mensuel', 'mensuel_agent', 'horaire'])) continue;
-
-                $factureExistante = $factureRepo->findFactureForContratAndPeriod(
-                    $contrat,
-                    $periodeDebut,
-                    $periodeFin
-                );
-
-                if ($factureExistante) continue;
-
-
-                /* ================================================
-                5️⃣ CALCUL PRORATA DU CONTRAT (correct)
-                ================================================= */
-
-                $dateDebutContrat = max($contrat->getDateDebut(), $periodeDebut);
-                $dateFinContrat   = $contrat->getDateFin()
-                    ? min($contrat->getDateFin(), $periodeFin)
-                    : $periodeFin;
-
-                // Détection si premier ou dernier mois
-                // $estPremierMois = $contrat->getDateDebut() > $periodeDebut;
-                $estPremierMois = $contrat->getDateDebut()->format('Y-m') === $periodeDebut->format('Y-m')
-                 && $contrat->getDateDebut()->format('d') !== '01';
-                // $estDernierMois = $contrat->getDateFin() !== null && $contrat->getDateFin() < $periodeFin;
-                $estDernierMois = $contrat->getDateFin() !== null
-                    && $contrat->getDateFin()->format('Y-m') === $periodeDebut->format('Y-m')
-                    && $contrat->getDateFin()->format('d') !== $periodeFin->format('d');
-
-                // Si c'est un mois plein → pas de prorata
-                if (!$estPremierMois && !$estDernierMois) {
-
-                    $tauxProrata = 1;
-                    $nbJoursActifs = 30;
-
-                } else {
-
-                    // règle mois commercial
-                    $jourDebut = min(30, (int)$dateDebutContrat->format('d'));
-                    $jourFin   = (int)$dateFinContrat->format('d');
-
-                    // si la date est le dernier jour réel du mois (28 fév, 31 mars…)
-                    if ($dateFinContrat->format('d') == $dateFinContrat->format('t')) {
-                        $jourFin = 30;
-                    }
-
-                    $jourFin = min(30, $jourFin);
-
-                    // $nbJoursActifs = ($jourFin - $jourDebut) + 1; // temps plein
-                    $nbJoursActifs = ($jourFin - $jourDebut) + 1;
-
-                    $tauxProrata = $nbJoursActifs / 30;
-
-                    // dd($contrat, $tauxProrata, $nbJoursActifs , $nbJoursMois);
-
-                }
-
-                /* ================================================
-                6️⃣ CALCUL HT (TYPE PRINCIPAL)
-                ================================================= */
-                $montantHTInitial = 0;
-
-                foreach ($contrat->getTypesSurveillance() as $type) {
-                    $tarifJournalier = $type->getTarifHoraire();
-                    $tarifMensuel = $type->getTarifMensuel();
-
-                    /* ====== 1️⃣ FACTURATION MENSUELLE ====== */
-                    if ($contrat->getModeFacturation() === 'mensuel') {
-                        if ($tarifJournalier and $tauxProrata != 1) {
-                            // ✅ pas de prorata, calcul au jour ET par agent
-                            $montantHTInitial += ($tarifJournalier * $nbJoursActifs);
-                        }else{
-                            $montantHTInitial += $tarifMensuel ?? 0;
-
-                        }
-
-                        continue;
-                    }
-
-                    /* ====== 2️⃣ FACTURATION PAR AGENT ====== */
-                    if ($contrat->getModeFacturation() === 'mensuel_agent') {
-
-                        $nbJour = $type->getNbAgentsJour() ?? 0;
-                        $nbNuit = $type->getNbAgentsNuit() ?? 0;
-                        $nbTotal = $nbJour + $nbNuit;
-
-                        if ($nbTotal > 0) {
-                            if ($tarifJournalier and $tauxProrata != 1) {
-                                // ✅ pas de prorata, calcul au jour ET par agent
-                                $montantHTInitial += round(($tarifMensuel * $nbTotal * $nbJoursActifs) / 30);
-                                // dd($montantHTInitial, $tarifMensuel , $nbTotal, $tauxProrata);
-
-                            }else{
-                                $montantHTInitial += ($tarifMensuel * $nbTotal) * $tauxProrata;
-                                // dd($tarifMensuel , $nbTotal, $tauxProrata);
-                            }
-                        }
-
-                        continue;
-                    }
-
-
-                    /* ====== 3️⃣ FACTURATION HORAIRE ====== */
-                    if ($contrat->getModeFacturation() === 'horaire') {
-
-                        $tarifHoraire = $type->getTarifHoraire() ?? 0;
-                        $totalHeures = 0;
-
-                        foreach ($contrat->getAffectationAgents() as $aff) {
-
-                            $dateOp = $aff->getDateOperation();
-                            if ($dateOp < $periodeDebut || $dateOp > $periodeFin) continue;
-
-                            if (!$aff->isPresenceConfirme()) continue;
-
-                            $debut = $aff->getHeureDebut();
-                            $fin = $aff->getHeureFin();
-
-                            if ($debut && $fin) {
-                                $diff = $fin->getTimestamp() - $debut->getTimestamp();
-                                $heures = $diff / 3600;
-                                $totalHeures += $heures;
-                            }
-                        }
-
-                        $montantHTInitial += $totalHeures * $tarifHoraire;
-
-                        continue;
-                    }
-                }
-
-                // /* Application du prorata UNIQUEMENT pour mensuel/mensuel_agent */
-                // if (in_array($contrat->getModeFacturation(), ['mensuel', 'mensuel_agent'])) {
-                //     $montantHTInitial = $montantHTInitial * $tauxProrata;
-                // }
-
-                /* ================================================
-                7️⃣ CONTRATS COMPLÉMENTAIRES — PRORATA INDÉPENDANT
-                ================================================ */
-
-                foreach ($contrat->getContratComplementaires() as $cc) {
-
-                    // Vérifier chevauchement avec la période
-                    if ($cc->getDateDebut() > $periodeFin) continue;
-                    if ($cc->getDateFin() !== null && $cc->getDateFin() < $periodeDebut) continue;
-                    
-                    /* ============================
-                    🔁 CALCUL PRORATA DU CC
-                    ============================ */
-
-                    $dateDebutCC = max($cc->getDateDebut(), $periodeDebut);
-                    $dateFinCC   = $cc->getDateFin()
-                        ? min($cc->getDateFin(), $periodeFin)
-                        : $periodeFin;
-
-                    // Sécurité si jamais
-                    if ($dateFinCC < $dateDebutCC) continue;
-
-                    // $nbJoursActifsCC = $dateDebutCC->diff($dateFinCC)->days + 1; // temps plein
-                    $nbJoursActifsCC = $dateDebutCC->diff($dateFinCC)->days;
-                    $tauxProrataCC   = $nbJoursActifsCC / $nbJoursMois;
-
-                    foreach ($cc->getComplementTypeSurveillances() as $cts) {
-
-                        $tarif = $cts->getTarif() ?? 0;
-                        $tarifJournalier = $tarif/30;
-
-                        /* ====== 1️⃣ FACTURATION MENSUELLE ====== */
-                        if ($contrat->getModeFacturation() === 'mensuel') {
-                            if ($tarifJournalier and $tauxProrataCC != 1) {
-                                // ✅ pas de prorata, calcul au jour ET par agent
-                                $montantHTInitial += ($tarifJournalier * $nbJoursActifsCC);
-                            }else{
-                                $montantHTInitial += $tarif * $tauxProrataCC;
-
-                            }
-
-                            
-                            continue;
-                        }
-
-                        /* ====== 2️⃣ FACTURATION PAR AGENT ====== */
-                        if ($contrat->getModeFacturation() === 'mensuel_agent') {
-
-                            $nbAgents = $cts->getNbAgent() ?? 0;
-
-                            
-                            if ($tarifJournalier and $tauxProrataCC != 1) {
-                                // ✅ pas de prorata, calcul au jour ET par agent
-                                $montantHTInitial += ($tarifJournalier * $nbJoursActifsCC) * $nbAgents;
-
-                            }else{
-                                $montantHTInitial += ($tarif * $nbAgents) * $tauxProrataCC;
-
-                            }
-                                
-                            
-
-                            continue;
-                        }
-
-                        /* ====== 3️⃣ FACTURATION HORAIRE ====== */
-                        if ($contrat->getModeFacturation() === 'horaire') {
-
-                            $totalHeuresCC = 0;
-
-                            foreach ($contrat->getAffectationAgents() as $aff) {
-
-                                $dateOp = $aff->getDateOperation();
-                                if ($dateOp < $periodeDebut || $dateOp > $periodeFin) continue;
-
-                                if (!$aff->isPresenceConfirme()) continue;
-
-                                $debut = $aff->getHeureDebut();
-                                $fin   = $aff->getHeureFin();
-
-                                if ($debut && $fin) {
-                                    $diff = $fin->getTimestamp() - $debut->getTimestamp();
-                                    $totalHeuresCC += $diff / 3600;
-                                }
-                            }
-
-                            $montantHTInitial += $totalHeuresCC * $tarif;
-                        }
-                    }
-                }
-
-
-
-                /* ================================================
-                8️⃣ REMISE & TVA
-                ================================================= */
-
-                $montantHT = $montantHTInitial;
-
-                $remisePourcentage = $contrat->getRemise() ?? 0;
-                $remiseMontant = 0;
-
-                if ($remisePourcentage > 0) {
-                    $remiseMontant = $montantHT * ($remisePourcentage / 100);
-                    $montantHT -= $remiseMontant;
-                }
-
-                $tauxTVA = $contrat->getTva() ?? 0;
-                $montantTVA = 0;
-
-                if ($tauxTVA > 0) {
-                    $montantTVA = $montantHT * ($tauxTVA / 100);
-                }
-
-                $montantTTC = round($montantHT + $montantTVA, 2);
-
-
-                /* ================================================
-                9️⃣ CRÉATION DE LA FACTURE
-                ================================================= */
-
-                $facture = new Facture();
-
-                $facture->setContrat($contrat)
-                        ->setSite($site)
-                        ->setPeriodeDebut($periodeDebut)
-                        ->setPeriodeFin($periodeFin)
-                        ->setDateEmission(new \DateTime())
-                        ->setDateEcheance((new \DateTime())->modify('+10 days'))
-                        ->setStatut("en_attente")
-                        ->setDevise($deviseRep->findOneBy([]))
-                        ->setDateSaisie(new \DateTime())
-                        ->setSaisiePar($this->getUser());
-
-                // Référence
-                $reference = $factureRepo->generateReference(periodeDebut: $periodeDebut);
-                $facture->setReference($reference);
-                
-                // TTC arrondi à l'entier
-                $montantTTC = round($montantTTC);
-                // Montants
-                $facture->setMontantHT($montantHTInitial)
-                        ->setRemisePourcentage($remisePourcentage)
-                        ->setRemiseMontant(round($remiseMontant, 2))
-                        ->setBaseTVA($montantHT)
-                        ->setTauxTVA($tauxTVA)
-                        ->setMontantTVA(round($montantTVA, 2))
-                        ->setMontantTotal($montantTTC)
-                        ->setMontantPaye(0);
-
-
-                /* ================================================
-                🔟 MOUVEMENT COLLABORATEUR
-                ================================================= */
-
-                $mouv = new MouvementCollaborateur();
-                $devise = $deviseRep->findOneBy([]);
-
-                $mouv->setCollaborateur($contrat->getBien()->getClient())
-                    ->setOrigine("facturation")
-                    ->setMontant(-$montantTTC)
-                    ->setDevise($devise)
-                    ->setSite($site)
-                    ->setDateOperation(new \DateTime())
-                    ->setDateSaisie(new \DateTime());
-
-                $facture->addMouvementCollaborateur($mouv);
-
-
-                $entityManager->persist($facture);
-                $nbFacturesCreees++;
-            }
-
-            $entityManager->flush();
-
-            /* ================================
-            🔔 MESSAGE FINAL
-            ================================= */
-            if ($nbFacturesCreees > 0) {
+        FactureGenerator $factureGenerator,
+        
+    ): Response 
+    {
+        // 🔍 filtre mois et année et client
+        $mois = $request->get('mois');
+        $annee = $request->get('annee');
+        $clientId = $request->get('client');
+        
+        if ($mois && $annee) {
+            // generation des factures
+            $result = $factureGenerator->generateFactures(
+                site: $site, 
+                mois: $mois, 
+                annee: $annee, 
+                clientId: $clientId = null, 
+                user: $this->getUser()
+            );
+
+            // 🔔 message final
+            if ($result['count'] > 0) {
                 $this->addFlash('success',
-                    "$nbFacturesCreees facture(s) générée(s) pour " . $periodeDebut->format('F Y')
+                    $result['count']." facture(s) générée(s) pour ".$result['periode']->format('F Y')
                 );
             } else {
-                $this->addFlash('warning',
-                    "Aucune facture à générer pour cette période."
-                );
+                $this->addFlash('warning', "Aucune facture à générer pour cette période.");
             }
 
-            $referer = $request->headers->get('referer');
-
-            if ($referer) {
-                return $this->redirect($referer);
-            }
-
-            // fallback si jamais aucun referer n’est disponible
             return $this->redirectToRoute('app_logescom_comptable_facture_index', [
                 'site' => $site->getId()
             ]);
@@ -538,12 +192,25 @@ final class FactureController extends AbstractController
     }
 
     #[Route('/delete/{id}/{site}', name: 'app_logescom_comptable_facture_delete', methods: ['POST'])]
-    public function delete(Request $request, Facture $facture, EntityManagerInterface $entityManager, Site $site, LogicielService $service, OrangeSmsService $orangeService, ConfigurationSmsRepository $configSmsRep): Response
+    public function delete(
+        Request $request, 
+        Facture $facture, 
+        EntityManagerInterface $entityManager, 
+        Site $site, 
+        LogicielService $service, 
+        OrangeSmsService $orangeService, 
+        ConfigurationSmsRepository $configSmsRep
+    ): Response
     {
         if ($this->isCsrfTokenValid('delete'.$facture->getId(), $request->request->get('_token'))) {
             if ($facture->getPaiements()->first()) {
                 $this->addFlash("warning", "impossible de supprimer cette facture car elle contient des paiements");
-                return $this->redirectToRoute('app_logescom_comptable_facture_show', ['id' => $facture ->getId(), 'site' => $site->getId()], Response::HTTP_SEE_OTHER);
+                return $this->redirectToRoute('app_logescom_comptable_facture_show', [
+                    'id' => $facture ->getId(),   
+                    'site' => $site->getId()
+                    ], 
+                    Response::HTTP_SEE_OTHER
+                );
             }
             $entityManager->remove($facture);
 
@@ -744,7 +411,11 @@ final class FactureController extends AbstractController
     }
 
     #[Route('/contrat/{site}', name: 'app_logescom_comptable_contrat', methods: ['GET'])]
-    public function contrat(ContratSurveillanceRepository $contratRep, Site $site, Request $request, ConfigZoneRattachementRepository $zoneRep): Response
+    public function contrat(
+        ContratSurveillanceRepository $contratRep, 
+        Site $site, Request $request, 
+        ConfigZoneRattachementRepository $zoneRep
+    ): Response
     {
          if ($request->get("id_client_search")){
             $search = $request->get("id_client_search");
@@ -771,7 +442,12 @@ final class FactureController extends AbstractController
         }else{
 
             $pageEncours = $request->get('pageEnCours', 1);
-            $contrats = $contratRep->findContratBySearch(site: $site, statut:['actif'], zones: $request->get('zone') ?? null, pageEnCours: $pageEncours, limit: 100);
+            $contrats = $contratRep->findContratBySearch(
+                site: $site, statut:['actif'], 
+                zones: $request->get('zone') ?? null, 
+                pageEnCours: $pageEncours, 
+                limit: 100
+            );
         }
 
         // 🔥 Récupération pagination
@@ -811,48 +487,7 @@ final class FactureController extends AbstractController
         ]);
     }
 
-    // #[Route('/contrat/historique/paiement/{client}/{site}', name: 'app_logescom_comptable_contrat_historique_paiement', methods: ['GET'])]
-    // public function historiquePaiementClient(
-    //     Client $client,
-    //     Site $site,
-    //     DetailPaiementFactureRepository $detailPaiementRep
-    // ): Response {
-
-    //     $moisListe = range(1, 12);
-    //     $paiementsParAnnee = [];
-
-    //     // Paiements du client sur ce site
-    //     $detailPaiements = $detailPaiementRep->findDetailPaiement(site: $site, client: $client);
-
-    //     foreach ($detailPaiements as $detail) {
-    //         $bien = $detail->getFacture()->getContrat();
-    //         dd($bien);
-    //         // ➜ Utilisation de la période de la facture
-    //         $annee = $detail->getFacture()->getPeriodeDebut()->format('Y');
-    //         $mois  = $detail->getFacture()->getPeriodeDebut()->format('n');
-
-    //         // Initialise l'année si non existante
-    //         if (!isset($paiementsParAnnee[$annee])) {
-    //             foreach ($moisListe as $m) {
-    //                 $paiementsParAnnee[$annee][$m] = [];
-    //             }
-    //         }
-    //         // Ajouter entrée
-    //         $paiementsParAnnee[$annee][$mois][] = [
-    //             'paiement' => $detail->getPaiement(),
-    //             'facture'  => $detail->getFacture(),
-    //             'montant'  => $detail->getMontant(), // Tu peux remplacer par montant affecté si tu gères ça
-    //         ];
-            
-    //     }
-    //     // Trie décroissant des années
-    //     krsort($paiementsParAnnee);
-    //     return $this->render('logescom/comptable/facture/contrat_facture.html.twig', [
-    //         'client' => $client,
-    //         'site' => $site,
-    //         'paiementsParAnnee' => $paiementsParAnnee,
-    //     ]);
-    // }
+    
 
     #[Route(
     '/contrat/historique/paiement/{client}/{site}', 
