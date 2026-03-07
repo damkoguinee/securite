@@ -1,0 +1,271 @@
+{{ form_errors(form) }}
+
+{# ⚠️ ID EXPLICITE POUR LE FORM (CSRF SAFE) #}
+{{ form_start(form, { attr: { id: 'affectationEditForm' } }) }}
+
+{# ===================== INFOS CRENEAU ===================== #}
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.dateOperation, { label: '📅 Date de l’opération *' }) }}
+    </div>
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.heureDebut, { label: '🕒 Heure de début' }) }}
+    </div>
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.heureFin, { label: '🕕 Heure de fin' }) }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        {{ form_row(form.poste, {
+            label: '🧱 Poste *',
+            attr: { placeholder: 'Ex: Jour, Nuit, Chef poste…' }
+        }) }}
+    </div>
+
+    <div class="col-md-6 mb-3 d-flex align-items-center">
+        <div class="form-check mt-4">
+            {{ form_widget(form.presenceConfirme) }}
+            <label class="form-check-label fw-semibold ms-1">
+                Présence confirmée
+            </label>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        {{ form_row(form.personnel, {
+            label: '👮‍♂️ Agent concerné *',
+            attr: { class: 'form-select' }
+        }) }}
+    </div>
+
+    {# ===================== RECHERCHE AGENT ===================== #}
+    <div class="col-md-4">
+        <label class="fw-semibold mb-1">
+            🔍 Rechercher un site/contrat
+        </label>
+
+        <div class="position-relative">
+            <input type="text"
+                id="search_client"
+                class="form-control form-control-sm rounded-pill ps-4 shadow-sm"
+                placeholder="Nom, téléphone…">
+
+            <div id="result-search"
+                class="list-group position-absolute w-100 shadow-sm bg-info"
+                style="z-index: 1050;">
+            </div>
+        </div>
+
+        <small class="text-muted">
+            Tapez pour filtrer les contrats
+        </small>
+    </div>
+    <div class="col-md-5 mb-3">
+        {{ form_row(form.contrat, {
+            label: '📜 Contrat de surveillance *',
+            attr: { class: 'form-select' }
+        }) }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-3">
+        {{ form_row(form.commentaire, {
+            label: '💬 Commentaire / Observation',
+            attr: {
+                rows: 3,
+                placeholder: 'Ajouter une remarque...'
+            }
+        }) }}
+    </div>
+</div>
+
+<hr class="my-4">
+
+{# ===================== PORTEE DE MODIFICATION ===================== #}
+
+<h6 class="fw-bold text-primary mb-3">
+    <i class="fa fa-layer-group me-1"></i>
+    Portée de la modification
+</h6>
+
+<div class="form-check mb-2">
+    <input class="form-check-input" type="radio" name="scope" id="scope_single" value="single" checked>
+    <label class="form-check-label" for="scope_single">
+        Modifier uniquement ce créneau
+    </label>
+</div>
+
+<div class="form-check mb-2">
+    <input class="form-check-input" type="radio" name="scope" id="scope_future" value="future">
+    <label class="form-check-label text-danger fw-semibold" for="scope_future">
+        Modifier tous les créneaux à partir de cette date
+    </label>
+</div>
+
+<div class="form-check mb-3">
+    <input class="form-check-input" type="radio" name="scope" id="scope_period" value="period">
+    <label class="form-check-label text-danger fw-semibold" for="scope_period">
+        Modifier sur une période définie
+    </label>
+</div>
+
+{# ===================== ZONE PERIODE ===================== #}
+
+<div id="periodZone" class="row g-3 mb-4 d-none">
+    <div class="col-md-6">
+        <label class="fw-semibold">Date début</label>
+        <input type="date" name="period_start" class="form-control"
+               value="{{ affectation_agent.dateOperation|date('Y-m-d') }}">
+    </div>
+    <div class="col-md-6">
+        <label class="fw-semibold">Date fin</label>
+        <input type="date" name="period_end" class="form-control">
+    </div>
+</div>
+
+{# ===================== MODIFICATION GROUPE ===================== #}
+
+{% if affectation_agent.groupeAffectation %}
+    <div class="form-check mb-4">
+        <input type="checkbox" class="form-check-input" id="editGroup" name="edit_group" value="1">
+        <label class="form-check-label fw-semibold text-danger" for="editGroup">
+            <i class="fa fa-layer-group me-1"></i>
+            Appliquer ces modifications à <u>toutes les affectations</u> du groupe
+        </label>
+    </div>
+{% endif %}
+
+{# ===================== SUBMIT ===================== #}
+
+<div class="text-end mt-4">
+    <button type="button" id="submitBtn" class="btn btn-primary px-4">
+        <i class="bi bi-save me-1"></i> {{ button_label|default('Enregistrer') }}
+    </button>
+</div>
+
+{# ===================== MODAL CONFIRMATION ===================== #}
+
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fa fa-triangle-exclamation me-1"></i>
+                    Confirmation requise
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="fw-semibold mb-2">
+                    Vous êtes sur le point de modifier plusieurs affectations.
+                </p>
+                <p class="text-muted small mb-0" id="confirmMessage">
+                    Cette action est irréversible.
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Annuler
+                </button>
+                <button type="button" id="confirmSubmit" class="btn btn-danger">
+                    Oui, confirmer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ form_end(form) }}
+
+{# ===================== JS ===================== #}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const form = document.getElementById('affectationEditForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const confirmBtn = document.getElementById('confirmSubmit');
+    const modalEl = document.getElementById('confirmModal');
+    const confirmMessage = document.getElementById('confirmMessage');
+
+    const editGroupCheckbox = document.getElementById('editGroup');
+    const scopes = document.querySelectorAll('input[name="scope"]');
+    const periodZone = document.getElementById('periodZone');
+
+    const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+    function isDangerousAction() {
+        if (editGroupCheckbox && editGroupCheckbox.checked) {
+            confirmMessage.innerHTML =
+                'Toutes les affectations du <strong>groupe</strong> seront modifiées.';
+            return true;
+        }
+
+        const scope = document.querySelector('input[name="scope"]:checked');
+        if (!scope) return false;
+
+        if (scope.value === 'future') {
+            confirmMessage.innerHTML =
+                'Tous les créneaux <strong>à partir de cette date</strong> seront modifiés.';
+            return true;
+        }
+
+        if (scope.value === 'period') {
+            confirmMessage.innerHTML =
+                'Tous les créneaux sur la <strong>période sélectionnée</strong> seront modifiés.';
+            return true;
+        }
+
+        return false;
+    }
+
+    submitBtn.addEventListener('click', () => {
+        if (isDangerousAction()) {
+            modal.show();
+        } else {
+            form.requestSubmit(); // ✅ CSRF SAFE
+        }
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        modal.hide();
+        form.requestSubmit(); // ✅ CSRF SAFE
+    });
+
+    function updateScopeState() {
+        if (editGroupCheckbox && editGroupCheckbox.checked) {
+            scopes.forEach(radio => {
+                radio.checked = false;
+                radio.disabled = true;
+            });
+            periodZone.classList.add('d-none');
+        } else {
+            scopes.forEach(radio => radio.disabled = false);
+            const periodChecked = document.querySelector('input[name="scope"][value="period"]:checked');
+            periodZone.classList.toggle('d-none', !periodChecked);
+        }
+    }
+
+    if (editGroupCheckbox) {
+        editGroupCheckbox.addEventListener('change', updateScopeState);
+    }
+
+    scopes.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (!editGroupCheckbox || !editGroupCheckbox.checked) {
+                periodZone.classList.toggle('d-none', radio.value !== 'period');
+            }
+        });
+    });
+
+    updateScopeState();
+});
+</script>

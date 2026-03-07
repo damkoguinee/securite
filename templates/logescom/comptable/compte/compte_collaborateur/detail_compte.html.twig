@@ -1,0 +1,247 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}détail compte collaborateur{% endblock %}
+
+{% block presentation %}
+    {% if app.request.query.has('date1') %}
+        {% set date1 = app.request.query.get('date1') %}
+        {% set date2 = app.request.query.get('date2') %}
+
+    {% else %}
+        {% set date1 = "now"|date("Y-01-01") %}
+        {% set date2 = "now"|date("Y-m-d") %}
+    {% endif %}
+
+    {% set nbrePages = mouvements.nbrePages %}
+    {% set pageEncours = mouvements.pageEncours %} 
+    {% set id = site.id %}
+
+    <div class="row m-0 p-0">
+        {% include "logescom/comptable/compte/_nav_compte.html.twig" %}        
+        
+        <div class="col-sm-12 col-md-10 m-auto p-0">
+            
+            {% include "_common/_messages_flash.html.twig" %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        Détail du compte {{devise.nom|strtoupper ~ " de " ~ (
+                            user.typeUser == 'client' ? (user.societe ? (user.societe|ucwords ) : user.prenom|ucwords ~ " " ~ user.nom |strtoupper ~ ' Ref ' ~ user.reference |strtoupper) : user.prenom|ucwords ~ " " ~ user.nom |strtoupper
+                        )}}
+                    </h5>
+
+                    
+                    <a class="btn btn-light text-center" target="_blank" href="{{path("app_logescom_comptable_compte_compte_collaborateur_pdf_detail_compte", {site : site.id, date1 : date1, date2 : date2, user : user.id, devise : devise.nom })}}"><i class="fa fa-file-pdf fs-6 text-danger"></i></a>
+                </div>
+                <div class="card-body">
+        
+                    <table class="table table-bordered table-striped table-hover align-middle">
+
+                        <thead class="sticky-top bg-light text-center">
+                            <tr>
+                                <th colspan="7" class="text-center bg-info text-white">
+                                    <div class="row align-items-center ">
+                                        <div class="col-7">
+                                            <form class="form w-100">
+                                                <input type="hidden" name="user" value="{{user.id}}">
+                                                <input type="hidden" name="devise" value="{{devise.nom}}">
+                                                <div class="row">
+                                                    <div class="col-sm-12 col-md-5">
+                                                        <input type="date" name="date1" value="{{ date1 }}" class="form-control" onChange="this.form.submit()" max="{{ date2 }}">
+                                                    </div>
+                                                    <div class="col-1">au</div>
+                                                    <div class="col-sm-12 col-md-6">
+                                                        <input type="date" name="date2" value="{{ date2 }}" class="form-control" onChange="this.form.submit()" min="{{ date1}}" max="{{ "now"|date("Y-m-d") }}">
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </th>
+                            <tr>
+                            <tr>
+                                <th class="bg-info text-white">N°</th>
+                                <th class="bg-info text-white">Date</th>
+                                <th class="bg-info text-white">Désignation</th>
+                                <th class="bg-info text-white">Facturations</th>
+                                <th class="bg-info text-white">Entrées</th>
+                                <th class="bg-info text-white">Sorties</th>
+                                <th class="bg-info text-white">Solde</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2" class="bg-warning text-white text-center">inf {{date1|date("d/m/Y")}}</td>
+                                <td class="bg-warning text-white">--</td>
+                                <td class="bg-warning text-white">--</td>
+                                <td class="bg-warning text-white">--</td>
+                                <td class="bg-warning text-white">--</td>
+                                <td class="bg-warning text-white text-end">{{ devise.nom == 'gnf' ? ( solde_init)|number_format(0,',',' ') : ( solde_init)|number_format(2,',',' ') }}</td>
+                            </tr>
+                            {% set solde = solde_init %}
+                            {% set cumulPaiements = 0 %}
+                            {% set cumulEntrees = 0 %}
+                            {% set cumulSorties = 0 %}
+                            {% for key, mouvement in mouvements.data %}
+                                {% set solde = solde + mouvement.montant %}
+                                {% if solde <= 0 %}
+                                    {% set colorSolde = 'success' %}
+                                {% else %}
+                                    {% set colorSolde = 'danger' %}
+                                {% endif %}
+
+                                {% if mouvement.montant <= 0 %}
+                                    {% set color = 'success' %}
+                                    {% set montant_mouv = - mouvement.montant %}
+                                {% else %}
+                                    {% set color = 'danger' %}
+                                    {% set montant_mouv = mouvement.montant %}
+                                {% endif %}
+                                <tr>
+                                    <td class="text-center">
+                                        {{ (key +1) }}
+                                    </td>
+                                    <td class="text-center">{{ mouvement.dateOperation ? mouvement.dateOperation|date('d/m/Y') : '' }}</td>
+
+                                    {% if mouvement.paiement %}
+                                        {% set cumulPaiements = cumulPaiements + mouvement.montant %}
+                                        <td>
+                                            <a class="btn btn-success m-0 p-1" href="{{path("app_logescom_comptable_paiement_show", { id : mouvement.paiement.id, site : site.id})}}"><i class="fa fa-eye"></i></a>
+                                            {{ mouvement.origine|ucfirst ~ " " ~ mouvement.paiement.reference|strtoupper}}
+                    
+                                        </td>
+                                        
+                                        <td class="text-end text-nowrap bg-{{color}}">{{ mouvement.devise.nom == 'gnf' ? (montant_mouv)|number_format(0,',',' ') : (montant_mouv)|number_format(2,',',' ') }}</td>
+                                        <td></td>
+                                        <td></td>
+
+                                    {% elseif mouvement.facturation %}
+                                        {% set cumulSorties = cumulSorties + montant_mouv %}
+                                        <td>
+                                            <a class="btn btn-success m-0 p-1" href="{{path("app_logescom_comptable_facture_show", {id : mouvement.facturation.id, site : site.id})}}"><i class="fa fa-eye"></i></a>
+                                            {{mouvement.origine|ucfirst ~ " Ref:" ~ mouvement.facturation.reference|strtoupper ~ " " ~ mouvement.facturation.commentaire|ucfirst}} 
+                                        </td>
+                                        <td></td>
+                                        <td></td>
+                                        <td class="text-end text-nowrap bg-{{color}}">{{ mouvement.devise.nom == 'gnf' ? (montant_mouv)|number_format(0,',',' ') : (montant_mouv)|number_format(2,',',' ') }}</td>
+                                        
+                                    {% elseif mouvement.decaissement %}
+                                        {% set cumulSorties = cumulSorties + montant_mouv %}
+                                        <td>
+                                            <a class="btn btn-success m-0 p-1" href="{{path("app_logescom_comptable_sorties_decaissement_show", {id : mouvement.decaissement.id, site : site.id, id_client_search : mouvement.collaborateur.id})}}"><i class="fa fa-eye"></i></a>
+                                            {{mouvement.origine|ucfirst ~ " Ref:" ~ mouvement.decaissement.reference|strtoupper ~ " " ~ mouvement.decaissement.commentaire|ucfirst}} 
+                                        </td>
+                                        <td></td>
+                                        <td></td>
+                                        <td class="text-end text-nowrap bg-{{color}}">{{ mouvement.devise.nom == 'gnf' ? (montant_mouv)|number_format(0,',',' ') : (montant_mouv)|number_format(2,',',' ') }}</td>   
+                                    
+                                    {% elseif mouvement.versement %}
+                                        {% set cumulEntrees = cumulEntrees + montant_mouv %}
+
+                                        <td>
+                                            <a class="btn btn-success m-0 p-1" href="{{path("app_logescom_comptable_entrees_versement_show", {id : mouvement.versement.id, site : site.id})}}"><i class="fa fa-eye"></i></a>
+                                            {{mouvement.origine|ucfirst ~ " Ref:" ~ mouvement.versement.reference|strtoupper ~ " " ~ mouvement.versement.commentaire|ucfirst}} 
+                                        </td>
+                                        <td></td>
+                                        <td class="text-end text-nowrap bg-{{color}}">{{ mouvement.devise.nom == 'gnf' ? ( montant_mouv)|number_format(0,',',' ') : ( montant_mouv)|number_format(2,',',' ') }}</td>
+                                        <td></td>
+                                    {% else %}
+                                        {# {% set cumulPaiements = cumulPaiements + mouvement.montant %} #}
+                                        
+                                        <td>{{mouvement.origine}}</td>
+                                        <td></td>
+                                        <td>{{mouvement.montant}}</td>
+                                        <td></td>
+                                    {% endif %}
+
+                                    <td class="text-end text-nowrap bg-{{colorSolde}}">{{ mouvement.devise.nom == 'gnf' ? ( solde > 0 ? solde : - solde)|number_format(0,',',' ') : ( solde)|number_format(2,',',' ') }}</td>
+                                    
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7">Aucun mouvement enregistré</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+
+                        <tfoot>
+                            {% if cumulPaiements <= 0 %}
+                                {% set color = 'success' %}
+                                {% set cumulFact = - cumulPaiements %}
+                            {% else %}
+                                {% set color = 'danger' %}
+                                {% set cumulFact = cumulPaiements %}
+                            {% endif %}
+                            
+                            {% if cumulEntrees <= 0 %}
+                                {% set colorEnt = 'success' %}
+                                {% set cumulEntrees =  cumulEntrees %}
+                            {% else %}
+                                {% set colorEnt = 'danger' %}
+                                {% set cumulEntrees = cumulEntrees %}
+                            {% endif %}
+
+                            {% if cumulSorties >= 0 %}
+                                {% set colorSort = 'success' %}
+                                {% set cumulSorties =  cumulSorties %}
+                            {% else %}
+                                {% set colorSort = 'danger' %}
+                                {% set cumulSorties = cumulSorties %}
+                            {% endif %}
+
+                            {% if solde <= 0 %}
+                                {% set colorSolde = 'success' %}
+                                {% set solde = - solde %}
+                            {% else %}
+                                {% set colorSolde = 'danger' %}
+                                {% set solde = solde %}
+                            {% endif %}
+
+                            <tr class="bg-info  bg-opacity-75">
+                                <th colspan="3" class="bg-info text-white bg-opacity-75 fw-bold text-center ">Cumul Général</th>                          
+                                <th class="bg-{{color}} text-white bg-opacity-75 text-end text-nowrap  fw-bold px-3">{{ devise.nom == 'gnf' ? ( cumulFact)|number_format(0,',',' ') : ( cumulFact)|number_format(2,',',' ') }}</th>
+                                
+                                <th class="bg-{{colorEnt}} text-white bg-opacity-75 text-end text-nowrap  fw-bold px-3">{{ devise.nom == 'gnf' ? cumulEntrees|number_format(0,',',' ') : cumulEntrees|number_format(2,',',' ') }}</th>        
+                                
+                                <th class="bg-{{colorSort}} text-white bg-opacity-75 text-end text-nowrap  fw-bold px-3">{{ devise.nom == 'gnf' ? (cumulSorties)|number_format(0,',',' ') : (cumulSorties)|number_format(2,',',' ') }}</th>
+                                
+                                <th class="bg-{{colorSolde}} text-white bg-opacity-75 text-end text-nowrap  fw-bold px-3">{{ devise.nom == 'gnf' ? ( solde)|number_format(0,',',' ') : ( solde)|number_format(2,',',' ') }}</th>        
+                                
+
+                            </tr>
+                        </tfoot>
+
+                    </table>
+                    {% set path = "app_logescom_comptable_compte_compte_collaborateur_detail"  %}
+                                        
+                    {% if nbrePages > 1 %}                    
+
+                        {% if nbrePages %}
+                            <nav aria-label="Page navigation example ">
+                                <ul class="pagination justify-content-start">
+                                    {% if pageEncours > 1 %}
+                                        <li class="page-item ">
+                                            <a class="page-link" href="{{path(path, {site : id, pageEncours : (pageEncours - 1), user: user.id, devise : devise.nom, site: site.id})}}">&lt;</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled" ><a class="page-link">&lt;</a></li>
+                                    {% endif %}
+                                    {% for page in 1..nbrePages %}                
+                                        <li class="page-item {{ ( page == pageEncours) ? 'active' : ''}} "><a class="page-link" href="{{path(path, {site : id, pageEncours : page, user: user.id, devise : devise.nom, site: site.id})}}">{{page}}</a></li>
+                                    {% endfor %}
+                                    {% if pageEncours < nbrePages %}
+                                        <li class="page-item "><a class="page-link" href="{{path(path, {site : id,pageEncours : pageEncours + 1, user: user.id, devise : devise.nom, site: site.id} ) }}">&gt;</a></li>
+                                    {% else %}
+                                        <li class="page-item disabled "><a href="" class="page-link" >&gt;</a></li>
+                                    {% endif %}
+                                    </li>
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

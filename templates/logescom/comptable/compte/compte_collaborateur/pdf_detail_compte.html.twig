@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}pdf{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
+    {% block stylesheets %}
+        {# <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous"> #}
+    {% endblock %}
+</head>
+<body>
+    <style>
+        @page {
+            margin: 10px 10px;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+        }
+        .header, .footer {
+            text-align: center;
+            margin: 10px 0;
+        }
+        .header img {
+            max-width: 100%;
+            height: auto;
+        }
+        .table-container {
+            width: 100%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        table {
+            width: 100%;
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 1px;
+            text-align: center;
+            height: 10px; /* Ajuster la hauteur des lignes */
+        }
+        th {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: #f4f4f4;
+            padding: 1px;
+            font-size: 10px;
+        }
+        .no-break {
+            page-break-inside: avoid;
+        }
+    </style>
+    
+    <div class="header">
+        <img src="data:image/jpeg;base64,{{ logoPath }}" alt="Logo" width="100" height="200">
+        <p>{{ site.entreprise.numeroAgrement }}</p>
+        <p>{{ site.adresse.nom ~ " Tél:" ~ site.telephone }}</p>
+    </div>
+    
+    <div class="table-container">
+        <table>
+
+            <thead class="sticky-top bg-light text-center">
+                <tr>
+                    <th colspan="7" class="text-center bg-info text-white">
+                        Détail du compte {{devise.nom|strtoupper ~ " de " ~ (
+                           
+                            user.typeUser == 'client' ? (user.societe ? (user.societe|ucwords ) : user.prenom|ucwords ~ " " ~ user.nom |strtoupper ~ ' Ref ' ~ user.reference |strtoupper ) : user.prenom|ucwords ~ " " ~ user.nom |strtoupper
+                        )}}
+
+                    
+                    </th>
+                </tr>
+                <tr>
+                    <th>N°</th>
+                    <th>Date</th>
+                    <th style="text-align:left; width: 10px;">Désignation</th>
+                    <th>Facturations</th>
+                    <th>Entrées</th>
+                    <th>Sorties</th>
+                    <th>Solde</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="2" style="text-align:center;">inf {{date1|date("d/m/Y")}}</td>
+                    <td >--</td>
+                    <td >--</td>
+                    <td >--</td>
+                    <td >--</td>
+                    <td style="text-align:right;">{{ devise.nom == 'gnf' ? ( solde_init)|number_format(0,',',' ') : ( solde_init)|number_format(2,',',' ') }}</td>
+                </tr>
+                    {% set solde = solde_init %}
+                    {% set cumulFacturations = 0 %}
+                    {% set cumulEntrees = 0 %}
+                    {% set cumulSorties = 0 %}
+                    {% for key, mouvement in mouvements.data %}
+                        {% set solde = solde + mouvement.montant %}
+                        {% if solde <= 0 %}
+                            {% set colorSolde = 'green' %}
+                        {% else %}
+                            {% set colorSolde = 'red' %}
+                        {% endif %}
+
+                        {% if mouvement.montant <= 0 %}
+                            {% set color = 'green' %}
+                            {% set montant_mouv = - mouvement.montant %}
+                        {% else %}
+                            {% set color = 'red' %}
+                            {% set montant_mouv = mouvement.montant %}
+                        {% endif %}
+                        <tr>
+                            <td style="text-align:center;">
+                                {{ (key +1) }}
+                            </td>
+                            <td style="text-align:center;">{{ mouvement.dateOperation ? mouvement.dateOperation|date('d/m/Y') : '' }}</td>
+
+                            {% if mouvement.facturation %}
+                                {% set cumulFacturations = cumulFacturations + mouvement.montant %}
+                                <td style="width: 100px; text-align:left;">
+                                    {{ mouvement.origine|ucfirst ~ " " ~ mouvement.facturation.reference|strtoupper}} 
+                                </td>
+                                <td style="text-align:right; ">{{ mouvement.devise.nom == 'gnf' ? (montant_mouv)|number_format(0,',',' ') : (montant_mouv)|number_format(2,',',' ') }}</td>
+                                <td></td>
+                                <td></td>
+
+                            {% elseif mouvement.decaissement %}
+                                {% set cumulSorties = cumulSorties + montant_mouv %}
+                                <td style="width: 100px; text-align:left;">
+                                    {{mouvement.origine|ucfirst ~ " Ref:" ~ mouvement.decaissement.reference|strtoupper ~ " " ~ mouvement.decaissement.commentaire|ucfirst}} 
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td style="text-align:right; ">{{ mouvement.devise.nom == 'gnf' ? (montant_mouv)|number_format(0,',',' ') : (montant_mouv)|number_format(2,',',' ') }}</td>
+
+                            
+
+                            {% elseif mouvement.versement %}
+                                {% set cumulEntrees = cumulEntrees + montant_mouv %}
+
+                                <td style="width: 100px; text-align:left;">
+                                    {{mouvement.origine|ucfirst ~ " Ref:" ~ mouvement.versement.reference|strtoupper ~ " " ~ mouvement.versement.commentaire|ucfirst}} 
+                                </td>
+                                <td></td>
+                                <td style="text-align:right; ">{{ mouvement.devise.nom == 'gnf' ? ( montant_mouv)|number_format(0,',',' ') : ( montant_mouv)|number_format(2,',',' ') }}</td>
+                                <td></td>
+                            {% elseif mouvement.achatFournisseur %}
+                                {% set cumulEntrees = cumulEntrees + montant_mouv %}
+
+                                <td style="width: 100px; text-align:left;">
+                                    {{mouvement.origine|ucfirst ~ " N°Fact:" ~ mouvement.achatFournisseur.numeroFacture|strtoupper ~ " " ~ mouvement.achatFournisseur.commentaire|ucfirst}} 
+                                </td>
+                                <td></td>
+                                <td style="text-align:right; ">{{ mouvement.devise.nom == 'gnf' ? ( montant_mouv)|number_format(0,',',' ') : ( montant_mouv)|number_format(2,',',' ') }}</td>
+                                <td></td>
+
+                            {% elseif mouvement.chequeEspece %}
+                                <td style="width: 100px; text-align:left;">
+                                    {{mouvement.origine|ucfirst ~ " " ~ mouvement.chequeEspece.commentaire|ucfirst}} 
+                                </td>
+                                <td></td>
+                                {% if mouvement.montant >= 0 %}
+                                    {% set cumulEntrees = cumulEntrees + montant_mouv %}
+
+                                    <td style="text-align:right; ">{{ mouvement.devise.nom == 'gnf' ? ( montant_mouv)|number_format(0,',',' ') : ( montant_mouv)|number_format(2,',',' ') }}</td>
+                                    <td></td>
+                                {% else %}
+                                    {% set cumulSorties = cumulSorties + montant_mouv %}
+
+                                    <td></td>
+                                    <td style="text-align:right; ">{{ mouvement.devise.nom == 'gnf' ? ( montant_mouv)|number_format(0,',',' ') : ( montant_mouv)|number_format(2,',',' ') }}</td>
+                                {% endif %}
+                            
+                            
+                            {% else %}
+                                {# {% set cumulFacturations = cumulFacturations + mouvement.montant %} #}
+                                
+                                <td style="width: 100px; text-align:left;">{{mouvement.origine}}</td>
+                                <td></td>
+                                <td>{{mouvement.montant}}</td>
+                                <td></td>
+                            {% endif %}
+
+                            <td style="text-align:right;">{{ mouvement.devise.nom == 'gnf' ? ( solde > 0 ? solde :  - solde)|number_format(0,',',' ') : ( - solde)|number_format(2,',',' ') }}</td>
+                            
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7">Aucun mouvement enregistré</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+                <tfoot>
+                    {% if cumulFacturations <= 0 %}
+                        {% set color = 'green' %}
+                        {% set cumulFact = - cumulFacturations %}
+                    {% else %}
+                        {% set color = 'red' %}
+                        {% set cumulFact = cumulFacturations %}
+                    {% endif %}
+                    
+                    {% if cumulEntrees <= 0 %}
+                        {% set colorEnt = 'green' %}
+                        {% set cumulEntrees =  cumulEntrees %}
+                    {% else %}
+                        {% set colorEnt = 'red' %}
+                        {% set cumulEntrees = cumulEntrees %}
+                    {% endif %}
+
+                    {% if cumulSorties >= 0 %}
+                        {% set colorSort = 'green' %}
+                        {% set cumulSorties =  cumulSorties %}
+                    {% else %}
+                        {% set colorSort = 'red' %}
+                        {% set cumulSorties = cumulSorties %}
+                    {% endif %}
+
+                    {% if solde <= 0 %}
+                        {% set colorSolde = 'green' %}
+                        {% set solde = - solde %}
+                    {% else %}
+                        {% set colorSolde = 'red' %}
+                        {% set solde = - solde %}
+                    {% endif %}
+
+                    <tr class="bg-info  bg-opacity-75">
+                        <th style="text-align:center;" colspan="3">Cumul Général</th>                          
+                        <th style="text-align:right;"  >{{ devise.nom == 'gnf' ? ( cumulFact)|number_format(0,',',' ') : ( cumulFact)|number_format(2,',',' ') }}</th>
+                        
+                        <th style="text-align:right;" >{{ devise.nom == 'gnf' ? cumulEntrees|number_format(0,',',' ') : cumulEntrees|number_format(2,',',' ') }}</th>        
+                        
+                        <th style="text-align:right;" >{{ devise.nom == 'gnf' ? (cumulSorties)|number_format(0,',',' ') : (cumulSorties)|number_format(2,',',' ') }}</th>
+                        
+                        <th style="text-align:right; " >{{ devise.nom == 'gnf' ? ( solde)|number_format(0,',',' ') : ( solde)|number_format(2,',',' ') }}</th>        
+                        
+
+                    </tr>
+                </tfoot>
+
+            </table>
+    </div>
+    
+    <div class="footer">
+        <p>compte imprimé par {{ app.user.prenom | ucwords ~ " " ~ app.user.nom | strtoupper ~ " le " ~ "now"|date("d/m/Y à H:i") }}</p>
+    </div>
+</body>
+</html>

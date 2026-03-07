@@ -1,0 +1,75 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Ajouter un nouveau personnel{% endblock %}
+
+{% block presentation %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-sm-12 col-md-12">
+
+            <!-- 🏷️ En-tête -->
+            <div class="text-center mb-3">
+                <h4 class="fw-bold text-dark">
+                    <i class="fa fa-user-plus me-2 text-primary"></i> Ajouter un nouveau personnel
+                </h4>
+                <p class="text-muted mb-0">Renseignez soigneusement les informations du personnel avant d’enregistrer.</p>
+            </div>
+
+            <!-- 🧾 Carte principale -->
+            <div class="card border-0 shadow-lg rounded-3">
+                <div class="card-body p-1 bg-light">
+
+                    <!-- 🧍‍♂️ Formulaire -->
+                    {{ include('logescom/rh/personel/_form.html.twig', { 'button_label': 'Ajouter' }) }}
+
+                    <hr class="my-3">
+
+                    <!-- 🔙 Bouton de retour -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ path('app_logescom_rh_personel_index', { site: site.id }) }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        $('.select2-bien').select2({
+            width: '100%',
+            placeholder: '🔍 Rechercher un bien...',
+            minimumInputLength: 2,
+            allowClear: true,
+            ajax: {
+                url: function () {
+                    return $(this).data('ajax-url');
+                },
+                dataType: 'json',
+                delay: 300,
+                data: function (params) {
+                    return { q: params.term };
+                },
+                processResults: function (data) {
+                    return data;
+                },
+                cache: true
+            }
+        });
+
+    });
+
+    
+
+</script>
+
+
+{% endblock %}
+
+

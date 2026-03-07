@@ -1,0 +1,90 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Types de Surveillance{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/admin/_nav_admin.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <div class="card border-0 shadow-lg mt-3 mx-2 rounded-3">
+            <div class="card-header bg-gradient bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="m-0">
+                    <i class="fa fa-shield-alt me-2"></i> Types de Surveillance
+                </h5>
+                <a href="{{ path('app_logescom_admin_config_type_surveillance_new') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fa fa-plus-circle me-1"></i> Nouveau type
+                </a>
+            </div>
+
+            <div class="card-body bg-light">
+                {% if config_type_surveillances is empty %}
+                    <div class="alert alert-warning text-center mb-0">
+                        <i class="fa fa-info-circle"></i> Aucun type de surveillance n’a encore été configuré.
+                    </div>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle shadow-sm">
+                            <thead class="table-dark text-center align-middle">
+                                <tr>
+                                    <th style="width: 5%">#</th>
+                                    <th style="width: 20%">Nom</th>
+                                    <th style="width: 35%">Description</th>
+                                    <th style="width: 15%">Tarif Horaire</th>
+                                    <th style="width: 15%">Tarif Mensuel</th>
+                                    <th style="width: 10%">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config_type_surveillance in config_type_surveillances %}
+                                    <tr>
+                                        <td class="text-center fw-bold">{{ loop.index }}</td>
+                                        <td class="fw-semibold text-dark">{{ config_type_surveillance.nom|capitalize }}</td>
+                                        <td>{{ config_type_surveillance.description ?: '<em class="text-muted">Aucune description</em>'|raw }}</td>
+                                        <td class="text-end fw-semibold text-success">
+                                            {% if config_type_surveillance.tarifHoraire %}
+                                                {{ config_type_surveillance.tarifHoraire|number_format(0, ',', ' ') }} 
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end fw-semibold text-primary">
+                                            {% if config_type_surveillance.tarifMensuel %}
+                                                {{ config_type_surveillance.tarifMensuel|number_format(0, ',', ' ') }} 
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <a class="btn btn-outline-success mx-1" 
+                                                   href="{{ path('app_logescom_admin_config_type_surveillance_show', {'id': config_type_surveillance.id}) }}"
+                                                   title="Voir les détails">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                                <a class="btn btn-outline-warning" 
+                                                   href="{{ path('app_logescom_admin_config_type_surveillance_edit', {'id': config_type_surveillance.id}) }}"
+                                                   title="Modifier">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="card-footer bg-white text-center">
+                <a href="{{ path('app_logescom_admin_config_type_surveillance_new') }}" class="btn btn-primary">
+                    <i class="fa fa-plus-circle me-1"></i> Ajouter un type de surveillance
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base_site.html.twig' %}
+
+{% block title %}Nouveau contrat complémentaire{% endblock %}
+
+{% block presentation %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-sm-12 col-md-10">
+
+            <!-- 🏷️ En-tête -->
+            <div class="text-center mb-4">
+                <h4 class="fw-bold text-primary">
+                    <i class="fa fa-file-contract me-2"></i> Nouveau contrat complémentaire
+                </h4>
+
+                <p class="text-muted mb-1">
+                    Client :
+                    <strong class="text-dark">
+                        {{ contrat.bien.client.nomComplet|capitalize }}
+                    </strong>
+                </p>
+
+                <p class="text-muted mb-3">
+                    Site :
+                    <strong class="text-dark">
+                        {{ contrat.bien.nom|capitalize }}
+                    </strong>
+                </p>
+
+                <span class="badge bg-success px-3 py-2">
+                    Contrat principal #{{ contrat.id }} — {{ contrat.modeFacturation|capitalize }}
+                </span>
+            </div>
+
+            <!-- 🧾 Carte principale -->
+            <div class="card border-0 shadow-lg rounded-3">
+                <div class="card-body p-4 bg-light">
+
+                    <!-- 🧍‍♂️ Formulaire -->
+                    {{ include('logescom/commercial/contrat_surveillance/contrat_complementaire/_form.html.twig', {
+                        button_label: 'Enregistrer'
+                    }) }}
+
+                    <hr class="my-4">
+
+                    <!-- 🔙 Bouton retour -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ path('app_logescom_commercial_contrat_surveillance_show', {
+                            id : contrat.id,
+                            site: site.id
+                        }) }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fa fa-arrow-left me-1"></i> Retour au contrat
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

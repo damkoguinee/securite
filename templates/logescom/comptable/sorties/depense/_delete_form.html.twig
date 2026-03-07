@@ -1,0 +1,5 @@
+<form method="post" action="{{ path('app_logescom_comptable_sorties_depense_confirm_delete', {'id': depense.id}) }}" >
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ depense.id) }}">
+    <input type="hidden" name="param" value="simple">
+    <button class="btn btn-danger">Supprimer</button>
+</form>

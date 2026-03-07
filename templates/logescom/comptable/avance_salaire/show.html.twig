@@ -1,0 +1,97 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Détail de l'avance sur salaire{% endblock %}
+
+{% block presentation %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-sm-12 col-md-10">
+
+            {% include "_common/_messages_flash.html.twig" %}
+
+            <!-- 🧾 Carte principale -->
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fa fa-money-bill-wave me-2"></i> Détail de l'avance sur salaire
+                    </h5>
+                    <a href="{{ path('app_logescom_comptable_avance_salaire_edit', {'id': avance_salaire.id, site: site.id}) }}"
+                       class="btn btn-sm btn-warning text-dark">
+                        <i class="fa fa-edit me-1"></i> Modifier
+                    </a>
+                </div>
+
+                <div class="card-body bg-light">
+                    <table class="table table-bordered table-hover align-middle shadow-sm">
+                        <tbody>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25 w-25">Bénéficiaire</th>
+                                <td class="fw-semibold">
+                                    <i class="fa fa-user me-1 text-primary"></i>
+                                    {{ avance_salaire.personnel.prenom|capitalize }} {{ avance_salaire.personnel.nom|upper }}
+
+                                    {{avance_salaire.contrat ? ('Site de ' ~ avance_salaire.contrat.bien.client.nomCompletUser) : ''}}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25">Montant</th>
+                                <td class="fw-bold text-success">
+                                    {{ avance_salaire.montant|abs|number_format(0, ',', ' ') }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25">Type de paiement</th>
+                                <td>{{ avance_salaire.modePaie.designation|capitalize }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25">Compte de retrait</th>
+                                <td>{{ avance_salaire.caisse.nom|capitalize }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25">Date de l’avance</th>
+                                <td>{{ avance_salaire.dateOperation ? avance_salaire.dateOperation|date('d/m/Y') : '—' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25">Période concernée</th>
+                                <td>{{ avance_salaire.periode ? avance_salaire.periode|date('m/Y') : '—' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25">Détails / Commentaire</th>
+                                <td>{{ avance_salaire.commentaire|default('Aucun commentaire') }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25">Traité par</th>
+                                <td>
+                                    <i class="fa fa-user-check me-1 text-success"></i>
+                                    {{ avance_salaire.saisiePar.prenom|capitalize }} {{ avance_salaire.saisiePar.nom|upper }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="bg-secondary bg-opacity-25">Saisie le</th>
+                                <td>{{ avance_salaire.dateSaisie ? avance_salaire.dateSaisie|date('d/m/Y à H:i') : '—' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- 🔘 Boutons -->
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <a href="{{ path('app_logescom_comptable_avance_salaire_index', { site: site.id }) }}"
+                           class="btn btn-outline-secondary">
+                            <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                        </a>
+
+                        <div class="d-flex gap-2">
+                            <a href="{{ path('app_logescom_comptable_avance_salaire_edit', {'id': avance_salaire.id, site: site.id}) }}"
+                               class="btn btn-outline-warning">
+                                <i class="fa fa-edit me-1"></i> Modifier
+                            </a>
+                            {{ include('logescom/comptable/avance_salaire/_delete_form.html.twig') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

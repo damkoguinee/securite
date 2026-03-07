@@ -1,0 +1,123 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion — Espace Sécurité{% endblock %}
+
+{% block body %}
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center"
+     style="background: linear-gradient(rgba(10, 10, 20, 0.85), rgba(10, 10, 20, 0.85)),
+            url('{{ asset(chemin_images_config) }}fond.jpg') center/cover no-repeat;">
+
+    <div class="row w-100 justify-content-center">
+        <div class="col-11 col-md-8 col-lg-5 bg-dark text-light rounded-4 shadow-lg p-4 border border-secondary position-relative">
+
+            <!-- 🛡️ Logo principal -->
+            <div class="text-center mb-4">
+                {% if entreprise.logo %}
+                    <img src="{{ asset(chemin_images_logos) ~ entreprise.logo }}" 
+                         alt="Logo entreprise" 
+                         class="rounded-circle border border-3 border-warning shadow-sm"
+                         style="width: 110px; height: 110px;">
+                {% else %}
+                    <img src="{{ asset(chemin_images_config) }}default.jpg"
+                         alt="Logo par défaut"
+                         class="rounded-circle border border-3 border-warning shadow-sm"
+                         style="width: 110px; height: 110px;">
+                {% endif %}
+
+                <h4 class="mt-3 fw-bold text-warning">
+                    {{ entreprise.nom|upper }}
+                </h4>
+                <p class="text-secondary small mb-0 fst-italic">Agence de sécurité et surveillance</p>
+
+                <!-- Logo DAMKO en plus petit -->
+                <div class="mt-3">
+                    <span class="text-muted small">Propulsé par</span><br>
+                    <img src="{{ asset(chemin_images_config) }}damko.jpg" 
+                         alt="Logo DAMKO" 
+                         class="rounded-circle border border-2 border-light shadow-sm mt-1"
+                         style="width: 60px; height: 60px;">
+                </div>
+            </div>
+
+            <!-- 🧾 Messages -->
+            {% if error %}
+                <div class="alert alert-danger text-center py-2">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
+
+            {% if licenceExpiree %}
+                <div class="alert alert-danger text-center fw-semibold">
+                    ⚠️ Licence expirée le {{ licence.dateFin|date('d/m/Y') }}.<br>
+                    <a href="mailto:responsable-commercial@damkocompany.com" class="btn btn-danger btn-sm mt-2">Contacter DAMKO</a>
+                    <a href="{{ path('app_licence') }}" class="btn btn-warning btn-sm mt-2">Renouveler</a>
+                </div>
+            {% elseif alerteExpiration %}
+                <div class="alert alert-warning text-center fw-semibold">
+                    🔔 Licence expirant le {{ licence.dateFin|date('d/m/Y') }}.<br>
+                    <a href="mailto:responsable-commercial@damkocompany.com" class="btn btn-outline-warning btn-sm mt-2">Contacter DAMKO</a>
+                </div>
+            {% endif %}
+
+            <!-- 🔐 Formulaire -->
+            <form method="post" class="mt-3">
+                <h5 class="text-center mb-4 text-warning fw-semibold">
+                    <i class="fa-solid fa-user-shield me-2"></i> Connexion sécurisée
+                </h5>
+
+                <div class="form-floating mb-3">
+                    <input type="text" value="{{ last_username }}" name="username" id="inputUsername"
+                           class="form-control bg-dark text-light border-secondary" placeholder="Identifiant" required autofocus>
+                    <label for="inputUsername" class="text-secondary">Identifiant</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input type="password" name="password" id="inputPassword"
+                           class="form-control bg-dark text-light border-secondary" placeholder="Mot de passe" required>
+                    <label for="inputPassword" class="text-secondary">Mot de passe</label>
+                </div>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                <button class="btn btn-warning w-100 fw-bold shadow-sm py-2" type="submit">
+                    <i class="fa-solid fa-lock me-1"></i> Connexion
+                </button>
+            </form>
+
+            <!-- 👤 Session existante -->
+            {% if app.user %}
+                <div class="mt-3 text-center">
+                    Déjà connecté en tant que <span class="text-warning">{{ app.user.userIdentifier }}</span> — 
+                    <a href="{{ path('app_logout') }}" class="text-danger fw-semibold">Déconnexion</a>
+                </div>
+            {% endif %}
+
+            <!-- 📞 Pied de page -->
+            <hr class="border-secondary my-4">
+            <div class="text-center small text-muted">
+                <p class="mb-1">Logescom — Système de gestion pour sociétés de sécurité</p>
+                <div class="mt-2">
+                    <a href="https://wa.me/00224628196628" target="_blank" class="text-success me-3 fs-5"><i class="fab fa-whatsapp"></i></a>
+                    <a href="https://www.facebook.com/share/qPPBv4ueSigLjZaj/" target="_blank" class="text-primary fs-5"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background-color: #0b1a2e;
+        font-family: "Poppins", sans-serif;
+    }
+    .form-control:focus {
+        border-color: #ffc107;
+        box-shadow: 0 0 5px #ffc107;
+    }
+    .btn-warning:hover {
+        background-color: #d39e00;
+        border-color: #d39e00;
+    }
+    .rounded-4 {
+        border-radius: 1rem !important;
+    }
+</style>
+{% endblock %}

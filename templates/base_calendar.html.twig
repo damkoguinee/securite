@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Administration{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        {% block stylesheets %}
+            {# CSS existants #}
+            <link rel="stylesheet" href="{{ asset('css/fontawesome/css/all.min.css') }}">
+            <link rel="stylesheet" href="{{ asset('css/bootstrap/css/bootstrap.min.css') }}">
+            <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+            {# {{ encore_entry_link_tags('all-styles') }} #}
+
+            <style>
+                /* ✅ Style personnalisé pour réduire la taille de police et ligne dans FullCalendar */
+
+                .fc-event {
+                    font-size: 12px;
+                    line-height: 1.2em;
+                    padding: 2px;
+                }
+
+                .fc-event-title {
+                    font-weight: normal;
+                }
+
+                .fc-toolbar-title {
+                    font-size: 16px;
+                }
+
+                .fc-col-header-cell-cushion,
+                .fc-timegrid-axis-cushion {
+                    font-size: 12px;
+                }
+
+                /* Réduction optionnelle de la hauteur des créneaux horaires */
+                .fc-timegrid-slot-label,
+                .fc-timegrid-slot {
+                    height: 1.5em !important;
+                }
+
+                /* Curseur en forme de main sur les créneaux cliquables */
+                td.fc-timegrid-slot.fc-timegrid-slot-lane {
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+                }
+
+                /* Change la couleur uniquement pour cette cellule au survol */
+                td.fc-timegrid-slot.fc-timegrid-slot-lane:hover {
+                    background-color: #e0f7fa;
+                }
+
+                /* Réduction de la police dans l'en-tête du calendrier */
+                .fc-toolbar-title {
+                    font-size: 14px; /* Titre de la période (au centre) */
+                }
+
+                .fc .fc-button {
+                    font-size: 12px; /* Boutons (Aujourd'hui, Mois, Semaine...) */
+                    padding: 0.25rem 0.5rem; /* Réduction du padding si tu veux compacter */
+                }
+
+                .fc .fc-button-group {
+                    gap: 4px; /* Réduction de l'espacement entre les boutons */
+                }
+            </style>
+        {% endblock %}
+
+
+        {% block javascripts %}
+            <!-- ✅ jQuery en premier -->
+            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+            <!-- ✅ Bootstrap ensuite (car il dépend aussi de jQuery dans certaines versions) -->
+            <script src="{{ asset('css/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+            <!-- ✅ Fontawesome (indépendant, donc après) -->
+            <script src="{{ asset('css/fontawesome/js/all.min.js') }}"></script>
+
+            <!-- ✅ FullCalendar -->
+            <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+            <!-- ✅ Et ton JS local en dernier -->
+            <script src="{{ asset('js/main.js') }}"></script>
+        {% endblock %}
+
+
+    </head>
+    <body>
+        {% block body %}
+            {% block header %}
+                <nav class="navbar navbar-expand-lg navbar-dark" id="nav-scroll" style="height:70px; background-color:#152736;">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="{{ path('app_logescom_home') }}">
+                            {% if site.entreprise.logo is not empty %}
+                                <img src="{{asset(chemin_images_logos) ~ site.entreprise.logo}}"   height="55" width="160" alt="image logo">
+                            {% else %}
+                                <img src="{{ asset('images/config/default.jpg') }}"   height="55" alt="image logo">
+                            {% endif %}
+                        </a>
+                        
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse " id="navbarSupportedContent">
+                            <ul class="navbar-nav me-auto mb-2 mb-lg-0 justify-content-start">
+
+                                <li class="nav-item">
+                                    <a class="nav-link active btn btn-danger text-light m-1" aria-current="page" href="{{ path('app_logescom_home') }}">Accueil</a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link active btn btn-danger text-light m-1" aria-current="page" href="{{ path('app_logescom_home_service', {'site': site.id}) }}">Menu</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link active btn btn-danger text-light m-1" aria-current="page" href="{{ path('app_logescom_operation_affectation_agent_liste', {'site': site.id}) }}">Agents</a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link active btn btn-danger text-light m-1" aria-current="page" href="{{ path('app_logescom_operation_affectation_agent_index', {'site': site.id}) }}">Affectations</a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link active btn btn-danger text-light m-1" aria-current="page" href="{{ path('app_logescom_operation_presence_index', {'site': site.id}) }}">Présences</a>
+                                </li>
+
+                            </ul>
+
+                            <div class="contact-search-container-bottom d-flex justify-content-between align-items-center">
+
+                                {% if not app.user %}
+
+                                    <a class="text-white text-decoration-none d-inline-block p-2" href=" {{ path("app_login") }} ">
+                                        <i class="fa-solid fa-circle-user mx-2"></i>Connexion
+                                    </a>
+                                {% else %}
+                                    <a class="text-white text-decoration-none d-inline-block p-2" href="#">
+                                        <i class="fa-solid fa-circle-user mx-2"></i> {{ app.user.username | capitalize }}
+                                    </a>
+
+                                    <a class="text-white text-decoration-none d-inline-block p-2 text-danger" href=" {{ path("app_logout") }} ">
+                                        <i class="fa-solid fa-circle-user mx-2 text-danger"></i><span class="text-danger fw-bold">Déconnexion</span>
+                                    </a>
+
+                                {% endif %}
+            
+                                
+                                
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            {% endblock %}
+            {% block carousel %}
+                <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel"></div>
+            {% endblock %}
+            {% block main %}
+                <main class="my-2" id="main-content">
+                    {% block presentation %}
+
+                    {% endblock %}
+                </main>
+            {% endblock %}
+            {% block footer %}
+            {% endblock %}
+        {% endblock %}
+    </body>
+</html>

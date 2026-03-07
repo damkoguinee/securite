@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit ControlAcces{% endblock %}
+
+{% block body %}
+    <h1>Edit ControlAcces</h1>
+
+    {{ include('gandaal/administration/control_acces/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('app_gandaal_administration_securite_control_acces_index') }}">back to list</a>
+
+    {{ include('gandaal/administration/control_acces/_delete_form.html.twig') }}
+{% endblock %}

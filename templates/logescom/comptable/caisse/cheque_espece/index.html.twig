@@ -1,0 +1,144 @@
+{% extends 'base_comptable.html.twig' %}
+{% block title %}Liste des chèques espèces{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            {% include "_common/_messages_flash.html.twig" %}
+
+            {% if app.request.query.has('date1') %}
+                {% set date1 = app.request.query.get('date1') %}
+                {% set date2 = app.request.query.get('date2') %}
+
+            {% else %}
+                {% set date1 = "now"|date("Y-01-01") %}
+                {% set date2 = "now"|date("Y-m-d") %}
+            {% endif %}
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+
+                        <h5 class="m-0">Liste des chèques espèces</h5>
+                        <form class="d-flex gap-2 align-items-center">
+                            <input type="date" name="date1" value="{{ date1 }}" class="form-control" onChange="this.form.submit()" max="{{ date2 }}"> 
+                                        
+                            <input type="date" name="date2" value="{{ date2 }}" class="form-control" onChange="this.form.submit()" min="{{ date1}}" max="{{ "now"|date("Y-m-d") }}">
+                                
+                            <div class="col-5">
+                                <input type="text" name="search" class="form-control" id="search_client" placeholder="Récherchez un client">
+                            </div>   
+                        </form>
+                        <a class="btn btn-primary btn-sm" href="{{ path('app_logescom_comptable_caisse_cheque_espece_new', {'site': site.id}) }}">
+                            <i class="fa fa-plus-circle"></i> Ajouter un chèque espèce
+                        </a>
+                        {# <a target='_blank' class="btn btn-info no-print" href="{{ path('app_logescom_sortie_cheque_espece_pdf', {site : site.id, date1 : date1, date2 : date2, caisse : caisse ? caisse.id : NULL}) }}"><i class="fa fa-file-pdf "></i>Imprimer</a> #}
+                    </div>
+                            <div class="bg-light text-white" id="result-search"></div>
+
+                </div>
+                <div class="card-body mx-0 px-0">
+                    <table class="table table-bordered table-striped table-hover align-middle">
+                        <thead class="table-dark sticky-top bg-light text-center">
+                            <tr>
+                                <th class="bg-info text-white">N°</th>
+                                <th class="bg-info text-white">Date</th>
+                                <th class="bg-info text-white">Collaborateur</th>
+                                <th class="bg-info text-white">Commentaire</th>
+                                <th class="bg-info text-white">Mt Chèque</th>
+                                <th class="bg-info text-white">Détail Cheq</th>
+                                <th class="bg-info text-white">Caisse dépôt</th>
+                                <th class="bg-info text-white">Montant Réçu</th>
+                                <th class="bg-info text-white">Caisse Retrait</th>
+                                <th class="bg-info text-white">actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, versement in chequeEspeces.data %}
+                                <tr>
+                                    <td class="text-center">
+                                        {{ (key +1) }}
+                                    </td>
+                                    <td class="text-center">{{ versement.dateSaisie ? versement.dateSaisie|date('d/m/Y') : '' }}</td>
+                                    <td>{{ versement.collaborateur.prenom|ucwords ~ " " ~ versement.collaborateur.nom |strtoupper }}</td>
+                                    <td>{{ versement.commentaire|ucfirst }}</td>
+                                    <td class="text-end">{{ versement.montantCheque|number_format(0,',',' ') }}</td>
+                                    <td>{{ "heq N°:" ~ versement.numeroCheque ~ " banque:" ~ versement.banqueCheque }}</td>
+                                    <td class="text-center">{{ versement.caisseDepot.nom|capitalize }}</td>
+                                    <td class="text-end">{{ versement.montantRecu|number_format(0,',',' ') }}</td>
+                                    <td class="text-center">{{ versement.caisseRetrait.nom|capitalize }}</td>
+                                
+                                    <td class="text-center">
+                                        <a class="btn btn-success" href="{{ path('app_logescom_comptable_caisse_cheque_espece_show', {'id': versement.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10">Aucune opération éffectuée</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if chequeEspeces.nbrePages > 1 %}
+                            <nav aria-label="Pagination">
+                                <ul class="pagination justify-content-center">
+                                    {# Page précédente #}
+                                    {% if chequeEspeces.pageEnCours > 1 %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': chequeEspeces.pageEnCours - 1, 'site': site.id, 'id_client_search': (search ? search.id : '')})) }}">&laquo;</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                                    {% endif %}
+    
+                                    {% set startPage = max(1, chequeEspeces.pageEnCours - 2) %}
+                                    {% set endPage = min(chequeEspeces.nbrePages, chequeEspeces.pageEnCours + 2) %}
+    
+                                    {# Première page #}
+                                    {% if startPage > 1 %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': 1, 'site': site.id, 'id_client_search': (search ? search.id : '')})) }}">1</a>
+                                        </li>
+                                        {% if startPage > 2 %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                        {% endif %}
+                                    {% endif %}
+    
+                                    {# Pages autour de la page actuelle #}
+                                    {% for i in startPage..endPage %}
+                                        <li class="page-item {{ i == chequeEspeces.pageEnCours ? 'active' : '' }}">
+                                            <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': i, 'site': site.id, 'id_client_search': (search ? search.id : '')})) }}">{{ i }}</a>
+                                        </li>
+                                    {% endfor %}
+    
+                                    {# Dernière page #}
+                                    {% if endPage < chequeEspeces.nbrePages %}
+                                        {% if endPage < chequeEspeces.nbrePages - 1 %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                        {% endif %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': chequeEspeces.nbrePages, 'site': site.id, 'id_client_search': (search ? search.id : '')})) }}">{{ chequeEspeces.nbrePages }}</a>
+                                        </li>
+                                    {% endif %}
+    
+                                    {# Page suivante #}
+                                    {% if chequeEspeces.pageEnCours < chequeEspeces.nbrePages %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': chequeEspeces.pageEnCours + 1, 'site': site.id, 'id_client_search': (search ? search.id : '')})) }}">&raquo;</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    </table>
+
+                </div>
+            </div>
+            
+        </div>
+    </div>
+{% endblock %}
+

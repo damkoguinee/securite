@@ -1,0 +1,35 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    dossier_img_logos: "%kernel.project_dir%/public/images/img_logos"
+    dossier_img_config: "%kernel.project_dir%/public/images/config"
+    dossier_img_personnels: "%kernel.project_dir%/public/images/img_personnel"
+    dossier_client: "%kernel.project_dir%/public/client"
+    dossier_img_clients: "%kernel.project_dir%/public/client/img"
+    dossier_depense: "%kernel.project_dir%/public/depense"
+    dossier_decaissement: "%kernel.project_dir%/public/decaissement"
+    dossier_recette: "%kernel.project_dir%/public/recette"
+    dossier_transfert: "%kernel.project_dir%/public/transfert"
+    dossier_paiement: "%kernel.project_dir%/public/paiement"
+
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones

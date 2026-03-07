@@ -1,0 +1,66 @@
+{{ form_start(form, { 'attr': { 'class': 'p-2' } }) }}
+{{ form_errors(form) }}
+
+<div class="row">
+
+    <!-- NOM -->
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.nom, 'Nom du type de pénalité *', {'label_attr': {'class': 'fw-semibold'}}) }}
+        {{ form_widget(form.nom, {
+            'attr': {
+                'class': 'form-control shadow-sm',
+                'placeholder': 'Ex : Absence, Sommeil, Retard...'
+            }
+        }) }}
+        {{ form_errors(form.nom) }}
+    </div>
+
+    <!-- DESCRIPTION -->
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.description, 'Description', {'label_attr': {'class': 'fw-semibold'}}) }}
+        {{ form_widget(form.description, {
+            'attr': {
+                'class': 'form-control shadow-sm',
+                'rows': 3,
+                'placeholder': 'Détails, conditions d’application, remarques...'
+            }
+        }) }}
+        {{ form_errors(form.description) }}
+    </div>
+
+</div>
+
+<div class="row">
+
+    <!-- MONTANT PAR DÉFAUT -->
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.montantDefaut, 'Montant par défaut *', {'label_attr': {'class': 'fw-semibold'}}) }}
+
+        <div class="input-group">
+            <span class="input-group-text bg-secondary text-white">
+                <i class="fa fa-money-bill"></i>
+            </span>
+
+            {{ form_widget(form.montantDefaut, {
+                'attr': {
+                    'class': 'form-control text-end shadow-sm',
+                    'placeholder': 'Ex : 50000'
+                }
+            }) }}
+
+            <span class="input-group-text bg-light fw-bold">GNF</span>
+        </div>
+
+        {{ form_errors(form.montantDefaut) }}
+    </div>
+
+</div>
+
+<!-- BOUTON -->
+<div class="text-center mt-4">
+    <button class="btn btn-primary px-4">
+        <i class="fa fa-save me-1"></i> {{ button_label|default('Enregistrer') }}
+    </button>
+</div>
+
+{{ form_end(form) }}

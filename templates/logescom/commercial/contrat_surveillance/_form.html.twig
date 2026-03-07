@@ -1,0 +1,163 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+
+<!-- 🗓️ Informations principales -->
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <label class="form-label fw-semibold">Site concerné *</label>
+            <a href="{{ path('app_logescom_commercial_bien_new', { site: site.id }) }}" 
+               class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-plus-circle"></i> Nouveau site
+            </a>
+        </div>
+        {{ form_widget(form.bien) }}
+        {{ form_errors(form.bien) }}
+    </div>
+
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.dateDebut) }}
+    </div>
+
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.dateFin) }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        {{ form_row(form.modeFacturation) }}
+    </div>
+
+    <div class="col-md-3 mb-3">
+        {{ form_row(form.remise) }}
+    </div>
+
+    <div class="col-md-3 mb-3">
+        {{ form_row(form.tva) }}
+    </div>
+
+    <div class="col-md-3 mb-3">
+        {{ form_row(form.statut) }}
+    </div>
+</div>
+
+<hr class="my-4">
+
+<!-- ============================ -->
+<!--  📌 Types de surveillance   -->
+<!-- ============================ -->
+<h5 class="text-primary fw-bold mb-3">
+    <i class="fa fa-shield-halved me-1"></i> Types de surveillance
+</h5>
+
+<div id="types_surveillance_wrapper">
+
+    {# --- AFFICHAGE DES TYPES EXISTANTS --- #}
+    {% for typeForm in form.typesSurveillance %}
+        <div class="card shadow-sm mb-3 p-3 bg-light border rounded type-item">
+
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="fw-semibold mb-2">
+                    <i class="fa fa-list-check me-1"></i> Type de surveillance
+                </h6>
+                <button type="button" class="btn btn-sm btn-danger remove-type">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    {{ form_row(typeForm.typeSurveillance) }}
+                </div>
+
+                <div class="col-md-6">
+                    {{ form_row(typeForm.tarifHoraire) }}
+                </div>
+
+                <div class="col-md-6">
+                    {{ form_row(typeForm.tarifMensuel) }}
+                </div>
+
+                <div class="col-md-6">
+                    {{ form_row(typeForm.nbAgentsJour) }}
+                </div>
+
+                <div class="col-md-6">
+                    {{ form_row(typeForm.nbAgentsNuit) }}
+                </div>
+
+                <div class="col-md-6">
+                    {{ form_row(typeForm.heureParAgent) }}
+                </div>
+            </div>
+
+        </div>
+    {% endfor %}
+
+</div>
+
+<!-- 🔵 Bouton AJOUTER -->
+<button type="button" class="btn btn-outline-primary mb-4" id="add_type_button">
+    <i class="fa fa-plus-circle me-1"></i> Ajouter un type de surveillance
+</button>
+
+<!-- PROTOTYPE CORRIGÉ (✔️ plus de duplication) -->
+<div id="type_prototype" class="d-none">
+    {{ form_widget(form.typesSurveillance.vars.prototype) }}
+</div>
+
+<hr class="my-4">
+
+<!-- 📝 Commentaire global -->
+<div class="row">
+    <div class="col-md-12 mb-3">
+        {{ form_row(form.commentaire) }}
+    </div>
+</div>
+
+<!-- Submit -->
+<div class="text-end mt-4">
+    <button class="btn btn-primary">
+        <i class="fa fa-save me-1"></i> {{ button_label|default('Enregistrer') }}
+    </button>
+</div>
+
+{{ form_rest(form) }}
+{{ form_end(form) }}
+
+<!-- ======================== -->
+<!--     JAVASCRIPT DYNAMIC   -->
+<!-- ======================== -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const wrapper = document.getElementById('types_surveillance_wrapper');
+    const addBtn = document.getElementById('add_type_button');
+    const prototypeHtml = document.getElementById('type_prototype').innerHTML;
+
+    let index = wrapper.querySelectorAll('.type-item').length;
+
+    addBtn.addEventListener('click', function () {
+
+        const newFormHtml = prototypeHtml.replace(/__name__/g, index);
+        index++;
+
+        const container = document.createElement('div');
+        container.innerHTML = newFormHtml;
+
+        const newItem = container.firstElementChild;
+
+        wrapper.appendChild(newItem);
+
+        newItem.querySelector('.remove-type').addEventListener('click', () => newItem.remove());
+    });
+
+    wrapper.querySelectorAll('.remove-type').forEach(btn => {
+        btn.addEventListener('click', function () {
+            btn.closest('.type-item').remove();
+        });
+    });
+
+});
+</script>

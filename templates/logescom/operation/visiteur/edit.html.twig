@@ -1,0 +1,31 @@
+{% extends 'base_gandaal.html.twig' %}
+
+{% block title %}modification du visiteur{% endblock %}
+
+{% block ul_menu %}
+    {% include "gandaal/_common/_nav_acces.html.twig" %}
+{% endblock %}
+
+{% block produits %}
+<div class="row m-auto" style="min-height: 100vh; background-image: url('{{ asset(chemin_images_config) }}fond.jpg'); background-size: cover; background-position: center;">
+    <div class="col-sm-12 col-md-10 col-lg-10 m-auto py-5">
+        {{ include("gandaal/_common/_messages_flash.html.twig") }}
+
+        <div class="card shadow-lg border-0 rounded-4 bg-light mb-4">
+            <div class="card-body p-5 text-center">
+                <h3 class="text-warning mb-4">
+                    <i class="fas fa-user-plus me-2"></i> Modifier le visiteur
+                </h3>
+
+                {{ include('gandaal/administration/securite/visiteur/_form.html.twig', {'button_label': 'Modifier'}) }}
+
+                <div class="d-flex justify-content-between">
+                    <a class="btn btn-light" href="{{ path('app_gandaal_administration_securite_visiteur_new', {etablissement : etablissement.id}) }}">Retour</a>
+
+                    {{ include('gandaal/administration/securite/visiteur/_delete_form.html.twig') }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}💰 Liste des décaissements{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="row">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            <div class="card shadow-lg border-0 mb-4">
+                <!-- 🔹 En-tête -->
+                <div class="card-header bg-dark text-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center">
+                    <h5 class="mb-3 mb-md-0">
+                        <i class="fa fa-wallet me-2 text-warning"></i> Liste des décaissements
+                    </h5>
+
+                    <!-- 🔍 Filtres -->
+                    <div class="filters d-flex flex-wrap align-items-center ">
+                        <!-- 📅 Filtre dates -->
+                        <form class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="fw-semibold text-white mb-0">Du</label>
+                                <input type="date" name="date1" value="{{ date1 }}"
+                                       class="form-control form-control-sm shadow-sm border-0 rounded-pill"
+                                       onchange="this.form.submit()">
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="fw-semibold text-white mb-0">au</label>
+                                <input type="date" name="date2" value="{{ date2 }}"
+                                       class="form-control form-control-sm shadow-sm border-0 rounded-pill"
+                                       onchange="this.form.submit()">
+                            </div>
+
+                            <input type="hidden" name="id_client_search" value="{{ search }}">
+                        </form>
+
+                        <!-- 🔍 Recherche -->
+                        <div class="position-relative" style="min-width: 280px;">
+                            <input type="text" name="search" id="search_client"
+                                   class="form-control form-control-sm shadow-sm rounded-pill ps-4"
+                                   placeholder="🔍 Rechercher un collaborateur ou un motif...">
+                            <div id="result-search" class="position-absolute w-100 mt-1 bg-white border rounded shadow-sm"></div>
+                        </div>
+
+                        <!-- ➕ Bouton nouveau -->
+                        <a href="{{ path('app_logescom_comptable_sorties_decaissement_new', {site: site.id}) }}"
+                           class="btn btn-warning btn-sm rounded-pill shadow-sm">
+                            <i class="fa fa-plus-circle me-1"></i> Nouveau
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 📋 Contenu principal -->
+                <div class="card-body bg-light p-4">
+                    {% if decaissements.data is not empty %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered align-middle shadow-sm">
+                                <thead class="table-dark text-center align-middle">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Date</th>
+                                        <th>Collaborateur</th>
+                                        <th>Motif</th>
+                                        <th>Montant</th>
+                                        <th>Devise</th>
+                                        <th>Mode de paiement</th>
+                                        <th>Caisse</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody class="bg-white text-center">
+                                    {% for key, decaissement in decaissements.data %}
+                                        <tr>
+                                            <td class="fw-semibold">
+                                                {{ key + 1 }}
+                                                <a target="_blank"
+                                                   href="{{ path('app_logescom_comptable_sorties_decaissement_recu_pdf', {'id': decaissement.id, 'site': site.id}) }}"
+                                                   title="Voir reçu PDF">
+                                                   <i class="fa fa-file-pdf text-danger ms-1"></i>
+                                                </a>
+                                            </td>
+                                            <td>{{ decaissement.dateOperation ? decaissement.dateOperation|date('d/m/Y') : '—' }}</td>
+                                            <td class="text-start">
+                                                <i class="fa fa-user text-primary me-1"></i>
+                                                {{ decaissement.collaborateur.prenom|capitalize }} {{ decaissement.collaborateur.nom|upper }}
+                                            </td>
+                                            <td>{{ decaissement.commentaire|ucfirst }}</td>
+                                            <td class="text-end fw-bold">
+                                                {% if decaissement.devise.nom == 'gnf' %}
+                                                    {{ decaissement.montant|abs|number_format(0, '.', ' ') }}
+                                                {% else %}
+                                                    {{ decaissement.montant|abs|number_format(2, ',', ' ') }}
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ decaissement.devise.nom|upper }}</td>
+                                            <td>{{ decaissement.modePaie.designation|capitalize }}</td>
+                                            <td>{{ decaissement.caisse.nom|capitalize }}</td>
+                                            <td>
+                                                <a href="{{ path('app_logescom_comptable_sorties_decaissement_show', {'id': decaissement.id, 'site': site.id}) }}"
+                                                   class="btn btn-sm btn-outline-success"
+                                                   title="Voir le détail">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary text-center my-4">
+                            <i class="fa fa-info-circle me-1"></i> Aucun décaissement trouvé pour cette période.
+                        </div>
+                    {% endif %}
+
+                    <!-- 📄 Pagination -->
+                    {% if decaissements.nbrePages > 1 %}
+                        <nav class="mt-3">
+                            <ul class="pagination justify-content-center">
+                                <!-- ⬅️ Précédent -->
+                                <li class="page-item {{ decaissements.pageEnCours == 1 ? 'disabled' : '' }}">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': decaissements.pageEnCours - 1, 'site': site.id})) }}">
+                                       &laquo;
+                                    </a>
+                                </li>
+
+                                {% set start = max(1, decaissements.pageEnCours - 2) %}
+                                {% set end = min(decaissements.nbrePages, decaissements.pageEnCours + 2) %}
+
+                                {% if start > 1 %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': 1, 'site': site.id})) }}">1</a>
+                                    </li>
+                                    {% if start > 2 %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% for i in start..end %}
+                                    <li class="page-item {{ i == decaissements.pageEnCours ? 'active' : '' }}">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': i, 'site': site.id})) }}">{{ i }}</a>
+                                    </li>
+                                {% endfor %}
+
+                                {% if end < decaissements.nbrePages %}
+                                    {% if end < decaissements.nbrePages - 1 %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': decaissements.nbrePages, 'site': site.id})) }}">
+                                           {{ decaissements.nbrePages }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                <!-- ➡️ Suivant -->
+                                <li class="page-item {{ decaissements.pageEnCours == decaissements.nbrePages ? 'disabled' : '' }}">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': decaissements.pageEnCours + 1, 'site': site.id})) }}">
+                                       &raquo;
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #result-search {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    #result-search .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}

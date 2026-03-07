@@ -1,0 +1,165 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}liste des comptes{% endblock %}
+
+{% block presentation %}
+    {% if app.request.query.has('search') %}
+        {% set search = app.request.query.get('search') %}
+    {% else %}
+        {% set search = search %}
+    {% endif %}
+
+    {% if app.request.query.has('region') %}
+        {% set region = region_find.nom %}
+    {% else %}
+        {% set region = "recherchez par région" %}
+    {% endif %}
+
+    <div class="row m-0 p-0">
+        {% include "logescom/comptable/compte/_nav_compte.html.twig" %}        
+        <div class="col-sm-12 col-md-10 m-auto p-0">
+            {% include "_common/_messages_flash.html.twig" %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Compte {{type1 == type2 ? type1|ucwords : type1 ~ " et " ~ type2|ucwords}} </h5>
+
+                    <a class="btn btn-warning text-center" target="_blank" href="{{path("app_logescom_comptable_compte_compte_collaborateur_pdf_compte", {type1 : type1, type2 : type2, site : site.id, region : region_find ? region_find.id : ''})}}"><i class="fa fa-file-pdf fs-6 text-danger"></i></a>
+
+
+                    {# <a class="btn btn-light text-center" target="_blank" href="{{path("app_logescom_excel_excel_compte", {site : site.id})}}"><i class="fa fa-file-excel fs-6 text-success"></i></a> #}
+                </div>
+                <div class="card-body">
+        
+                    <table class="table table-bordered table-striped table-hover align-middle">
+
+                        <thead class="sticky-top bg-light text-center">
+                            <tr>
+                                <th colspan="7" class="text-center bg-info text-white">
+                                    <div class="row align-items-center ">
+                                        <div class="col-4">
+                                            {% if type1 == 'personnel' %}
+                                                <input type="text" name="search" class="form-control" id="search_personnel" placeholder="Récherchez un personnel">
+
+                                            {% else %}
+                                                <input type="text" name="search" class="form-control" id="search_client" placeholder="Récherchez un client">
+                                            {% endif %}
+                                        </div>  
+                                        <div class="col-3">
+                                            <form class="form w-100">
+                                                <div class="row">
+                                                    <input type="hidden" name="type1" value="{{type1}}">
+                                                    <input type="hidden" name="type2" value="{{type2}}">
+                                                    <select name="region" id="" class="form-select" onChange="this.form.submit()">
+                                                        <option value="{{ region }}">{{ region }}</option>
+                                                        {% for region in regions %}
+                                                            <option value="{{region.id}}">{{region.nom|ucfirst}}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </form>
+                                        </div>
+
+                                        
+                                    </div>
+                                    {% if type1 == 'personnel' %}
+                                        <div class="bg-light text-white text-start" id="result_search_personnel"></div>
+                                    {% else %}
+                                        <div class="bg-light text-white text-start" id="result-search"></div>
+                                    {% endif %}
+
+                                </th>
+                            <tr>
+                            <tr>
+                                <th class="bg-info text-white">N°</th>
+                                <th class="bg-info text-white">Collaborateur</th>
+                                {% for devise in devises %}
+                                    <th class="bg-info text-white">Solde {{devise.nom|strtoupper}}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, compte in comptes %}
+                            <tr>
+                                <td class="text-center">{{ (key +1) }}</td>
+                                <td class="fs-5">
+                                    {% if compte.collaborateur.typeUser == 'client' %}
+                                        {% if compte.collaborateur.societe %}
+                                            {{ compte.collaborateur.societe|ucwords }} - {{ compte.collaborateur.prenom|ucwords }} {{ compte.collaborateur.nom|upper }}
+                                        {% else %}
+                                            {{ compte.collaborateur.prenom|ucwords }} {{ compte.collaborateur.nom|upper }}
+                                        {% endif %}
+                                    {% else %}
+                                        {{ (compte.collaborateur.prenom|ucwords) ~ ' ' ~ (compte.collaborateur.nom|upper) }}
+                                    {% endif %}
+                                </td>
+
+                                {% for solde in compte.soldes %}
+
+                                    {% if solde.montant <= 0 %}
+                                        {% set color = 'success' %}
+                                        {% set montant = - solde.montant %}
+                                    {% else %}
+                                        {% set color = 'danger' %}
+                                        {% set montant = solde.montant %}
+                                    {% endif %}
+                                    <td class="text-end text-nowrap">
+                                        <div class="d-flex justify-content-betweeen align-items-center">
+                                            {% if loop.first %}
+                                                {% if solde.montant < 0 %}
+                                                
+                                                    {% if solde.derniereOperation is defined %}
+                                                        {# Calcul de la différence entre aujourd'hui et la dernière opération #}
+                                                        {% set today = "now"|date("Y-m-d H:i:s") %}
+                                                        {% set derniereOperation = solde.derniereOperation|date("Y-m-d H:i:s") %}
+                                                        {% set diffDays = (today|date("U") - derniereOperation|date("U")) // 86400 %}
+
+                                                        {# Si la dernière opération est inférieure à 30 jours #}
+                                                        {% if diffDays >= 30 and diffDays <= 50 %}
+                                                            <img src="{{ asset('images/config/cartonjaune.jpg') }}" alt="carton jaune" width='20' height='30'>
+
+                                                        {% elseif diffDays > 50 %}
+                                                        
+                                                            <img src="{{ asset('images/config/cartonrouge.jpg') }}" alt="carton rouge" width='20' height='30'>
+
+                                                        {% else %}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+                                            
+                                            {% endif %}
+
+                                            <a href="{{path("app_logescom_comptable_compte_compte_collaborateur_detail", {user : compte.collaborateur.id, devise: solde.devise, site: site.id})}}" class="btn btn-{{color}} text-end w-100">
+                                            {{ solde.devise == 'gnf' ? montant|number_format(0,',',' ') : montant|number_format(2,',',' ') }}</a>
+                                        </div>
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7">Aucun client disponible</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-info  bg-opacity-75">
+                                <th colspan="2" class="bg-info text-white bg-opacity-75 fw-bold text-center ">Cumul Général</th>
+                                {% for solde_general in solde_general_type %}
+                                    {% if solde_general.montant <= 0 %}
+                                        {% set color = 'success' %}
+                                        {% set solde_gen = - solde_general.montant %}
+                                    {% else %}
+                                        {% set color = 'danger' %}
+                                        {% set solde_gen = solde_general.montant %}
+                                    {% endif %}                            
+                                    <th class="bg-{{color}} text-white bg-opacity-75 text-end  fw-bold px-3">{{ solde_general.devise == 'gnf' ? solde_gen|number_format(0,',',' ') : solde_gen|number_format(2,',',' ') }}</th>                        
+                                {% endfor %}
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+{% endblock %}

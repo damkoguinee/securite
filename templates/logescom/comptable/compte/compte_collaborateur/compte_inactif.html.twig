@@ -1,0 +1,147 @@
+{% extends 'base_comptable.html.twig' %}
+{% set queryParams = app.request.query.all %}
+{% set queryString = queryParams|filter((v, k) => k != "page" and k != "ajustement" and k != "id_stock") | url_encode %}
+
+{% block title %}compte client inactif{% endblock %}
+{% block bandeau %} {% endblock %}
+ {% block carousel %}
+    <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel">
+    </div>
+ {% endblock %}
+ {% block categories %} {% endblock %}
+ {% block contact %} {% endblock %}
+ {% block collaborateurs %} {% endblock %}
+ {% block scroll %} {% endblock %}
+ {% block footer %} {% endblock %}
+ {% block social %} {% endblock %}
+
+{% block produits %}
+
+    {% if app.request.query.has('search') %}
+        {% set search = app.request.query.get('search') %}
+    {% else %}
+        {% set search = search %}
+    {% endif %}
+
+    {% if app.request.query.has('region') %}
+        {% set region = region_find.nom %}
+    {% else %}
+        {% set region = "recherchez par région" %}
+    {% endif %}
+
+    <div class="row my-2">
+        {% include "_common/_nav_compte.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {{ include("_common/_messages_flash.html.twig") }}
+        
+            <table class="table table-bordered table-striped table-hover align-middle">
+
+                <thead class="sticky-top bg-light text-center">
+                    <tr>
+                        <th colspan="7" class="text-center bg-info text-white">
+                            Comptes des {{type1 == type2 ? type1|ucwords : type1 ~ " et " ~ type2|ucwords}} inactifs depuis {{limit}} jours 
+                            <a class="btn btn-light text-center" target="_blank" href="{{path("app_logescom_pdf_pdf_compte_inactif", {site : site.id, limit: limit})}}"><i class="fa fa-file-pdf fs-6 text-danger"></i></a>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th colspan="7" class="text-center bg-info text-white">
+                            <div class="row align-items-center ">
+                                <div class="col-4">
+                                    <form class="form">
+                                        <select onChange="this.form.submit()" name="limit" id="" class="form-select">
+                                            <option value="">Selectionnez la durée </option>
+                                            {% for i in 1..90 %}
+                                                <option value="{{ i }}">{{ i }} Jour(s)</option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                </div>
+                                <div class="col-4">
+                                    {% if type1 == 'personnel' %}
+                                        <input type="text" name="search" class="form-control" id="search_personnel" placeholder="Récherchez un personnel">
+
+                                    {% else %}
+                                        <input type="text" name="search" class="form-control" id="search_client" placeholder="Récherchez un client">
+                                    {% endif %}
+                                </div>  
+                                <div class="col-3">
+                                    <form class="form w-100">
+                                        <div class="row">
+                                            <input type="hidden" name="type1" value="{{type1}}">
+                                            <input type="hidden" name="type2" value="{{type2}}">
+                                            <select name="region" id="" class="form-select" onChange="this.form.submit()">
+                                                <option value="{{ region }}">{{ region }}</option>
+                                                {% for region in regions %}
+                                                    <option value="{{region.id}}">{{region.nom|ucfirst}}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            {% if type1 == 'personnel' %}
+                                <div class="bg-light text-white text-start" id="result_search_personnel"></div>
+                            {% else %}
+                                <div class="bg-light text-white text-start" id="result-search"></div>
+                            {% endif %}
+                        </th>
+                    <tr>
+                    <tr>
+                        <th class="bg-info text-white">N°</th>
+                        <th class="bg-info text-white">Nom</th>
+                        <th class="bg-info text-white">Contact</th>
+                        <th class="bg-info text-white">Dernière Op</th>
+                        {% for devise in devises %}
+                            <th class="bg-info text-white">Solde {{devise.nom|strtoupper}}</th>
+                        {% endfor %}
+                        <th class="bg-info text-white">actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set cumulCreances = 0 %}
+
+                    {% for key, compte in comptes %}
+                        <tr>
+                            <td class="text-center">{{ (key +1) }}</td>
+                            <td class="fs-5">{{ compte.collaborateur.typeUser == 'client' ? (compte.collaborateur.societe ? (compte.collaborateur.societe|ucwords ) : compte.collaborateur.prenom|ucwords ~ " " ~ compte.collaborateur.nom |strtoupper ) : compte.collaborateur.prenom|ucwords ~ " " ~ compte.collaborateur.nom |strtoupper }}</td>
+                            <td>{{ compte.collaborateur.telephone }}</td>
+                            <td>{{ compte.derniereOp.dateOperation|date("d/m/Y") }}</td>
+                            {% for solde in compte.soldes %}
+                                {% set cumulCreances = cumulCreances + solde.montant %}
+                                {% if solde.montant <= 0 %}
+                                    {% set color = 'success' %}
+                                    {% set montant = - solde.montant %}
+                                {% else %}
+                                    {% set color = 'danger' %}
+                                    {% set montant = solde.montant %}
+                                {% endif %}
+                                <td class="text-end">
+                                    <a href="{{path("app_logescom_comptable_compte_compte_collaborateur_detail", {user : compte.collaborateur.id, devise: solde.devise, site: site.id})}}" class="btn btn-{{color}} text-end w-100">
+                                        {{ solde.devise == 'gnf' ? montant|number_format(0,',',' ') : montant|number_format(2,',',' ') }}
+                                    </a>
+                                </td>
+                            {% endfor %}
+                            <td class="text-center">
+                                <a class="btn btn-success" href="{{path("app_logescom_direction_commonication_statistiques_ventes_client", { id_client_search : compte.collaborateur.id })}}"><i class="fa fa-eye"></i></a>
+
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7">Aucun client disponible</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="bg-info  bg-opacity-75">
+                        <th colspan="4" class="bg-info text-white bg-opacity-75 fw-bold text-center ">Cumul Général</th>
+                                                  
+                        <th class="bg-success text-white bg-opacity-75 text-end  fw-bold px-3">{{ (- cumulCreances)|number_format(0,',',' ') }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+            
+        </div>
+    </div>
+{% endblock %}

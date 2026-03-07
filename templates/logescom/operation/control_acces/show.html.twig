@@ -1,0 +1,107 @@
+{% extends 'base_gandaal.html.twig' %}
+
+{% block title %}Détail de la présence{% endblock %}
+
+{% block ul_menu %}
+    {% include "gandaal/_common/_nav_acces.html.twig" %}
+{% endblock %}
+
+{% block produits %}
+<div class="row m-auto" style="min-height: 100vh; background-image: url('{{ asset(chemin_images_config) }}fond.jpg'); background-size: cover; background-position: center;">
+    <div class="col-sm-12 col-md-10 col-lg-8 m-auto py-5">
+
+        <div class="card shadow-lg border-0 rounded-4 bg-light mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-check me-2"></i> Détail de la présence
+                </h4>
+            </div>
+            <div class="card-body">
+
+                <h5 class="text-secondary mb-3">Élève</h5>
+                <table class="table table-bordered table-striped">
+                    <tbody>
+                        <tr>
+                            <th>Matricule</th>
+                            <td>{{ control_acce.user.matricule }}</td>
+                        </tr>
+                        <tr>
+                            <th>Nom & Prénom</th>
+                            <td>{{ control_acce.user.nom }} {{ control_acce.user.prenom }}</td>
+                        </tr>
+                        <tr>
+                            <th>Téléphone</th>
+                            <td>{{ control_acce.user.telephone }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td>{{ control_acce.user.email }}</td>
+                        </tr>
+                        {% if control_acce.user.typeUser == 'eleve' %}
+                            <tr>
+                                <th>Classe</th>
+                                <td>
+                                    <span class="badge bg-info text-white me-1">{{ control_acce.user.inscriptions.last.classe.nom }}</span>
+                                    
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+
+                <h5 class="text-secondary mt-4 mb-3">Détails du contrôle</h5>
+                <table class="table table-bordered table-striped">
+                    <tbody>
+                        <tr>
+                            <th>ID</th>
+                            <td>{{ control_acce.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date d'accès</th>
+                            <td>
+                                {% if control_acce.dateAcces %}
+                                    <span class="badge bg-success">{{ control_acce.dateAcces|date('Y-m-d H:i:s') }}</span>
+                                {% else %}
+                                    <span class="text-muted">Non défini</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Date de saisie</th>
+                            <td>
+                                {% if control_acce.dateSaisie %}
+                                    {{ control_acce.dateSaisie|date('Y-m-d H:i:s') }}
+                                {% else %}
+                                    <span class="text-muted">Non défini</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Promo</th>
+                            <td>{{ control_acce.promo }}</td>
+                        </tr>
+                        <tr>
+                            <th>Période</th>
+                            <td>{{ control_acce.periode }}</td>
+                        </tr>
+                        <tr>
+                            <th>Saisi par</th>
+                            <td>{{ control_acce.saisiePar.username }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ path('app_gandaal_administration_securite_control_acces_new', {etablissement: etablissement.id}) }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Retour à la liste
+                    </a>
+
+                    {{ include('gandaal/administration/control_acces/_delete_form.html.twig') }}
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,262 @@
+{% extends 'base_comptable.html.twig' %}
+{% set queryParams = app.request.query.all %}
+{% set queryString = queryParams|filter((v, k) => k != "page" and k != "ajustement" and k != "id_stock") | url_encode %}
+
+{% block title %}cloture des caisses{% endblock %}
+{% block bandeau %} {% endblock %}
+ {% block carousel %}
+    <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel">
+    </div>
+ {% endblock %}
+ {% block categories %} {% endblock %}
+ {% block contact %} {% endblock %}
+ {% block collaborateurs %} {% endblock %}
+ {% block scroll %} {% endblock %}
+ {% block footer %} {% endblock %}
+ {% block social %} {% endblock %}
+
+{% block produits %}
+
+    <div class="row my-2">
+        {% include "_common/_nav_bilan.html.twig" %}
+
+        <div class="col-sm-12 col-md-10" style ="overflow:auto;" >
+            {{ include("_common/_messages_flash.html.twig") }}            
+            {% set colspan = devises|length %}
+            
+            <table class="table table-bordered table-striped table-hover align-middle">
+
+                <thead class="sticky-top bg-light text-center">
+                    <tr>
+                        <th colspan="{{colspan + 1 }}" class="text-center  fw-bold bg-info text-white bg-opacity-20">
+                            <div class="row align-items-center">
+                                <div class="col-9">
+                                    <div class="d-flex justify-content-center align-items-center">
+                                        <p class="px-1">Situation des caisses à la date du {{"now"|date("d/m/Y à H:i")}} </p>
+                                        
+                                    </div>
+                                </div>  
+                            </div>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th class=" fw-bold bg-info text-white bg-opacity-20">Désignation</th>
+                        {% for devise in devises %}                            
+                            <th class="fw-bold bg-info text-white bg-opacity-20">{{devise.nomDevise|strtoupper}}</th>
+                            {# <th class="fw-bold bg-info text-white bg-opacity-20">Montant Réel</th> #}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for caisse, solde_caisse in solde_caisses_especes %}
+                        <tr>
+                            <td class=" fw-bold">{{caisse }} Espèces</td>
+                            {% for solde in solde_caisse %}
+                                    <td class="text-end ">
+                                        <table class="table w-100">
+                                            <tbody>
+                                                <form method=""  onsubmit="return confirm('Etes vous sûr de vouloir confirmer ce montant?');">
+
+                                                    <tr>
+                                                        {% if solde.solde != 0 %}
+                                                            <td class="text-nowrap">
+                                                                {{ solde.nomDevise == 'gnf' ? solde.solde | number_format(0,',',' ') : solde.solde | number_format(2,',',' ')}}
+                                                            </td>
+                                                            <td>
+
+                                                                <input required class=" w-100 text-nowrap form-control text-end fw-bold" type="text" name="montant_reel" value="{{ solde.solde|number_format(0,',',' ')}}">
+                                                            </td>
+                                                            <td>
+                                                                <input class="form-control text-end" type="hidden" name="montant_theo" value="{{ solde.solde}}">
+
+                                                                <input class="form-control text-end" type="hidden" name="mode_paie" value="espèces">
+                                                                <input class="form-control text-end" type="hidden" name="id_caisse" value="{{ solde.id_caisse}}">
+
+                                                                <input class="form-control text-end" type="hidden" name="id_devise" value="{{ solde.id_devise}}">
+
+
+                                                                <input type="hidden" name="_token" value="{{ csrf_token('confirme' ~ site.id) }}">
+                                                                <button class="btn btn-warning">Confirmer</button>
+                                                            </td>
+                                                        {% endif %}
+                                                    </tr>
+                                                </form>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                            {% endfor %}
+
+                        </tr>
+                    {% endfor %}
+
+                    {% for caisse, solde_caisse in solde_caisses_cheques %}
+                        <tr>
+                            <td class=" fw-bold">{{caisse }} Chèques</td>
+                            {% for solde in solde_caisse %}
+                                    <td class="text-end ">
+                                        <table class="table w-100">
+                                            <tbody>
+                                                <form method=""  onsubmit="return confirm('Etes vous sûr de vouloir confirmer ce montant?');">
+
+                                                    <tr>
+                                                        {% if solde.solde != 0 %}
+                                                            <td class="text-nowrap">
+                                                                {{ solde.nomDevise == 'gnf' ? solde.solde | number_format(0,',',' ') : solde.solde | number_format(2,',',' ')}}
+                                                            </td>
+                                                            <td>
+
+                                                                <input required class=" w-100 text-nowrap form-control text-end fw-bold" type="text" name="montant_reel" value="{{ solde.solde|number_format(0,',',' ')}}">
+                                                            </td>
+                                                            <td>
+                                                                <input class="form-control text-end" type="hidden" name="montant_theo" value="{{ solde.solde}}">
+                                                                <input class="form-control text-end" type="hidden" name="mode_paie" value="chèque">
+                                                                <input class="form-control text-end" type="hidden" name="id_caisse" value="{{ solde.id_caisse}}">
+                                                                <input class="form-control text-end" type="hidden" name="id_devise" value="{{ solde.id_devise}}">
+
+
+                                                                <input type="hidden" name="_token" value="{{ csrf_token('confirme' ~ site.id) }}">
+                                                                <button class="btn btn-warning">Confirmer</button>
+                                                            </td>
+                                                        {% endif %}
+                                                    </tr>
+                                                </form>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                            {% endfor %}
+
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                {# <tfoot>
+                    <tr class="bg-info text-white bg-opacity-20">
+                        <th class="bg-info text-white bg-opacity-20  fw-bold">Totaux</th>
+                        {% for cumul in solde_caisses_especes_devises %}
+                            <th class="bg-info text-white bg-opacity-20 text-center  fw-bold">{{ cumul.nomDevise == 'gnf' ? cumul.solde | number_format(0,',',' ') : cumul.solde | number_format(2,',',' ')}}</th>
+                        {% endfor %}
+                    </tr>
+                </tfoot> #}
+            </table>
+
+            <table class="table table-bordered table-striped table-hover align-middle">
+
+                <thead class="sticky-top bg-light text-center">
+                    <tr>
+                        <th colspan="{{colspan + 1 }}" class="text-center  fw-bold bg-info text-white bg-opacity-20">
+                            <div class="row align-items-center">
+                                <div class="col-9">
+                                    <div class="d-flex justify-content-center align-items-center">
+                                        <p class="px-1">Situation des banques à la date du {{"now"|date("d/m/Y à H:i")}} </p>
+                                        
+                                    </div>
+                                </div>  
+                            </div>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th class=" fw-bold bg-info text-white bg-opacity-20">Désignation</th>
+                        {% for devise in devises %}                            
+                            <th class="fw-bold bg-info text-white bg-opacity-20">{{devise.nomDevise|strtoupper}}</th>
+                            {# <th class="fw-bold bg-info text-white bg-opacity-20">Montant Réel</th> #}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for caisse, solde_caisse in solde_banques %}
+                        <tr>
+                            <td class=" fw-bold">{{caisse}}</td>
+                            {% for solde in solde_caisse %}
+                                    <td class="text-end ">
+                                        <table class="table w-100">
+                                            <tbody>
+                                                <form method=""  onsubmit="return confirm('Etes vous sûr de vouloir confirmer ce montant?');">
+
+                                                    <tr>
+                                                        {% if solde.solde != 0 %}
+                                                            <td class="text-nowrap">
+                                                                {{ solde.nomDevise == 'gnf' ? solde.solde | number_format(0,',',' ') : solde.solde | number_format(2,',',' ')}}
+                                                            </td>
+                                                            <td>
+
+                                                                <input required class=" w-100 text-nowrap form-control text-end fw-bold" type="text" name="montant_reel" value="{{ solde.solde|number_format(0,',',' ')}}">
+                                                            </td>
+                                                            <td>
+                                                                <input class="form-control text-end" type="hidden" name="montant_theo" value="{{ solde.solde}}">
+                                                                <input class="form-control text-end" type="hidden" name="mode_paie" value="banque">
+                                                                <input class="form-control text-end" type="hidden" name="id_caisse" value="{{ solde.id_caisse}}">
+                                                                <input class="form-control text-end" type="hidden" name="id_devise" value="{{ solde.id_devise}}">
+
+
+                                                                <input type="hidden" name="_token" value="{{ csrf_token('confirme' ~ site.id) }}">
+                                                                <button class="btn btn-warning">Confirmer</button>
+                                                            </td>
+                                                        {% endif %}
+                                                    </tr>
+                                                </form>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                            {% endfor %}
+
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <table class="table table-bordered table-striped table-hover align-middle">
+
+                <thead class="sticky-top bg-light text-center">
+                    <tr>
+                        <th colspan="7" class="text-center  fw-bold bg-success text-white bg-opacity-20">
+                            <div class="row align-items-center">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-center align-items-center">
+                                    Liste des clôtures
+                                    </div>
+                                </div>  
+                            </div>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th class=" fw-bold bg-success text-white bg-opacity-20">Caisse</th>
+                        <th class=" fw-bold bg-success text-white bg-opacity-20">Montant théo</th>
+                        <th class=" fw-bold bg-success text-white bg-opacity-20">Montant Réel</th>
+                        <th class=" fw-bold bg-success text-white bg-opacity-20">Difference</th>
+                        <th class=" fw-bold bg-success text-white bg-opacity-20">Devise</th>
+                        <th class=" fw-bold bg-success text-white bg-opacity-20">Clôturé par</th>
+                        <th class=" fw-bold bg-success text-white bg-opacity-20">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set cumulCaissesTheo = 0 %}
+                    {% set cumulCaissesReel = 0 %}
+                    {% set cumulCaissesDiff = 0 %}
+                    {% for cloture in liste_clotures %}
+                        {% set cumulCaissesTheo = cumulCaissesTheo + cloture.montantTheo %}
+                        {% set cumulCaissesReel = cumulCaissesReel + cloture.montantReel %}
+                        {% set cumulCaissesDiff = cumulCaissesDiff + cloture.difference %}
+
+                        <tr>
+                            <form method="POST" Action="{{path("app_logescom_caisse_cloture_caisse_delete", {id : cloture.id} )}}"  onsubmit="return confirm('Etes vous sûr de vouloir supprimer ce montant?');">
+                                <td class=" fw-bold">{{ cloture.caisse.designation|ucwords }}</td>
+                                <td class="text-end  fw-bold">{{ cloture.montantTheo|number_format(0,',',' ')}}</td>
+                                <td class="text-end  fw-bold">{{ cloture.montantReel|number_format(0,',',' ')}}</td>
+                                <td class="text-end  fw-bold">{{ cloture.difference| number_format(0,',',' ')}}</td>
+                                <td class="text-end  fw-bold">{{ cloture.devise.nomDevise|strtoupper}}</td>
+                                <td>{{ cloture.saisiePar.prenom|ucwords}}</td>
+                                
+                                <td class="text-center">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ cloture.id) }}">
+                                    <button class="btn btn-danger">Annuler</button>
+                                </td>
+                            </form>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                
+            </table>
+
+            
+        </div>
+    </div>
+{% endblock %}

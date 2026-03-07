@@ -1,0 +1,101 @@
+{{ form_errors(form) }}
+{{ form_start(form) }}
+
+<div class="card border-0 shadow-sm rounded-3 bg-light p-3">
+
+    <!-- 👤 Informations principales -->
+    <div class="row mb-3">
+        <div class="col-md-4 mb-2">
+            {{ form_row(form.personnel, {
+                label: 'Bénéficiaire *'
+            }) }}
+        </div>
+
+        <div class="col-md-2 mb-2">
+            {{ form_row(form.periode, {
+                label: 'Période *'
+            }) }}
+        </div>
+
+        <div class="col-sm-12 col-md-6">
+            <div class="row">
+                <div class="col-sm-12 col-md-8">
+                    {{ form_row(form.montant) }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        {# ===================== RECHERCHE AGENT ===================== #}
+        <div class="col-md-6">
+            <label class="fw-semibold mb-1">
+                🔍 Rechercher un site/contrat
+            </label>
+
+            <div class="position-relative">
+                <input type="text"
+                    id="search_client"
+                    class="form-control form-control-sm rounded-pill ps-4 shadow-sm"
+                    placeholder="Nom, téléphone…">
+
+                <div id="result-search"
+                    class="list-group position-absolute w-100 shadow-sm bg-info"
+                    style="z-index: 1050;">
+                </div>
+            </div>
+
+            <small class="text-muted">
+                Tapez pour filtrer la liste des sites
+            </small>
+        </div>
+
+        {# ===================== SELECT contrat ===================== #}
+        <div class="col-md-6">
+            {{ form_row(form.contrat, {
+                label: '🏢 Site / contrat d’intervention',
+                attr: { class: 'form-select' }
+            }) }}
+        </div>
+    </div>
+
+    <!-- 💰 Détails du paiement -->
+    <div class="row mb-3">
+        <div class="col-md-2 mb-2">
+            {{ form_row(form.devise, {
+                label: 'Devise *'
+            }) }}
+        </div>
+
+        <div class="col-md-3 mb-2">
+            {{ form_row(form.modePaie, {
+                label: 'Mode de paiement *'
+            }) }}
+        </div>
+
+        <div class="col-md-4 mb-2">
+            {{ form_row(form.commentaire, {
+                label: 'Commentaire (optionnel)',
+                attr: { placeholder: 'Détails ou remarques...' }
+            }) }}
+        </div>
+
+        <div class="col-md-3 mb-2">
+            {{ form_row(form.caisse, {
+                label: 'Caisse de retrait *'
+            }) }}
+        </div>
+    </div>
+
+    <hr class="my-3">
+
+    <!-- 🧾 Bouton de validation -->
+    <div class="text-end">
+        <button class="btn btn-primary">
+            <i class="fas fa-check-circle me-1"></i>
+            {{ button_label|default('Enregistrer') }}
+        </button>
+    </div>
+</div>
+
+{{ form_end(form) }}

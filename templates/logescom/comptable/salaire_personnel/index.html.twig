@@ -1,0 +1,298 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Liste des salaires{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+     <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <!-- 🧾 Carte principale -->
+        <div class="card shadow-sm border-0 mb-4">
+
+            <!-- 🔹 En-tête -->
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                
+                <h5 class="mb-0">
+                    <i class="fa fa-wallet me-2"></i> Liste des salaires
+                </h5>
+
+                <div class="d-flex gap-2">
+                    {# ⚙️ Configuration salaire #}
+                    <a class="btn btn-outline-light btn-sm shadow-sm"
+                    href="{{ path('app_logescom_comptable_salaire_personnel_config_salaire_index', { site: site.id }) }}"
+                    title="Configurer les paramètres de salaire">
+                        <i class="fa fa-gear me-1"></i>
+                        Config salaires
+                    </a>
+
+                    {# ➕ Nouveau salaire #}
+                    <a class="btn btn-primary btn-sm shadow-sm"
+                    href="{{ path(
+                            'app_logescom_comptable_salaire_personnel_new',
+                            { site: site.id, periode: 'now'|date('Y-m-d') }
+                    ) }}">
+                        <i class="fa fa-plus-circle me-1"></i>
+                        Enregistrer un salaire
+                    </a>
+                </div>
+            </div>
+
+            <!-- 🔹 En-tête -->
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+
+                {# 🔍 Filtres #}
+                <div class="flex-grow-1 mx-3" style="max-width: 320px;">
+                    <input type="text"
+                            id="search_contrat"
+                            value="{{contrat ? contrat.bien.client.nomComplet : ""}}"
+                            class="form-control form-control-sm shadow-sm"
+                            placeholder="🔍 Rechercher un contrat (client, site, type...)">
+                    <div id="result_search_contrat" class="text-start bg-white small mt-1"></div>
+                </div>
+
+                <form method="get" class="d-flex gap-2 align-items-center w-100">
+                    <input type="text" name="search"
+                        class="form-control form-control-sm"
+                        placeholder="Matricule, nom, téléphone…"
+                        value="{{ search ?? '' }}">
+
+                    <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">— Zones —</option>
+                        {% for zone in zones %}
+                            <option value="{{ zone.id }}" {{ app.request.get('zone') == zone.id ? 'selected' }}>
+                                {{ zone.nom|upper }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="fonction" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">— Fonctions —</option>
+                        <option value="agent" {{ app.request.get('fonction') == 'agent' ? 'selected' }}>Agent</option>
+                        <option value="agent releve" {{ app.request.get('fonction') == 'agent releve' ? 'selected' }}>
+                            Agent Relève
+                        </option>
+                    </select>
+
+                    <input type="date"
+                        name="periode"
+                        id="periode"
+                        class="form-control form-control-sm"
+                        value="{{ app.request.get('periode') ?? 'now'|date('Y-m-d') }}"
+                        onchange="this.form.submit()">
+
+                    <input type="hidden" name="id_contrat_search" value="{{contrat ? contrat.id : ""}}">
+
+                        
+                </form>
+            </div>
+
+
+            <!-- 📊 Contenu -->
+            <div class="card-body bg-light">
+
+                {% set cumulGeneral = 0 %}
+
+                {% if salairesParMois is not empty %}
+
+                    {% for mois, groupes in salairesParMois %}
+
+                        <div class="card shadow-sm border-0 mb-4">
+
+                            <div class="card-header bg-secondary bg-opacity-75 text-white">
+                                <h6 class="mb-0 text-uppercase">
+                                    <i class="fa fa-calendar-alt me-1"></i>
+                                    Période : {{ mois }}
+                                </h6>
+                            </div>
+
+                            {% for bien, salaires in groupes %}
+
+                                <div class="card-body p-2">
+
+                                    <h6 class="text-primary fw-bold mb-2">
+                                        <i class="fa fa-building me-1"></i>
+                                        {{ bien }}
+                                    </h6>
+
+                                    <div class="table-responsive">
+
+                                        <table class="table table-hover align-middle text-center">
+
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Employé</th>
+                                                    <th>Téléphone</th>
+                                                    <th>Salaire brut</th>
+                                                    <th>Avance</th>
+                                                    <th>Pénalité</th>
+                                                    <th>Prime</th>
+                                                    <th>Repos Trav</th>
+                                                    <th>24h Agent</th>
+                                                    <th>Salaire net</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+                                                {% set cumulMois = 0 %}
+                                                {% set cumulBrut = 0 %}
+                                                {% set cumulAvance = 0 %}
+                                                {% set cumulPenalite = 0 %}
+                                                {% set cumulPrime = 0 %}
+                                                {% set cumulReposTravaille = 0 %}
+                                                {% set cumulJourneeEntiere = 0 %}
+
+                                                {% for key, salaire_personnel in salaires %}
+
+                                                    {% set cumulMois = cumulMois + salaire_personnel.montant %}
+                                                    {% set cumulGeneral = cumulGeneral + salaire_personnel.montant %}
+                                                    {% set cumulBrut = cumulBrut + (salaire_personnel.salaireBrut|default(0)) %}
+                                                    {% set cumulAvance = cumulAvance + (salaire_personnel.avanceSalaire|default(0)) %}
+                                                    {% set cumulPenalite = cumulPenalite + (salaire_personnel.penalite|default(0)) %}
+                                                    {% set cumulPrime = cumulPrime + (salaire_personnel.prime|default(0)) %}
+                                                    {% set cumulReposTravaille = cumulReposTravaille + (salaire_personnel.reposTravaille|default(0)) %}
+                                                    {% set cumulJourneeEntiere = cumulJourneeEntiere + (salaire_personnel.journeeEntiere|default(0)) %}
+
+                                                    <tr>
+
+                                                        <td>{{ key + 1 }}</td>
+
+                                                        <td class="text-start">
+                                                            <i class="fa fa-user text-primary me-1"></i>
+                                                            {{ salaire_personnel.personnel.nomCompletUser }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ salaire_personnel.personnel.telephone|default('—') }}
+                                                        </td>
+
+                                                        <td class="text-end fw-semibold">
+                                                            {{ salaire_personnel.salaireBrut|number_format(0, ',', ' ') }}
+                                                        </td>
+
+                                                        <td class="text-end fw-semibold text-danger">
+                                                            {{ salaire_personnel.avanceSalaire|default(0)|number_format(0, ',', ' ') }}
+                                                        </td>
+
+                                                        <td class="text-end fw-semibold text-danger">
+                                                            {{ salaire_personnel.penalite|default(0)|number_format(0, ',', ' ') }}
+                                                        </td>
+
+                                                        <td class="text-end fw-semibold text-success">
+                                                            {{ salaire_personnel.prime|default(0)|number_format(0, ',', ' ') }}
+                                                        </td>
+
+                                                        <td class="text-end fw-semibold text-success">
+                                                            {{ salaire_personnel.reposTravaille|default(0)|number_format(0, ',', ' ') }}
+                                                        </td>
+
+                                                        <td class="text-end fw-semibold text-success">
+                                                            {{ salaire_personnel.journeeEntiere|default(0)|number_format(0, ',', ' ') }}
+                                                        </td>
+
+                                                        <td class="text-end fw-bold">
+                                                            {{ salaire_personnel.montant|abs|number_format(0, ',', ' ') }}
+                                                        </td>
+
+                                                        <td>
+                                                            <a href="{{ path(
+                                                                'app_logescom_comptable_salaire_personnel_show',
+                                                                {id: salaire_personnel.id, site: site.id}
+                                                            ) }}"
+                                                            class="btn btn-sm btn-outline-success">
+
+                                                                <i class="fa fa-eye"></i>
+
+                                                            </a>
+                                                        </td>
+
+                                                    </tr>
+
+                                                {% endfor %}
+
+                                            </tbody>
+
+                                            <tfoot class="table-secondary fw-bold">
+
+                                                <tr>
+
+                                                    <td colspan="3" class="text-end">
+                                                        TOTAL {{ bien }}
+                                                    </td>
+
+                                                    <td class="text-end">
+                                                        {{ cumulBrut|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td class="text-end text-danger">
+                                                        {{ cumulAvance|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td class="text-end text-danger">
+                                                        {{ cumulPenalite|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td class="text-end text-success">
+                                                        {{ cumulPrime|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td class="text-end text-success">
+                                                        {{ cumulReposTravaille|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td class="text-end text-success">
+                                                        {{ cumulJourneeEntiere|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td class="text-end fw-bold">
+                                                        {{ cumulMois|abs|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td></td>
+
+                                                </tr>
+
+                                            </tfoot>
+
+                                        </table>
+
+                                    </div>
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% endfor %}
+
+                    <div class="alert alert-info fw-bold text-end mt-4 mb-0 shadow-sm">
+
+                        <i class="fa fa-coins me-1"></i>
+                        Total général :
+                        <span class="text-dark">
+
+                            {{ cumulGeneral|abs|number_format(0, ',', ' ') }} GNF
+
+                        </span>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="alert alert-secondary text-center my-4">
+                        <i class="fa fa-info-circle me-1"></i>
+                        Aucun salaire enregistré.
+                    </div>
+
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

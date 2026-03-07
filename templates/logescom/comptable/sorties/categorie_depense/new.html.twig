@@ -1,0 +1,27 @@
+
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}ajout catégorie dépense{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            {{ include("_common/_messages_flash.html.twig") }}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Enregistrer une nouvelle catégorie dépense</h5>
+                </div>
+                <div class="card-body">
+
+                    {{ include('logescom/comptable/sorties/categorie_depense/_form.html.twig') }}
+
+                    <a class="btn btn-light my-4" href="{{ path('app_logescom_comptable_sorties_depense_new', {site : site.id}) }}">Retour</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

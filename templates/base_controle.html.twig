@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}base immobilier{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+
+        {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('css/fontawesome/css/all.min.css') }}">
+            <link rel="stylesheet" href="{{ asset('css/bootstrap/css/bootstrap.min.css') }}">
+            {{ encore_entry_link_tags('all-styles') }}
+        {% endblock %}
+        <link rel="manifest" href="{{ asset('build/pwa-manifest.json') }}">
+
+    </head>
+    <body>
+        {% block body %}
+            {% block header %}
+            <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color:#152736; height:70px;">
+                    <div class="container-fluid">
+
+                        {# ---- LOGO ---- #}
+                        <a class="navbar-brand d-flex align-items-center" href="{{ path('app_logescom_home') }}">
+                            {% if site.entreprise.logo is not empty %}
+                                <img src="{{ asset(chemin_images_logos ~ site.entreprise.logo) }}"
+                                    height="50" class="me-2" alt="Logo">
+                            {% else %}
+                                <img src="{{ asset('images/config/default.jpg') }}"
+                                    height="50" class="me-2" alt="Logo">
+                            {% endif %}
+                        </a>
+
+                        {# ---- TOGGLER (mobile) ---- #}
+                        <button class="navbar-toggler" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+
+                        {# ---- NAV CONTENT ---- #}
+                        <div class="collapse navbar-collapse" id="mainNavbar">
+
+                            {# ---- LEFT MENU ---- #}
+                            <ul class="navbar-nav me-auto">
+
+                                <li class="nav-item">
+                                    <a class="nav-link {{ app.current_route starts with 'app_logescom_home' ? 'active text-warning' }}"
+                                    href="{{ path('app_logescom_home') }}">
+                                        <i class="fa fa-home me-1"></i> Accueil
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link {{ app.current_route starts with 'app_logescom_home_service' ? 'active text-warning' }}"
+                                    href="{{ path('app_logescom_home_service', {site: site.id}) }}">
+                                        <i class="fa fa-bars me-1"></i> Menu
+                                    </a>
+                                </li>
+                                
+                                <li class="nav-item">
+                                    <a class="nav-link " aria-current="page" href="{{ path('app_logescom_operation_control_acces_new', {'site': site.id}) }}">Présences</a>
+                                </li>
+                               
+
+                            </ul>
+
+                            {# ---- RIGHT (USER MENU) ---- #}
+                            <ul class="navbar-nav ms-auto">
+
+                                {% if not app.user %}
+
+                                    <li class="nav-item">
+                                        <a class="nav-link text-white" href="{{ path('app_login') }}">
+                                            <i class="fa fa-user-circle me-1"></i>
+                                            Connexion
+                                        </a>
+                                    </li>
+
+                                {% else %}
+
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle text-white"
+                                        href="#" id="userMenu" role="button" data-bs-toggle="dropdown">
+                                            <i class="fa fa-user-circle me-1"></i>
+                                            {{ app.user.username|capitalize }}
+                                        </a>
+
+                                        <ul class="dropdown-menu dropdown-menu-end shadow">
+
+                                            <li>
+                                                <a class="dropdown-item" href="#">
+                                                    <i class="fa fa-id-badge me-1 text-primary"></i> Profil
+                                                </a>
+                                            </li>
+
+                                            <li><hr class="dropdown-divider"></li>
+
+                                            <li>
+                                                <a class="dropdown-item text-danger fw-bold"
+                                                href="{{ path('app_logout') }}">
+                                                    <i class="fa fa-power-off me-1"></i> Déconnexion
+                                                </a>
+                                            </li>
+
+                                        </ul>
+                                    </li>
+
+                                {% endif %}
+
+                            </ul>
+
+                        </div>
+                    </div>
+                </nav>
+            {% endblock %}
+            {% block carousel %}
+                <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel"></div>
+            {% endblock %}
+            {% block main %}
+                <main class="my-2" id="main-content">
+                    {% block presentation %}
+
+                    {% endblock %}
+                </main>
+            {% endblock %}
+            {% block footer %}
+            {% endblock %}
+        {% endblock %}
+        {% block javascripts %}
+            <script src="{{ asset('css/fontawesome/js/all.min.js') }}"></script>
+            {{ encore_entry_script_tags('all-scripts') }}
+            <script src="{{ asset('css/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+        {% endblock %}
+    </body>
+</html>

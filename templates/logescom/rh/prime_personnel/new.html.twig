@@ -1,0 +1,112 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Ajout des primes{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <!-- 🔹 Header avec le bouton Valider -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap" style="gap: 10px;">
+            <h5 class="mb-0">
+                <i class="fa fa-gift me-2"></i> Enregistrer des primes
+            </h5>
+
+            <div class="d-flex align-items-center" style="gap: 10px;">
+                <!-- 📅 Sélecteur de jour -->
+                <form class="d-flex align-items-center mb-0" style="gap: 6px;">
+                    <label for="jour" class="fw-semibold mb-0" style="white-space: nowrap;">Date :</label>
+                    <input type="date" id="jour" name="jour"
+                        value="{{ app.request.query.get('jour') ?? 'now'|date('Y-m-d') }}"
+                        class="form-control form-control-sm bg-light border-0 shadow-sm"
+                        style="max-width: 180px;"
+                        onchange="this.form.submit()">
+                </form>
+
+                <!-- 🟩 Bouton Valider en haut -->
+                {% if app.request.query.get('jour') %}
+                    <button type="submit" form="form-primes" class="btn btn-success btn-sm shadow-sm">
+                        <i class="fa fa-check-circle"></i> Enregistrer
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 📋 Corps du tableau -->
+        <div class="card-body bg-light">
+            {% set jour = app.request.query.get('jour') ?? 'now'|date('Y-m-d') %}
+
+            {% if jour is not empty %}
+                <form id="form-primes" method="post">
+                <!-- 🟩 Bouton de validation aussi en bas pour confort -->
+                    <div class="text-end mt-0">
+                        <button type="submit" class="btn btn-success shadow-sm">
+                            <i class="fa fa-check-circle"></i> Enregistrer toutes les primes
+                        </button>
+                    </div>
+                    <input type="hidden" name="jour" value="{{ jour }}">
+                    <div class="table-responsive mt-3">
+                        <table class="table table-hover table-bordered align-middle shadow-sm">
+                            <thead class="table-dark text-center">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Employé</th>
+                                    <th>Téléphone</th>
+                                    <th>Montant</th>
+                                    <th>Commentaire</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-center align-middle bg-white">
+                                {% for key, personnel in personnels %}
+                                    <tr>
+                                        <td>{{ key + 1 }}</td>
+                                        <td class="text-start fw-semibold">
+                                            <i class="fa fa-user text-primary me-1"></i>
+                                            {{ personnel.prenom|capitalize }} {{ personnel.nom|upper }}
+                                            <input type="hidden" name="primes[{{ key }}][personnel]" value="{{ personnel.id }}">
+                                        </td>
+                                        <td>{{ personnel.telephone|default('—') }}</td>
+                                        <td>
+                                            <input type="text" name="primes[{{ key }}][montant]"
+                                                   class="form-control form-control-sm text-end fw-bold"
+                                                   placeholder="0"
+                                                   onkeyup="formatMontant(this)">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="primes[{{ key }}][commentaire]"
+                                                   placeholder="Détails (facultatif)"
+                                                   class="form-control form-control-sm">
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-muted py-3">
+                                            <i class="fa fa-info-circle me-1"></i> Aucun personnel trouvé pour ce site.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    
+                </form>
+            {% else %}
+                <div class="alert alert-secondary text-center mt-3">
+                    <i class="fa fa-info-circle me-1"></i> Veuillez sélectionner une date pour enregistrer des primes.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 🔹 Footer -->
+        <div class="card-footer text-end bg-white border-top">
+            <a class="btn btn-outline-secondary shadow-sm"
+               href="{{ path('app_logescom_rh_prime_personnel_index', {site: site.id}) }}">
+                <i class="fa fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,5 @@
+<form method="post" action="{{ path('app_logescom_operation_affectation_agent_confirm_delete', {'id': affectation_agent.id, site : site.id}) }}" onsubmit="return confirm('Are you sure you want to delete this item?');">
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ affectation_agent.id) }}">
+    <input type="hidden" name="param" value="simple">
+    <button class="btn btn-danger">Supprimer</button>
+</form>

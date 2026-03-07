@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Relevé des caisses - {{ site.nom }}</title>
+    <style>
+        @page {
+            margin: 20px 15px;
+            size: A4 landscape;
+        }
+        body {
+            font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .header, .footer {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .header img {
+            max-width: 90px;
+            height: auto;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #aaa;
+            padding: 4px 6px;
+            word-wrap: break-word;
+        }
+
+        th {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .text-center { text-align: center; }
+        .text-end { text-align: right; }
+        .text-start { text-align: left; }
+        .text-success { color: green; }
+        .text-danger { color: red; }
+        .fw-bold { font-weight: bold; }
+
+        .summary {
+            background-color: #f4f4f4;
+            border: 1px solid #999;
+            padding: 6px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            font-size: 10px;
+            color: #555;
+        }
+
+        .bg-total {
+            background-color: #333;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <img src="data:image/jpeg;base64,{{ logoPath }}" alt="Logo"><br>
+        <strong>{{ site.nom }}</strong><br>
+        {{ site.adresse.nom }} — Tél : {{ site.telephone }}
+        <h2>Relevé des Caisses<br><small>du {{ date1|date('d/m/Y') }} au {{ date2|date('d/m/Y') }}</small></h2>
+    </div>
+
+    <div class="summary">
+        💼 Solde Général :
+        {{ search_devise.id == 1 ? solde_general|number_format(0,',',' ') : solde_general|number_format(2,',',' ') }}
+        {{ search_devise.nom|upper }}
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        🏦 Solde Sélection :
+        {{ search_devise.id == 1 ? solde_selection|number_format(0,',',' ') : solde_selection|number_format(2,',',' ') }}
+        {{ search_devise.nom|upper }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Date Saisie</th>
+                <th>Référence</th>
+                <th>Description</th>
+                <th>Date Opération</th>
+                <th>Saisi Par</th>
+                <th>Débit</th>
+                <th>Crédit</th>
+                <th>Solde</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set cumulDebiter = 0 %}
+            {% set cumulCrediter = 0 %}
+            {% set cumul = 0 %}
+
+            <tr class="fw-bold">
+                <td colspan="8" class="text-start">Solde initial au {{ date1|date("d/m/Y") }}</td>
+                <td class="text-end">
+                    {{ search_devise.id == 1 ? solde_initial|number_format(0,',',' ') : solde_initial|number_format(2,',',' ') }}
+                </td>
+            </tr>
+
+            {% for key, operation in operations.data %}
+                {% if key == 0 %}
+                    {% set cumul = cumul + operation.montant + solde_initial %}
+                {% else %}
+                    {% set cumul = cumul + operation.montant %}
+                {% endif %}
+
+                <tr>
+                    <td class="text-center">{{ key + 1 }}</td>
+                    <td class="text-center">{{ operation.dateSaisie|date("d/m/Y à H:i") }}</td>
+
+                    {# Description dynamique selon le type #}
+                    {% if operation.typeMouvement == "facturation" %}
+                        <td>{{ operation.reference|upper }}</td>
+                        <td>Facturation N° {{ operation.reference|upper }} — {{ operation.commentaire|capitalize }}</td>
+
+                    {% elseif operation.typeMouvement == "salaire" %}
+                        <td>{{ operation.id }}</td>
+                        <td>Paiement salaire {{ operation.periode|date('m/Y') }}</td>
+
+                    {% elseif operation.typeMouvement == "depense" %}
+                        <td>{{ operation.id }}</td>
+                        <td>Dépense — {{ operation.commentaire|capitalize }}</td>
+
+                    {% elseif operation.typeMouvement == "decaissement" %}
+                        <td>{{ operation.reference }}</td>
+                        <td>Décaissement — {{ operation.commentaire|capitalize }}</td>
+
+                    {% elseif operation.typeMouvement == "avance salaire" %}
+                        <td>{{ operation.id }}</td>
+                        <td>Avance salaire {{ operation.periode|date('m/Y') }}</td>
+
+                    {% elseif operation.typeMouvement == "versement" %}
+                        <td>{{ operation.reference }}</td>
+                        <td>Versement — {{ operation.commentaire|capitalize }}</td>
+
+                    {% elseif operation.typeMouvement == "transfert" %}
+                        <td>{{ operation.reference }}</td>
+                        <td>Transfert de fonds — {{ operation.commentaire|capitalize }}</td>
+
+                    {% elseif operation.typeMouvement == "echange" %}
+                        <td>{{ operation.id }}</td>
+                        <td>Échange devise — {{ operation.commentaire|capitalize }}</td>
+
+                    {% elseif operation.typeMouvement == "cloture" %}
+                        <td>{{ operation.id }}</td>
+                        <td>Clôture de caisse</td>
+
+                    {% else %}
+                        <td>—</td>
+                        <td>Autre opération — {{ operation.typeMouvement }}</td>
+                    {% endif %}
+
+                    <td class="text-center">{{ operation.dateOperation|date("d/m/Y à H:i") }}</td>
+                    <td class="text-start">{{ operation.saisiePar ? operation.saisiePar.prenom|capitalize ~ " " ~ operation.saisiePar.nom|upper : '' }}</td>
+
+                    {% if operation.montant > 0 %}
+                        {% set cumulCrediter = cumulCrediter + operation.montant %}
+                        <td class="text-center">—</td>
+                        <td class="text-end text-success fw-bold">
+                            {{ search_devise.id == 1 ? operation.montant|number_format(0,',',' ') : operation.montant|number_format(2,',',' ') }}
+                        </td>
+                    {% else %}
+                        {% set cumulDebiter = cumulDebiter + operation.montant %}
+                        <td class="text-end text-danger fw-bold">
+                            {{ search_devise.id == 1 ? (-operation.montant)|number_format(0,',',' ') : (-operation.montant)|number_format(2,',',' ') }}
+                        </td>
+                        <td class="text-center">—</td>
+                    {% endif %}
+
+                    <td class="text-end fw-semibold">
+                        {{ search_devise.id == 1 ? cumul|number_format(0,',',' ') : cumul|number_format(2,',',' ') }}
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-3">
+                        Aucune opération trouvée.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+
+        <tfoot>
+            <tr class="bg-total text-end">
+                <td colspan="6" class="text-start">Totaux</td>
+                <td>
+                    {{ search_devise.id == 1 ? (-cumulDebiter)|number_format(0,',',' ') : (-cumulDebiter)|number_format(2,',',' ') }}
+                </td>
+                <td>
+                    {{ search_devise.id == 1 ? (cumulCrediter)|number_format(0,',',' ') : (cumulCrediter)|number_format(2,',',' ') }}
+                </td>
+                <td>—</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="footer">
+        Relevé imprimé par {{ app.user.prenom|ucwords ~ " " ~ app.user.nom|upper }}
+        le {{ "now"|date("d/m/Y à H:i") }}
+    </div>
+</body>
+</html>

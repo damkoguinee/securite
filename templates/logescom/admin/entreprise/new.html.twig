@@ -1,0 +1,28 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Créer une nouvelle entreprise{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/admin/_nav_admin.html.twig" %}
+        
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            <div class="container-fluid p-1">
+                <h1 class="text-center mb-2 fs-4 text-primary">Créer une nouvelle entreprise</h1>
+
+                <div class="card shadow-sm bg-light">
+                    <div class="card-body">
+                        {{ include('logescom/admin/entreprise/_form.html.twig') }}
+                        
+                        <div class="d-flex justify-content-between my-4">
+                            <a class="btn btn-light" href="{{ path('app_logescom_admin_entreprise_index') }}">
+                                <i class="fa fa-arrow-left"></i> Retour à la liste
+                            </a>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

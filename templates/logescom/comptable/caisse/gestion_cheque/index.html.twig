@@ -1,0 +1,254 @@
+{% extends 'base_comptable.html.twig' %}
+{% block title %}Liste des chèques en caisse{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            {% include "_common/_messages_flash.html.twig" %}
+
+            {% if app.request.query.has('date1') %}
+                {% set date1 = app.request.query.get('date1') %}
+                {% set date2 = app.request.query.get('date2') %}
+
+            {% else %}
+                {% set date1 = "now"|date("Y-01-01") %}
+                {% set date2 = "now"|date("Y-m-d") %}
+            {% endif %}
+            
+            <div class="card shadow-sm">
+                
+
+                    <h5 class="m-0">Liste des chèques dans les caisses à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}</h5> 
+
+                    <table class="table table-bordered table-striped table-hover align-middle">
+
+                        <thead class="sticky-top bg-light text-center">
+                            
+
+                            <tr>
+                                <th colspan="11" class="text-center bg-info text-white">
+                                    <div class="row align-items-center ">
+                                        <div class="col-6">
+                                            <form class="form w-100">
+                                                <div class="row">
+                                                    <div class="col-sm-12 col-md-5">
+                                                        <input type="date" name="date1" value="{{ date1 }}" class="form-control" onChange="this.form.submit()" max="{{ date2 }}"> 
+                                                        <input type="hidden" name="id_client_search" value="{{ search }}">
+                                                    </div>
+                                                    <div class="col-1">au</div>
+                                                    <div class="col-sm-12 col-md-6">
+                                                        <input type="date" name="date2" value="{{ date2 }}" class="form-control" onChange="this.form.submit()" min="{{ date1}}" max="{{ "now"|date("Y-m-d") }}">
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="col-6">
+                                            <form class="form w-100 d-flex justify-content-between">
+                                                <input type="text" name="search_cheque" class="form-control mx-1" id="search_client" placeholder="Récherchez par chèque">
+                                                <button class="btn btn-primary" type="submit">Recherchez</button>
+                                            </form>
+                                        </div>   
+                                        {# <div class="bg-light text-white" id="result-search"></div> #}
+                                    </div>
+                                </th>
+                            <tr>
+
+                            <tr>
+                                <th class="bg-info text-white">N°</th>
+                                <th class="bg-info text-white">Date</th>
+                                <th class="bg-info text-white">Déposé par</th>
+                                <th class="bg-info text-white">N°Chèque</th>
+                                <th class="bg-info text-white">Banque Chèque</th>
+                                <th class="bg-info text-white">Montant</th>
+                                <th class="bg-info text-white">Type d'opération</th>
+                                <th class="bg-info text-white">Caisse</th>
+                                <th class="bg-info text-white">Date de sortie</th>
+                                <th class="bg-info text-white">Remis à </th>
+                                <th class="bg-info text-white">Actions </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set cumulOp = 0 %}
+                            {% for key, cheque in cheques.data %}
+                                {% set cumulOp = cumulOp + cheque.montant %}
+                                {% if cheque.etatOperation == 'en attente' %}
+                                    {% set color = "warning" %}
+                                {% else %}
+                                    {% set color = 'danger' %}
+                                {% endif %}
+
+                                {% if cheque.etatOperation != 'en attente' and cheque.montant != 0 %}
+                                    <tr>
+                                        <td class="text-center text-{{color}}">
+                                            {{ (key +1) }}
+                                        </td>
+                                        <td class="text-center text-{{color}}">{{ cheque.dateOperation ? cheque.dateOperation|date('d/m/Y') : '' }}</td>
+
+                                        <td class=" text-{{color}}">
+                                            {% if cheque.typeMouvement == "facturation" %}
+                                                {{cheque.facturation.client ? (cheque.facturation.client.prenom|ucfirst ~ " " ~ cheque.facturation.client.nom|strtoupper) : cheque.facturation.nomClientCash|capitalize}}
+
+                                            {% elseif cheque.typeMouvement == "versement" and cheque.versement %}
+
+                                                {{cheque.versement.client.prenom|ucfirst ~ " " ~ cheque.versement.client.nom|strtoupper}}
+
+                                            {% elseif cheque.typeMouvement == "versement" and cheque.chequeEspece %}
+
+                                                {{cheque.chequeEspece.collaborateur.prenom|ucfirst ~ " " ~ cheque.chequeEspece.collaborateur.nom|strtoupper}}
+
+                                            {% elseif cheque.typeMouvement == "recette" %}
+                                                {{cheque.recette.categorie.designation|ucfirst }}
+                                            {% else %}
+                                                Autre
+                                            {% endif %}
+                                        </td>
+
+                                        <td class=" text-{{color}}">{{ cheque.bordereau|ucfirst }}</td>
+                                        <td class=" text-{{color}}"></td>
+                                        <td class="text-end text-{{color}}">{{ cheque.devise.nom == 'gnf' ? cheque.montant|number_format(0,',',' ') : cheque.montant|number_format(2,',',' ') }}</td>
+                                        <td class=" text-{{color}}">{{ cheque.typeMouvement|ucfirst }}</td>
+                                        <td class="text-center text-{{color}}">{{ cheque.caisse.nom|ucfirst }}</td>
+
+                                        {# <td class="text-center text-{{color}}">{{ cheque.dateSortie ? cheque.dateSortie|date('d/m/Y') : '' }}</td> #}
+
+                                        {# <td class="text-center text-{{color}}">{{cheque.detailSortie}}</td> #}
+                                        <td class="text-center"><a class="btn btn-success" href="{{path('app_logescom_comptable_caisse_comptable_cheque_show', {id : cheque.id, site : site.id})}}"><i class="fa fa-eye"></i></a></td>
+                                    </tr>
+                                {% endif %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="11">Aucune opération enregistrée</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-info text-white bg-opacity-75">
+                                <th colspan="7" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                                
+                                </th>                        
+                            </tr>
+                        </tfoot>
+
+                        
+                    </table>
+
+                    {# <table class="table table-bordered table-striped table-hover align-middle">
+
+                        <thead class="sticky-top bg-light text-center">
+                            <tr>
+                                <th colspan="11" class="text-center bg-info text-white">
+                                    Liste des chèques traités à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}
+                                </th>
+                            </tr>
+
+                            <tr>
+                                <th class="bg-info text-white">N°</th>
+                                <th class="bg-info text-white">Date</th>
+                                <th class="bg-info text-white">Déposé par</th>
+                                <th class="bg-info text-white">N°Chèque</th>
+                                <th class="bg-info text-white">Banque Chèque</th>
+                                <th class="bg-info text-white">Montant</th>
+                                <th class="bg-info text-white">Type d'opération</th>
+                                <th class="bg-info text-white">Caisse</th>
+                                <th class="bg-info text-white">Date de sortie</th>
+                                <th class="bg-info text-white">Remis à </th>
+                                <th class="bg-info text-white">Actions </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set cumulOp = 0 %}
+                            {% for key, cheque in cheques_traites.data %}
+                                {% set cumulOp = cumulOp + cheque.montant %}
+                                {% if cheque.etatOperation == 'traité' %}
+                                    {% set color = "success" %}
+                                {% else %}
+                                    {% set color = 'warning' %}
+                                {% endif %}
+                            <tr>
+                                <td class="text-center text-{{color}}">
+                                    {{ (key +1) }}
+                                </td>
+                                <td class="text-center text-{{color}}">{{ cheque.dateOperation ? cheque.dateOperation|date('d/m/Y') : '' }}</td>
+
+                                <td class=" text-{{color}}">
+                                    {% if cheque.typeMouvement == "facturation" %}
+                                        {{cheque.facturation.client ? (cheque.facturation.client.prenom|ucfirst ~ " " ~ cheque.facturation.client.nom|strtoupper) : cheque.facturation.nomClientCash|capitalize}}
+
+                                    {% elseif cheque.typeMouvement == "versement" and cheque.versement %}
+
+                                        {{cheque.versement.client.prenom|ucfirst ~ " " ~ cheque.versement.client.nom|strtoupper}}
+
+                                    {% elseif cheque.typeMouvement == "versement" and cheque.chequeEspece %}
+
+                                        {{cheque.chequeEspece.collaborateur.prenom|ucfirst ~ " " ~ cheque.chequeEspece.collaborateur.nom|strtoupper}}
+
+                                    {% elseif cheque.typeMouvement == "recette" %}
+                                        {{cheque.recette.categorie.designation|ucfirst }}
+                                    {% else %}
+                                        Autre
+                                    {% endif %}
+                                </td>
+
+                                <td class=" text-{{color}}">{{ cheque.bordereau|ucfirst }}</td>
+                                <td class=" text-{{color}}">{{ cheque.banqueCheque|ucfirst }}</td>
+                                <td class="text-end text-{{color}}">{{ cheque.devise.nom == 'gnf' ? cheque.montant|number_format(0,',',' ') : cheque.montant|number_format(2,',',' ') }}</td>
+                                <td class=" text-{{color}}">{{ cheque.typeMouvement|ucfirst }}</td>
+                                <td class="text-center text-{{color}}">{{ cheque.caisse.nom|ucfirst }}</td>
+
+                                <td class="text-center text-{{color}}">{{ cheque.dateSortie ? cheque.dateSortie|date('d/m/Y') : '' }}</td>
+
+                                <td class="text-center text-{{color}}">{{cheque.detailSortie}}</td>
+                                <td class="text-center"><a class="btn btn-success" href="{{path('app_logescom_caisse_comptable_cheque_show', {id : cheque.id, site : site.id})}}"><i class="fa fa-eye"></i></a></td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="11">Aucune opération enregistrée</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-info text-white bg-opacity-75">
+                                <th colspan="7" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                                
+                                </th>                        
+                            </tr>
+                        </tfoot>
+
+                        {% set nbrePages = cheques_traites.nbrePages %}
+                        {% set pageEncoursTraites = cheques_traites.pageEncours %} 
+                        {% set id = site.id %}
+
+                        {% set path = 'app_logescom_caisse_comptable_cheque_index'  %}
+                                        
+                        {% if nbrePages > 1 %}                    
+
+                            {% if nbrePages %}
+                                <nav aria-label="Page navigation example ">
+                                    <ul class="pagination justify-content-start">
+                                        {% if pageEncoursTraites > 1 %}
+                                            <li class="page-item ">
+                                                <a class="page-link" href="{{path(path, {site : id, pageEncoursTraites : (pageEncoursTraites - 1), date1 : date1, date2 : date2})}}">&lt;</a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled" ><a class="page-link">&lt;</a></li>
+                                        {% endif %}
+                                        {% for page in 1..nbrePages %}                
+                                            <li class="page-item {{ ( page == pageEncoursTraites) ? 'active' : ''}} "><a class="page-link" href="{{path(path, {site : id, pageEncoursTraites : page, date1 : date1, date2 : date2})}}">{{page}}</a></li>
+                                        {% endfor %}
+                                        {% if pageEncoursTraites < nbrePages %}
+                                            <li class="page-item "><a class="page-link" href="{{path(path, {site : id,pageEncoursTraites : pageEncoursTraites + 1, date1 : date1, date2 : date2} ) }}">&gt;</a></li>
+                                        {% else %}
+                                            <li class="page-item disabled "><a href="" class="page-link" >&gt;</a></li>
+                                        {% endif %}
+                                        </li>
+                                    </ul>
+                                </nav>
+                            {% endif %}
+                        {% endif %}
+                    </table> #}
+            </div>
+        </div>
+    </div>
+{% endblock %}

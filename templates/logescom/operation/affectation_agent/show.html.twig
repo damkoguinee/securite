@@ -1,0 +1,287 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}Détail du créneau{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-sm border-0 mb-4">
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fa fa-id-badge me-2"></i> Détail du créneau
+            </h5>
+
+            <div class='d-flex justify-content-between'>
+                <a href="{{ path('app_logescom_operation_affectation_agent_index', {site: site.id}) }}"
+                   class="btn btn-outline-light btn-sm me-2">
+                    <i class="fa fa-arrow-left"></i> Retour à la liste
+                </a>
+
+                <a href="{{ path('app_logescom_operation_affectation_agent_edit', {'id': affectation_agent.id, site: site.id}) }}"
+                   class="btn btn-warning btn-sm shadow-sm me-2">
+                    <i class="fa fa-edit"></i> Modifier
+                </a>
+
+                <div class="text-end ">
+                    {{ include('logescom/operation/affectation_agent/_delete_form.html.twig', {
+                        'button_label': '<i class="fa fa-trash"></i> Supprimer',
+                        'button_class': 'btn btn-danger shadow-sm'
+                    }) }}
+                </div>
+
+                
+            </div>
+        </div>
+
+        <!-- 📋 Corps -->
+        <div class="card-body bg-light">
+            <div class="table-responsive mb-4">
+                <table class="table table-striped table-hover align-middle shadow-sm">
+                    <tbody>
+                        <tr>
+                            <th class="bg-secondary text-white w-25">Agent</th>
+                            <td class="fw-semibold">
+                                <i class="fa fa-user-shield text-primary me-2"></i>
+                                {{ affectation_agent.personnel.prenom|capitalize }} {{ affectation_agent.personnel.nom|upper }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-secondary text-white">Site</th>
+                            <td>{{ affectation_agent.contrat.bien.nom|capitalize }}</td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-secondary text-white">Poste</th>
+                            <td>{{ affectation_agent.poste ?: '—' }}</td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-secondary text-white">Date d’opération</th>
+                            <td>{{ affectation_agent.dateOperation ? affectation_agent.dateOperation|date('d/m/Y') : '—' }}</td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-secondary text-white">Heure de début</th>
+                            <td>{{ affectation_agent.heureDebut ? affectation_agent.heureDebut|date('H:i') : '—' }}</td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-secondary text-white">Heure de fin</th>
+                            <td>{{ affectation_agent.heureFin ? affectation_agent.heureFin|date('H:i') : '—' }}</td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-secondary text-white">Présence</th>
+                            <td>
+                                {% if affectation_agent.presenceConfirme %}
+                                    <span class="badge bg-success px-3 py-2"><i class="fa fa-check-circle me-1"></i> Confirmée</span>
+                                {% else %}
+                                    <span class="badge bg-secondary px-3 py-2"><i class="fa fa-hourglass-half me-1"></i> Non confirmée</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-secondary text-white">Commentaire</th>
+                            <td>{{ affectation_agent.commentaire ?: '—' }}</td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-secondary text-white">Saisie par</th>
+                            <td>
+                                {{ affectation_agent.saisirPar ? affectation_agent.saisirPar.prenom|capitalize ~ ' ' ~ affectation_agent.saisirPar.nom|upper : '—' }}
+                                <small class="text-muted">
+                                    ({{ affectation_agent.dateSaisie ? affectation_agent.dateSaisie|date('d/m/Y H:i') : '' }})
+                                </small>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- 🔥 LISTE DES PENALITÉS -->
+            {% if affectation_agent.penalites is not empty %}
+                <div class="card mt-4 shadow-sm border-danger">
+                    <div class="card-header bg-danger text-white fw-bold">
+                        <i class="fa fa-exclamation-triangle me-2"></i>
+                        Pénalités appliquées à cet agent
+                    </div>
+
+                    <div class="card-body p-0 bg-white">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Pénalité</th>
+                                        <th>Montant</th>
+                                        <th>Commentaire</th>
+                                        <th>Date</th>
+                                        <th>Saisie par</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {% for p in affectation_agent.penalites %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+
+                                            <!-- NOM DE LA PÉNALITÉ -->
+                                            <td>
+                                                <span class="badge bg-danger text-white px-3 py-2">
+                                                    {{ p.penaliteType.nom }}
+                                                </span>
+                                            </td>
+
+                                            <!-- MONTANT -->
+                                            <td class="fw-bold text-danger">
+                                                {{ p.montant|number_format(0, '.', ' ') }} GNF
+                                            </td>
+
+                                            <!-- COMMENTAIRE -->
+                                            <td>
+                                                {{ p.commentaire ?: '—' }}
+                                            </td>
+
+                                            <!-- DATE -->
+                                            <td>
+                                                {{ p.dateSaisie|date('d/m/Y H:i') }}
+                                            </td>
+
+                                            <!-- SAISIE PAR -->
+                                            <td>
+                                                {{ p.saisiePar.prenom|capitalize }} {{ p.saisiePar.nom|upper }}
+                                            </td>
+
+                                            <!-- ACTIONS -->
+                                            <td class="text-center">
+
+                                                <!-- DELETE -->
+                                                <form method="post"
+                                                    action="{{path("app_logescom_operation_affectation_agent_penalite_delete", {id: p.id, site: site.id})}}"
+                                                    style="display:inline;"
+                                                    onsubmit="return confirm('Supprimer cette pénalité ?');">
+
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete_penalite' ~ p.id) }}">
+
+                                                    <button class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </form>
+
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-secondary mt-3">
+                    <i class="fa fa-info-circle me-2"></i>
+                    Aucune pénalité enregistrée pour cette affectation.
+                </div>
+            {% endif %}
+
+            
+            <div class="row mt-4">
+                <div class="d-flex justify-content-between">
+
+                    <form method="post" action="{{ path('app_logescom_operation_affectation_agent_confirm_delete', {'id': affectation_agent.id, site : site.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer Tout le planning de l'agent ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ affectation_agent.id) }}">
+                        <input type="hidden" name="param" value="agent">
+                        <button class="btn btn-danger btn-sm shadow-sm"><i class="fa fa-trash"></i> Supprimer tout le planning de l'agent</button>
+                    </form>
+                    {% if affectation_agent.groupeAffectation %}
+
+                        <form method="post" action="{{ path('app_logescom_operation_affectation_agent_confirm_delete', {'id': affectation_agent.id, site : site.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer tout le planning de ce groupe ?');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ affectation_agent.id) }}">
+                            <input type="hidden" name="param" value="group">
+                            <button class="btn btn-danger btn-sm shadow-sm"><i class="fa fa-trash"></i> Supprimer tout le groupe</button>
+                        </form>
+                    {% endif %}
+
+                    
+
+                    
+                </div>
+            </div>
+           
+
+            {% if groupe_affectations is defined and groupe_affectations|length > 1 %}
+                <!-- 🔗 Autres affectations du même groupe -->
+                <div class="card mt-4 border-info shadow-sm">
+                    <div class="card-header bg-info text-white fw-bold">
+                        <i class="fa fa-calendar-alt me-2"></i> Affectations liées à ce groupe
+                    </div>
+                    <div class="card-body bg-white p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle text-center mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Date</th>
+                                        <th>Agent</th>
+                                        <th>Site</th>
+                                        <th>Poste</th>
+                                        <th>Heure</th>
+                                        <th>Présence</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for key, aff in groupe_affectations %}
+                                        <tr {% if aff.id == affectation_agent.id %}class="table-warning"{% endif %}>
+                                            <td>{{ key + 1 }}</td>
+                                            <td>{{ aff.dateOperation|date('d/m/Y') }}</td>
+                                            <td>{{ aff.personnel.nomCompletUser }}</td>
+                                            <td>{{ aff.contrat.bien.nom }}</td>
+                                            <td>{{ aff.poste }}</td>
+                                            <td>{{ aff.heureDebut ? aff.heureDebut|date('H:i') : '—' }} - {{ aff.heureFin ? aff.heureFin|date('H:i') : '—' }}</td>
+                                            <td>
+                                                {% if aff.presenceConfirme %}
+                                                    <span class="badge bg-success">Présent</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Non confirmé</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ path('app_logescom_operation_affectation_agent_show', {'id': aff.id, site: site.id}) }}"
+                                                   class="btn btn-sm btn-outline-primary" title="Voir">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                                <a href="{{ path('app_logescom_operation_affectation_agent_edit', {'id': aff.id, site: site.id}) }}"
+                                                   class="btn btn-sm btn-outline-warning" title="Modifier">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                                <form method="post"
+                                                      action="{{ path('app_logescom_operation_affectation_agent_confirm_delete', {'id': aff.id, site : site.id}) }}"
+                                                      style="display:inline;"
+                                                      onsubmit="return confirm('Supprimer cette affectation ?');">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ aff.id) }}">
+                                                    <button class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+
+
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

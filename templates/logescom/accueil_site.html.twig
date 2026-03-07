@@ -1,0 +1,79 @@
+{% extends 'base_logescom.html.twig' %}
+
+{% block title %}Accueil site{% endblock %}
+ {% block scroll %} {% endblock %}
+ {% block carousel %}
+    <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel" >
+    </div>
+ {% endblock %}
+
+{% block presentation %}
+    <div class="container-fluid d-flex justify-content-center align-items-center" style="min-height: 90vh; background-color:#193c51;" >
+
+        <div class="row m-4 p-4 justify-content-center align-item-center" style="margin: auto; width:90%; background-image: url({{ asset('images/config/fond.jpg') }});">
+
+            <div class="col-sm-6 col-md-3 col-lg-3 m-auto my-4">
+                <a  class="btn btn-secondary" href="#">
+                    <div class="card" style="width: 9rem; height: 8rem;">
+                        <img src="{{ asset('images/config/personnel.jpg') }}" class="card-img-top m-auto" alt="vente" style="width: 5rem; height: 5rem">
+                        <div class="card-bod m-auto ">
+                            <h6 class="card-title text-center text-primary">Personnels</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-md-3 col-lg-3 m-auto my-4">
+                <a  class="btn btn-secondary" href="{{path("app_logescom_sortie_depense_index", {'site' : site.id})}}">
+                    <div class="card" style="width: 9rem; height: 8rem;">
+                        <img src="{{ asset('images/config/retrait.jpg') }}" class="card-img-top m-auto" alt="vente" style="width: 5rem; height: 5rem">
+                        <div class="card-bod m-auto ">
+                            <h6 class="card-title text-center text-primary">Sorties</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-sm-6 col-md-3 col-lg-3 m-auto my-4">
+                <a  class="btn btn-secondary" href="#">
+                    <div class="card" style="width: 9rem; height: 8rem;">
+                        <img src="{{ asset('images/config/compte.jpg') }}" class="card-img-top m-auto" alt="vente" style="width: 5rem; height: 5rem">
+                        <div class="card-bod m-auto ">
+                            <h6 class="card-title text-center text-primary">Comptes</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-md-3 col-lg-3 m-auto my-4">
+                <a  class="btn btn-secondary" href="#">
+                    <div class="card" style="width: 9rem; height: 8rem;">
+                        <img src="{{ asset('images/config/compta.jpg') }}" class="card-img-top m-auto" alt="vente" style="width: 5rem; height: 5rem">
+                        <div class="card-bod m-auto ">
+                            <h6 class="card-title text-center text-primary">Comptabilité</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-md-3 col-lg-3 m-auto my-4">
+                <a  class="btn btn-secondary" href="#">
+                    <div class="card" style="width: 9rem; height: 8rem;">
+                        <img src="{{ asset('images/config/versement.jpg') }}" class="card-img-top m-auto" alt="vente" style="width: 5rem; height: 5rem">
+                        <div class="card-bod m-auto ">
+                            <h6 class="card-title text-center text-primary">Entrées</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {# <div class="col-sm-6 col-md-3 col-lg-3 m-auto my-4">
+                <a  class="btn btn-secondary" href="{{path("app_logescom_client_index", {'site' : site.id})}}">
+                    <div class="card" style="width: 9rem; height: 8rem;">
+                        <img src="{{ asset('images/config/clients.jpg') }}" class="card-img-top m-auto" alt="vente" style="width: 5rem; height: 5rem">
+                        <div class="card-bod m-auto ">
+                            <h6 class="card-title text-center text-primary">Clients</h6>
+                        </div>
+                    </div>
+                </a>
+            </div> #}
+        </div>
+    </div>
+{% endblock %}
+

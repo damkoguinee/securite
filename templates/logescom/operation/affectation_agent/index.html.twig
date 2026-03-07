@@ -1,0 +1,268 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}📋 Affectations des agents{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-lg border-0 mb-4">
+
+        {# ===================== HEADER ===================== #}
+        <div class="card-header bg-dark text-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center">
+            <h5 class="mb-3 mb-md-0">
+                <i class="fa fa-users-gear me-2 text-warning"></i>
+                Planning des agents
+            </h5>
+
+            <div class="filters d-flex flex-wrap align-items-center gap-3">
+
+                {# 📅 FILTRES #}
+                <form class="d-flex align-items-center gap-2 flex-nowrap">
+                    <input type="date" name="date1" value="{{ date1 }}"
+                           class="form-control form-control-sm rounded-pill"
+                           onchange="this.form.submit()">
+
+                    {% set zoneSelected = app.request.get('zone') %}
+                    <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">— Toutes les zones —</option>
+                        {% for zone in zones %}
+                            <option value="{{ zone.id }}" {{ zoneSelected == zone.id ? 'selected' }}>
+                                {{ zone.nom|upper }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    {% set fonctionSelected = app.request.get('fonction') %}
+
+                    <select name="fonction"
+                            class="form-select form-select-sm"
+                            onchange="this.form.submit()">
+
+                        <option value="">— Toutes les fonctions —</option>
+
+                        <option value="agent" {{ fonctionSelected == 'agent' ? 'selected' }}>
+                            Agent
+                        </option>
+
+                        <option value="agent releve" {{ fonctionSelected == 'agent releve' ? 'selected' }}>
+                            Agent Relève
+                        </option>
+                    </select>
+
+                </form>
+
+                {# 🔍 RECHERCHE AGENT #}
+                <div class="position-relative" style="min-width: 260px;">
+                    <input type="text" id="search_client"
+                           class="form-control form-control-sm rounded-pill"
+                           placeholder="🔍 Rechercher un agent">
+                    <div id="result-search"
+                         class="position-absolute w-100 mt-1 bg-white border rounded shadow-sm"></div>
+                </div>
+
+                {# ➕ NOUVELLE AFFECTATION #}
+                <a href="{{ path('app_logescom_operation_affectation_agent_new', { site: site.id }) }}"
+                   class="btn btn-warning btn-sm rounded-pill">
+                    <i class="fa fa-plus-circle me-1"></i> Nouvelle
+                </a>
+            </div>
+        </div>
+
+        {# ===================== BODY ===================== #}
+        <div class="card-body bg-light p-4">
+
+            {% if affectationsGroupes is not empty %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered align-middle shadow-sm">
+
+                        <thead class="table-dark text-center">
+                            <tr>
+                                <th>#</th>
+                                <th>Agent</th>
+                                <th>Poste</th>
+                                <th>Horaire</th>
+                                <th>Présence</th>
+                                <th>Statut</th>
+                                <th>Commentaire</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="bg-white text-center">
+                        {% set index = 1 %}
+
+                        {% for groupe in affectationsGroupes %}
+
+                            {# ===== SITE / BIEN ===== #}
+                            <tr class="table-secondary">
+                                <td colspan="8" class="fw-bold text-start text-uppercase">
+                                    <i class="fa fa-map-marker-alt text-primary me-1"></i>
+                                    {{ groupe.bien_nom }}
+                                    <span class="badge bg-primary ms-2">
+                                        {{ groupe.affectations|length }}
+                                    </span>
+                                </td>
+                            </tr>
+
+                            {# ===== AFFECTATIONS ===== #}
+                            {% for affectation in groupe.affectations %}
+                                <tr>
+                                    <td>{{ index }}</td>
+
+                                    <td class="text-start fw-semibold">
+                                        <i class="fa fa-user text-primary me-1"></i>
+                                        {{ affectation.personnel.nomCompletUser }}
+                                        <br>
+                                        <small class="text-muted">{{ affectation.personnel.telephone }}</small>
+                                    </td>
+
+                                    <td>{{ affectation.poste ?: '—' }}</td>
+
+                                    <td>
+                                        {{ affectation.heureDebut ? affectation.heureDebut|date('H:i') : '—' }}
+                                        -
+                                        {{ affectation.heureFin ? affectation.heureFin|date('H:i') : '—' }}
+                                    </td>
+
+                                    <td>
+                                        {% if affectation.presenceConfirme %}
+                                            <span class="badge bg-success">Confirmé</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Non confirmé</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if affectation.statutAffectation == 'repos' %}
+                                            <span class="badge bg-secondary">Repos</span>
+                                        {% elseif affectation.statutAffectation == 'repos_travaille' %}
+                                            <span class="badge bg-success">Repos travaillé</span>
+                                        {% elseif affectation.statutAffectation == 'intervention' %}
+                                            <span class="badge bg-warning">Intervention</span>
+                                        {% elseif affectation.statutAffectation == 'permutation' %}
+                                            <span class="badge bg-info">Permutation</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-start" style="width: 25%;">
+                                        {{ affectation.commentaire ?: '—' }}
+                                    </td>
+
+                                    {# ===== ACTIONS ===== #}
+                                    <td class="text-center">
+
+                                        {# 👁️ Voir #}
+                                        <a href="{{ path(
+                                            'app_logescom_operation_affectation_agent_show',
+                                            { id: affectation.id, site: site.id }
+                                        ) }}"
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="Voir">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+
+                                        {# 🔽 ACTIONS MÉTIER #}
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                                    data-bs-toggle="dropdown"
+                                                    title="Actions métier">
+                                                <i class="fa fa-arrows-rotate"></i>
+                                            </button>
+
+                                            <ul class="dropdown-menu">
+                                                {% if affectation.statutAffectation != 'inactif' %}
+                                                    <li>
+                                                        <a class="dropdown-item text-danger"
+                                                        href="{{ path('app_logescom_affectation_remplacement_new', { id: affectation.id, site : site.id }) }}">
+                                                            🔁 Remplacement
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item text-info"
+                                                        href="{{ path('app_logescom_affectation_intervention_new', { id: affectation.id, site : site.id }) }}">
+                                                            🚨 Intervention autre site
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item text-warning"
+                                                        href="{{ path('app_logescom_affectation_permutation_new', { id: affectation.id, site : site.id }) }}">
+                                                            🔄 Permutation
+                                                        </a>
+                                                    </li>
+
+                                                    <li>
+                                                        <a class="dropdown-item text-success"
+                                                        href="{{ path('app_logescom_affectation_repos_new', { id: affectation.id, site : site.id, action : 'repos' }) }}">
+                                                            🔄 Repos
+                                                        </a>
+                                                    </li>
+
+                                                    <li>
+                                                        <a class="dropdown-item text-primary"
+                                                        href="{{ path('app_logescom_affectation_repos_new', { id: affectation.id, site : site.id, action: 'repos_travaille' }) }}">
+                                                            🔄 Repos travaillé
+                                                        </a>
+                                                    </li>
+
+                                                    <li>
+                                                        <a class="dropdown-item text-primary"
+                                                        href="{{ path('app_logescom_affectation_repos_new', { id: affectation.id, site : site.id, action: 'journee_entiere' }) }}">
+                                                            🔄 Journée entière (24h agent)
+                                                        </a>
+                                                    </li>
+                                                {% endif %}
+
+                                                <li>
+                                                    <a class="dropdown-item text-primary"
+                                                       href="{{ path('app_logescom_affectation_desactivation_new', { id: affectation.id, site : site.id, action: 'inactif' }) }}">
+                                                       {% if affectation.statutAffectation == 'inactif' %}
+                                                            🔄 Reintegrer à partir de cette date
+                                                        {% else %}
+                                                            🔄 Arrêter à partir de cette date
+                                                            
+                                                        {% endif %}
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        {# ⚠️ PÉNALITÉ #}
+                                        <a href="{{ path(
+                                            'app_logescom_operation_affectation_agent_penalite_new',
+                                            { site: site.id, affectation: affectation.id }
+                                        ) }}"
+                                           class="btn btn-sm btn-outline-warning"
+                                           title="Saisir une pénalité">
+                                            <i class="fa fa-exclamation-triangle"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+
+                                {% set index = index + 1 %}
+                            {% endfor %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            {% else %}
+                <div class="alert alert-secondary text-center my-4">
+                    <i class="fa fa-info-circle me-1"></i>
+                    Aucune affectation enregistrée pour le moment.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+#result-search {
+    max-height: 250px;
+    overflow-y: auto;
+}
+#result-search .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

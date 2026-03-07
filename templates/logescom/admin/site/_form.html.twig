@@ -1,0 +1,43 @@
+{{ form_errors(form) }}
+{{ form_start(form) }}
+    <div class="row">
+        <!-- Nom et Email côte à côte -->
+        <div class="col-md-6 mb-3">
+            {{ form_row(form.nom) }}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form_row(form.email) }}
+        </div>
+    </div>
+    <div class="row">
+        <!-- Date d'ouverture et Téléphone côte à côte -->
+        <div class="col-md-6 mb-3">
+            {{ form_row(form.dateOuverture) }}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form_row(form.telephone) }}
+        </div>
+    </div>
+    <div class="row">
+        <!-- Initiales et Adresse côte à côte -->
+        <div class="col-md-6 mb-3">
+            {{ form_row(form.initial) }}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form_row(form.description) }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            {{ form_row(form.adresse) }}
+        </div>
+        <!-- Complément d'adresse et Entreprise côte à côte -->
+        <div class="col-md-4 mb-3">
+            {{ form_row(form.complementAdresse) }}
+        </div>
+        <div class="col-md-4 mb-3">
+            {{ form_row(form.entreprise) }}
+        </div>
+    </div>
+    <button class="btn btn-primary">{{ button_label|default('Enregistrer') }}</button>
+{{ form_end(form) }}

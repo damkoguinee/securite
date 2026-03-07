@@ -1,0 +1,187 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}
+🔁 Remplacement d’un agent
+{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-lg border-0 mb-4">
+
+        {# ===================== HEADER ===================== #}
+        <div class="card-header bg-danger text-white py-3 px-4">
+            <h5 class="mb-0">
+                <i class="fa fa-rotate-right me-2"></i>
+                Remplacement d’agent
+            </h5>
+        </div>
+
+        {# ===================== CONTEXTE ===================== #}
+        <div class="card-body bg-light p-4">
+
+            <div class="alert alert-warning shadow-sm">
+                <h6 class="fw-bold mb-2">
+                    <i class="fa fa-triangle-exclamation me-1"></i>
+                    Action sensible
+                </h6>
+
+                <p class="mb-1">
+                    Vous êtes sur le point de remplacer <strong>
+                        {{ affectation_source.personnel.nomCompletUser }}
+                    </strong>
+                    sur le site :
+                    <strong>{{ affectation_source.contrat.bien.nom }}</strong>
+                </p>
+
+                <p class="mb-0">
+                    👉 <strong>Tous les créneaux à partir du
+                        {{ affectation_source.dateOperation|date('d/m/Y') }}
+                    </strong>
+                    seront transférés au nouvel agent.
+                </p>
+            </div>
+
+            {# ===================== INFOS SOURCE ===================== #}
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="border rounded p-3 bg-white shadow-sm h-100">
+                        <h6 class="fw-bold text-secondary mb-2">
+                            <i class="fa fa-user-slash me-1"></i>
+                            Agent remplacé
+                        </h6>
+
+                        <p class="mb-1 fw-semibold">
+                            {{ affectation_source.personnel.nomCompletUser }}
+                        </p>
+
+                        <small class="text-muted">
+                            {{ affectation_source.personnel.telephone }}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="border rounded p-3 bg-white shadow-sm h-100">
+                        <h6 class="fw-bold text-secondary mb-2">
+                            <i class="fa fa-calendar-day me-1"></i>
+                            Créneau de référence
+                        </h6>
+
+                        <p class="mb-1">
+                            <strong>Date :</strong>
+                            {{ affectation_source.dateOperation|date('d/m/Y') }}
+                        </p>
+
+                        <p class="mb-0">
+                            <strong>Horaire :</strong>
+                            {{ affectation_source.heureDebut
+                                ? affectation_source.heureDebut|date('H:i')
+                                : '—'
+                            }}
+                            -
+                            {{ affectation_source.heureFin
+                                ? affectation_source.heureFin|date('H:i')
+                                : '—'
+                            }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {# ===================== FORM ===================== #}
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fa fa-user-plus me-1"></i>
+                    Choisir l’agent remplaçant
+                </div>
+
+                <div class="card-body bg-white p-4">
+
+                    {{ form_start(form) }}
+                    {{ form_errors(form) }}
+
+                    <div class="row g-3">
+
+                        {# ===================== RECHERCHE AGENT ===================== #}
+                        <div class="col-md-4">
+                            <label class="fw-semibold mb-1">
+                                🔍 Rechercher un agent
+                            </label>
+
+                            <div class="position-relative">
+                                <input type="text"
+                                    id="search_client"
+                                    class="form-control form-control-sm rounded-pill ps-4 shadow-sm"
+                                    placeholder="Nom, téléphone…">
+
+                                <div id="result-search"
+                                    class="list-group position-absolute w-100 shadow-sm"
+                                    style="z-index: 1050;">
+                                </div>
+                            </div>
+
+                            <small class="text-muted">
+                                Tapez pour filtrer la liste des agents
+                            </small>
+                        </div>
+
+                        {# ===================== SELECT NOUVEL AGENT ===================== #}
+                        <div class="col-md-4">
+                            {{ form_row(form.personnel, {
+                                label: '👮‍♂️ Nouvel agent',
+                                attr: {
+                                    class: 'form-select shadow-sm'
+                                }
+                            }) }}
+                        </div>
+
+                        {# ===================== POSTE ===================== #}
+                        <div class="col-md-4">
+                            {{ form_row(form.poste, {
+                                label: '🧱 Poste',
+                                attr: {
+                                    readonly: true,
+                                    class: 'form-control shadow-sm bg-light'
+                                }
+                            }) }}
+                        </div>
+
+                    </div>
+
+
+                    {# ⚠️ Rappel important #}
+                    <div class="alert alert-info small mt-3">
+                        <i class="fa fa-circle-info me-1"></i>
+                        Les horaires, le poste et le contrat seront
+                        <strong>strictement identiques</strong>
+                        aux créneaux remplacés.
+                    </div>
+
+                    {# ===================== ACTIONS ===================== #}
+                    <div class="d-flex justify-content-between mt-4">
+
+                        <a href="{{ path(
+                            'app_logescom_operation_affectation_agent_index',
+                            { site: site.id }
+                        ) }}"
+                           class="btn btn-outline-secondary">
+                            <i class="fa fa-arrow-left me-1"></i>
+                            Annuler
+                        </a>
+
+                        <button class="btn btn-danger px-4">
+                            <i class="fa fa-rotate-right me-1"></i>
+                            Confirmer le remplacement
+                        </button>
+                    </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

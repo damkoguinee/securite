@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}ConfigurationSms{% endblock %}
+
+{% block body %}
+    <h1>ConfigurationSms</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ configuration_sm.id }}</td>
+            </tr>
+            <tr>
+                <th>Nom</th>
+                <td>{{ configuration_sm.nom }}</td>
+            </tr>
+            <tr>
+                <th>Etat</th>
+                <td>{{ configuration_sm.etat }}</td>
+            </tr>
+            <tr>
+                <th>Frequence</th>
+                <td>{{ configuration_sm.frequence }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_logescom_contact_configuration_sms_index') }}">back to list</a>
+
+    <a href="{{ path('app_logescom_contact_configuration_sms_edit', {'id': configuration_sm.id}) }}">edit</a>
+
+    {{ include('logescom/contact/configuration_sms/_delete_form.html.twig') }}
+{% endblock %}

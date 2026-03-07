@@ -1,0 +1,149 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accueil Logescom{% endblock %}
+
+{% block presentation %}
+<style>
+    /* 🌌 Section principale avec fond thématique sécurité */
+    .hero {
+        position: relative;
+        min-height: 85vh;
+        background:
+            linear-gradient(135deg, rgba(5, 24, 35, 0.92), rgba(0, 82, 100, 0.88)),
+            url('{{ asset('images/config/security_bg.jpg') }}') center/cover no-repeat;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 0;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+    }
+
+    /* Grille adaptative */
+    .container-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 2rem;
+        width: 90%;
+        max-width: 1200px;
+        z-index: 2;
+    }
+
+    /* 🎴 Cartes vitrées effet “futuriste” */
+    .card-custom {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 18px;
+        padding: 1.8rem 1.3rem;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        color: #e6f0f3;
+        font-family: 'Poppins', sans-serif;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+        transition: all 0.35s ease;
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .card-custom::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(120deg, rgba(49,126,251,0.25), transparent 70%);
+        transition: all 0.6s ease;
+    }
+
+    .card-custom:hover::before {
+        left: 100%;
+    }
+
+    .card-custom:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+        border-color: rgba(49, 126, 251, 0.4);
+    }
+
+    /* Icônes circulaires */
+    .card-icon {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 1rem;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+        transition: transform 0.3s ease;
+    }
+
+    .card-custom:hover .card-icon {
+        transform: scale(1.1);
+    }
+
+    /* Titres */
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+        color: #ffffff;
+    }
+
+    /* Sous-titres */
+    .card-subtitle {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #c2d3dc;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .container-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="hero" role="main" aria-label="Page d'accueil Logescom">
+    <div class="container-cards">
+
+        <!-- ⚙️ Administration -->
+        <a href="{{ path('app_logescom_admin_entreprise_index') }}" class="card-custom" aria-label="Administration">
+            <img src="{{ asset(chemin_images_config ~ 'admin.jpg') }}" alt="Administration" class="card-icon">
+            <h2 class="card-title">Administration</h2>
+            <p class="card-subtitle">{{ entreprise.adresse.nom|capitalize }}</p>
+        </a>
+
+        <!-- 🏢 Direction -->
+        <a href="#" class="card-custom" aria-label="Direction générale">
+            {% if entreprise.logo %}
+                <img src="{{ asset(chemin_images_logos ~ entreprise.logo) }}" alt="Logo Direction" class="card-icon">
+            {% else %}
+                <img src="{{ asset(chemin_images_config ~ 'default.jpg') }}" alt="Logo par défaut" class="card-icon">
+            {% endif %}
+            <h2 class="card-title">Direction</h2>
+            <p class="card-subtitle">{{ entreprise.adresse.nom|capitalize }}</p>
+        </a>
+
+        <!-- 🏬 Agences / Sites -->
+        {% for site in sites %}
+            <a href="{{ path('app_logescom_home_service', {'site': site.id}) }}" 
+               class="card-custom" aria-label="{{ site.nom|capitalize }}">
+                {% if entreprise.logo %}
+                    <img src="{{ asset(chemin_images_logos ~ entreprise.logo) }}" alt="Logo Direction" class="card-icon">
+                {% else %}
+                    <img src="{{ asset(chemin_images_config ~ 'default.jpg') }}" alt="Logo par défaut" class="card-icon">
+                {% endif %}
+                <h2 class="card-title">{{ site.nom|capitalize }}</h2>
+                <p class="card-subtitle">{{ site.adresse.divisionLocale.nom|capitalize }}</p>
+            </a>
+        {% endfor %}
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{{ form_errors(form) }}
+{{ form_start(form) }}
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        {{ form_row(form.montant, {
+            label: '💰 Montant à transférer *',
+            attr: {'placeholder': 'Saisir le montant...', 'class': 'shadow-sm'}
+        }) }}
+    </div>
+
+    <div class="col-md-3">
+        {{ form_row(form.devise, {
+            label: '💱 Devise',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+
+    <div class="col-md-3">
+        {{ form_row(form.modePaie, {
+            label: '🏦 Mode de paiement',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        {{ form_row(form.caisse, {
+            label: '📤 Caisse de départ',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+
+    <div class="col-md-4">
+        {{ form_row(form.caisseReception, {
+            label: '📥 Caisse de réception',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+
+    <div class="col-md-4">
+        {{ form_row(form.commentaire, {
+            label: '📝 Motif / commentaire',
+            attr: {'placeholder': 'Ex: transfert interne, régularisation...', 'rows': 2, 'class': 'shadow-sm'}
+        }) }}
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        {{ form_row(form.dateOperation, {
+            label: '📅 Date du transfert',
+            attr: {'class': 'shadow-sm'}
+        }) }}
+    </div>
+
+    <div class="col-md-4">
+        {{ form_row(form.document, {
+            label: '📎 Pièce justificative',
+            attr: {'class': 'shadow-sm'}
+        }) }}
+    </div>
+</div>
+
+<hr class="my-4">
+
+<div class="text-end">
+    <button class="btn btn-primary px-4 shadow-sm">
+        <i class="fas fa-check-circle me-1"></i> {{ button_label|default('Transférer') }}
+    </button>
+</div>
+
+{{ form_end(form) }}

@@ -1,0 +1,49 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Nouvelle configuration de salaire{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <!-- 🧾 Carte principale -->
+        <div class="card shadow-sm border-0 mb-4">
+
+            <!-- 🔹 En-tête -->
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fa fa-gear me-2"></i>
+                    Nouvelle configuration de salaire
+                </h5>
+
+                <a href="{{ path(
+                    'app_logescom_comptable_salaire_personnel_config_salaire_index',
+                    { site: site.id }
+                ) }}"
+                   class="btn btn-outline-light btn-sm">
+                    <i class="fa fa-arrow-left me-1"></i>
+                    Retour
+                </a>
+            </div>
+
+            <!-- 📋 Contenu -->
+            <div class="card-body bg-light">
+
+                <div class="alert alert-info small mb-4">
+                    <i class="fa fa-circle-info me-1"></i>
+                    Définissez ici les paramètres de calcul des salaires
+                    (charges, primes, repos travaillé, etc.).
+                </div>
+
+                {{ include('logescom/comptable/salaire_personnel/config_salaire/_form.html.twig', {
+                    button_label: 'Enregistrer la configuration'
+                }) }}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

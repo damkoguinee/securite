@@ -1,0 +1,32 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Modification transfert_fond{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            {% include "_common/_messages_flash.html.twig" %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">Modification de la transfert fond</h5>
+                </div>
+                <div class="card-body">
+
+                    {{ include('logescom/comptable/caisse/transfert_fond/_form.html.twig', {'button_label': 'Modifier'}) }}
+
+                    <div class="d-flex justify-content-between my-4">
+
+                        <a class="btn btn-light" href="{{ path('app_logescom_comptable_caisse_transfert_fond_index', { site : site.id}) }}">Retour</a>
+                        {% if is_granted("ROLE_SUPPRESSION") %}
+                            {{ include('logescom/comptable/caisse/transfert_fond/_delete_form.html.twig') }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

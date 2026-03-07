@@ -1,0 +1,63 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Liste des Caisses{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/admin/_nav_admin.html.twig" %}
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            <!-- Messages flash -->
+            {% include "_common/_messages_flash.html.twig" %}
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="m-0 text-center">Liste des Caisses</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Table des caisses -->
+                    <table class="table table-bordered table-striped table-hover align-middle">
+                        <thead class="thead-dark table-dark">
+                            {# <tr>
+                                <th class="text-center bg-info text-white" colspan="5">
+                                    Liste des caisses
+                                </th>
+                            </tr> #}
+                            <tr class="text-center">
+                                <th>Id</th>
+                                <th>Nom</th>
+                                <th>Type</th>
+                                <th>Numéro</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for caisse in caisses %}
+                                <tr class="text-center">
+                                    <td>{{ caisse.id }}</td>
+                                    <td>{{ caisse.nom }}</td>
+                                    <td>{{ caisse.type }}</td>
+                                    <td>{{ caisse.numero }}</td>
+                                    <td>
+                                        <a class="btn btn-success" href="{{ path('app_logescom_admin_caisse_show', {'id': caisse.id}) }}" title="Voir les détails"><i class="fa fa-eye"></i></a>
+                                        <a class="btn btn-warning" href="{{ path('app_logescom_admin_caisse_edit', {'id': caisse.id}) }}" title="Modifier"><i class="fa fa-edit"></i></a>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">Aucune caisse trouvée</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <!-- Bouton d'ajout de caisse -->
+                    <div class="d-flex justify-content-end mt-4">
+                        <a class="btn btn-primary" href="{{ path('app_logescom_admin_caisse_new') }}">
+                            <i class="fa fa-plus-circle"></i> Ajouter une caisse
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

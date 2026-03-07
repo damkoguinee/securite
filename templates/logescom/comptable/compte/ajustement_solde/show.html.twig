@@ -1,0 +1,73 @@
+{% extends 'base_comptable.html.twig' %}
+{% set queryParams = app.request.query.all %}
+{% set queryString = queryParams|filter((v, k) => k != "page" and k != "ajustement" and k != "id_stock") | url_encode %}
+
+{% block title %}détail ajustement{% endblock %}
+{% block bandeau %} {% endblock %}
+ {% block carousel %}
+    <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel">
+    </div>
+ {% endblock %}
+ {% block categories %} {% endblock %}
+ {% block contact %} {% endblock %}
+ {% block collaborateurs %} {% endblock %}
+ {% block scroll %} {% endblock %}
+ {% block footer %} {% endblock %}
+ {% block social %} {% endblock %}
+
+{% block produits %}
+    <div class="row my-2">
+        {% include "_common/_nav_compte.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {{ include("_common/_messages_flash.html.twig") }}
+            <table class="table table-bordered table-striped table-hover align-middle">
+                <tbody>
+                    <tr>
+                        <th>Collaborateur</th>
+                        <td>{{ ajustement_solde.collaborateur.prenom|ucwords ~ " " ~ ajustement_solde.collaborateur.nom |strtoupper }}</td>
+                    </tr>
+                    <tr>
+                        <th>Commentaire</th>
+                        <td>{{ ajustement_solde.commentaire|ucfirst }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Montant</th>
+                        <td>{{ ajustement_solde.devise.nomDevise == 'gnf' ? ajustement_solde.montant|number_format(0,',',' ') : ajustement_solde.montant|number_format(2,',',' ') }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Devise</th>
+                        <td>{{ ajustement_solde.devise.nomDevise|strtoupper }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date opération</th>
+                        <td>{{ ajustement_solde.dateOperation ? ajustement_solde.dateOperation|date('d/m/Y') : '' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date de Saisie</th>
+                        <td>{{ ajustement_solde.dateSaisie ? ajustement_solde.dateSaisie|date('d/m/Y H:i:s') : '' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Traité par</th>
+                        <td>{{ ajustement_solde.traitePar.prenom|ucwords ~ " " ~ ajustement_solde.traitePar.nom |strtoupper }}</td>
+                    </tr>
+                
+                </tbody>
+            </table>
+
+            <div class="d-flex justify-content-between">
+
+                <a class="btn btn-light" href="{{ path('app_logescom_comptable_compte_ajustement_solde_index', { lieu_vente : lieu_vente.id}) }}">Retour</a>
+
+                {% if is_granted("ROLE_MODIFICATION") %}
+                    <a class="btn btn-warning" href="{{ path('app_logescom_comptable_compte_ajustement_solde_edit', {'id': ajustement_solde.id, lieu_vente : lieu_vente.id}) }}"><i class="fa fa-edit"></i></a>
+                {% endif %}
+                {% if is_granted("ROLE_SUPPRESSION") %}
+                    {{ include('logescom/compte/ajustement_solde/_delete_form.html.twig') }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

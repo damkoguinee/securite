@@ -1,0 +1,44 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Modifier une avance sur salaire{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+     <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <div class="card shadow-lg border-0 rounded-3 mb-4">
+            <!-- 🔹 En-tête -->
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fa fa-edit me-2"></i> Modifier une avance sur salaire
+                </h5>
+                <a href="{{ path('app_logescom_comptable_avance_salaire_index', { site: site.id }) }}"
+                class="btn btn-outline-dark btn-sm">
+                    <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                </a>
+            </div>
+
+            <!-- 🧾 Formulaire -->
+            <div class="card-body bg-light">
+                {{ include('logescom/comptable/avance_salaire/_form.html.twig', { button_label: 'Mettre à jour' }) }}
+
+                <hr class="my-3">
+
+                <!-- 🔘 Zone d’actions -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <a href="{{ path('app_logescom_comptable_avance_salaire_index', { site: site.id }) }}"
+                    class="btn btn-outline-secondary">
+                        <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                    </a>
+
+                    <div class="d-flex gap-2">
+                        {{ include('logescom/comptable/avance_salaire/_delete_form.html.twig') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+ <!-- LISTE DES PRESTATIONS HORAIRE -->
+    <h2>Détails des heures facturées</h2>
+
+    <table class="bordered" style="font-size:11px;">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Heure début</th>
+                <th>Heure fin</th>
+                <th>Durée (h)</th>
+                <th>Agent</th>
+                <th style="text-align:right;">Tarif Horaire</th>
+                <th style="text-align:right;">Montant</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% set totalHT = 0 %}
+            {% set tarifHoraire = facture.contrat.typesSurveillance|first.tarifHoraire ?? 0 %}
+
+            {% for aff in facture.contrat.affectationAgents %}
+                
+                {# Vérifier si l'affectation appartient à la période facturée #}
+                {% if aff.dateOperation >= facture.periodeDebut 
+                    and aff.dateOperation <= facture.periodeFin %}
+
+                    {# Vérifier si la présence est confirmée #}
+                    {% if aff.presenceConfirme %}
+
+                        {# Calcul de la durée #}
+                        {% if aff.heureDebut and aff.heureFin %}
+                            {% set dureeSec = aff.heureFin.timestamp - aff.heureDebut.timestamp %}
+                            {% set dureeHeures = (dureeSec / 3600) %}
+                        {% else %}
+                            {% set dureeHeures = 0 %}
+                        {% endif %}
+
+                        {# Montant pour cette ligne #}
+                        {% set montant = dureeHeures * tarifHoraire %}
+                        {% set totalHT = totalHT + montant %}
+
+                        <tr>
+                            <td>{{ aff.dateOperation|date("d/m/Y") }}</td>
+                            <td>{{ aff.heureDebut|date("H:i") }}</td>
+                            <td>{{ aff.heureFin|date("H:i") }}</td>
+                            <td style="text-align:center;">
+                                {{ dureeHeures|number_format(2, '.', ' ') }}
+                            </td>
+                            <td>{{ aff.personnel.nomCompletUser }}</td>
+                            <td style="text-align:right;">
+                                {{ tarifHoraire|number_format(0, '.', ' ') }}
+                            </td>
+                            <td style="text-align:right;">
+                                {{ montant|number_format(0, '.', ' ') }}
+                            </td>
+                        </tr>
+
+                    {% endif %}
+                {% endif %}
+
+            {% endfor %}
+        </tbody>
+
+    </table>
+
+    {# --- TOTAlS --- #}
+    {% set remise = facture.remiseMontant %}
+    {% set base = totalHT - remise %}
+    {% set tva = base * (facture.tauxTVA / 100) %}
+    {% set ttc = base + tva %}
+
+    <table class="bordered" style="margin-top:10px;">
+        <tr class="total-row">
+            <td style="text-align:right; width:80%;">Total HT :</td>
+            <td style="text-align:right;">{{ totalHT|number_format(0,'.',' ') }}</td>
+        </tr>
+
+        <tr class="total-row">
+            <td style="text-align:right;">Remise :</td>
+            <td style="text-align:right;">-{{ remise|number_format(0,'.',' ') }}</td>
+        </tr>
+
+        <tr class="total-row">
+            <td style="text-align:right;">TVA :</td>
+            <td style="text-align:right;">{{ tva|number_format(0,'.',' ') }}</td>
+        </tr>
+
+        <tr class="total-row">
+            <td style="text-align:right;">TOTAL TTC :</td>
+            <td style="text-align:right; font-weight:bold;">{{ ttc|number_format(0,'.',' ') }}</td>
+        </tr>
+    </table>
+
+

@@ -1,0 +1,11 @@
+<div class="col-sm-12 col-md-2 pb-3" style="background-color:#152736;">     
+    <a style="width: 100%; " class="btn btn-light text-center fw-bold m-auto my-2" href="{{path("app_logescom_comptable_compte_compte_collaborateur", {site : site.id, type1 : 'client', type2 : 'client'})}}">Compte Clients</a>
+    {# {% if is_granted("ROLE_RESPONSABLE") %}
+        <a style="width: 100%; " class="btn btn-light text-center fw-bold m-auto my-2" href="{{path("app_logescom_comptable_compte_compte_collaborateur", {site : site.id, type1 : 'agent', type2 : 'agent'})}}">Compte Agents</a>
+    {% endif %} #}
+    <a style="width: 100%; " class="btn btn-light text-center fw-bold m-auto my-2" href="{{path("app_logescom_comptable_compte_compte_collaborateur", {site : site.id, type1 : 'autres', type2 : 'autres'})}}">Compte Autres</a>
+
+    <a style="width: 100%; " class="btn btn-light text-center fw-bold m-auto my-2" href="{{path("app_logescom_comptable_compte_compte_collaborateur", {site : site.id, type1 : 'personnel', type2 : 'personnel'})}}">Compte Personnels</a>
+
+
+</div>

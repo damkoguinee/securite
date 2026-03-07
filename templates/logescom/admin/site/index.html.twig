@@ -1,0 +1,64 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Liste des sites{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/admin/_nav_admin.html.twig" %}  
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            {% include "_common/_messages_flash.html.twig" %}
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="m-0 text-center">Liste des sites</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-striped table-hover align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-center">Id</th>
+                                <th class="text-center">Nom</th>
+                                <th class="text-center">Complément d'adresse</th>
+                                <th class="text-center">Email</th>
+                                <th class="text-center">Date d'ouverture</th>
+                                <th class="text-center">Téléphone</th>
+                                <th class="text-center">Initial</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for site in sites %}
+                            <tr>
+                                <td class="text-center">{{ site.id }}</td>
+                                <td>{{ site.nom }}</td>
+                                <td>{{ site.complementAdresse }}</td>
+                                <td>{{ site.email }}</td>
+                                <td class="text-center">{{ site.dateOuverture ? site.dateOuverture|date('Y-m-d') : '' }}</td>
+                                <td class="text-center">{{ site.telephone }}</td>
+                                <td class="text-center">{{ site.initial }}</td>
+                                <td class="text-center">
+                                    <a class="btn btn-success btn-sm" href="{{ path('app_logescom_admin_site_show', {'id': site.id}) }}">
+                                        <i class="fa fa-eye"></i> Voir
+                                    </a>
+                                    <a class="btn btn-warning btn-sm" href="{{ path('app_logescom_admin_site_edit', {'id': site.id}) }}">
+                                        <i class="fa fa-edit"></i> Modifier
+                                    </a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center">Aucune site trouvée</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="text-center mt-3">
+                        <a class="btn btn-primary" href="{{ path('app_logescom_admin_site_new') }}">
+                            <i class="fa fa-plus-circle"></i> Ajouter une site
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

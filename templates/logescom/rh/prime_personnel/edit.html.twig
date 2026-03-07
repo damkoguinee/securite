@@ -1,0 +1,46 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Modification d'une prime{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <!-- 🧾 Carte principale -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fa fa-pen-to-square me-2"></i> Modifier une prime
+            </h5>
+
+            <div class="d-flex" style="gap: 8px;">
+                <a href="{{ path('app_logescom_rh_prime_personnel_index', {site: site.id}) }}"
+                   class="btn btn-sm btn-outline-dark shadow-sm">
+                    <i class="fa fa-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- 📋 Formulaire -->
+        <div class="card-body bg-light">
+            <div class="bg-white shadow-sm p-4 rounded">
+                {{ include('logescom/rh/prime_personnel/_form.html.twig', {'button_label': 'Modifier'}) }}
+            </div>
+
+            <!-- 🔹 Boutons -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a class="btn btn-outline-secondary shadow-sm"
+                   href="{{ path('app_logescom_rh_prime_personnel_index', {site: site.id}) }}">
+                    <i class="fa fa-arrow-left"></i> Retour à la liste
+                </a>
+
+                <div class="d-flex" style="gap: 10px;">
+                    {{ include('logescom/rh/prime_personnel/_delete_form.html.twig') }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

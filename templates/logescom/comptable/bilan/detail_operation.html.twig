@@ -1,0 +1,773 @@
+{% extends 'base_comptable.html.twig' %}
+{% set queryParams = app.request.query.all %}
+{% set queryString = queryParams|filter((v, k) => k != "page" and k != "ajustement" and k != "id_stock") | url_encode %}
+
+{% block title %}bilan{% endblock %}
+{% block bandeau %} {% endblock %}
+ {% block carousel %}
+    <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel">
+    </div>
+ {% endblock %}
+ {% block categories %} {% endblock %}
+ {% block contact %} {% endblock %}
+ {% block collaborateurs %} {% endblock %}
+ {% block scroll %} {% endblock %}
+ {% block footer %} {% endblock %}
+ {% block social %} {% endblock %}
+
+{% block produits %}
+    {% if app.request.query.has('date1') %}
+        {% set date1 = app.request.query.get('date1') %}
+        {% set date2 = app.request.query.get('date2') %}
+
+    {% else %}
+        {% set date1 = date1 %}
+        {% set date2 = date2 %}
+    {% endif %}
+
+    <div class="row my-2">
+        {% include "_common/_nav_bilan.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {{ include("_common/_messages_flash.html.twig") }} 
+            <div class="d-flex justify-content-between bg-info text-white p-2">    
+                <form class="form text-center">
+                    <div class="row">
+                        <div class="col-sm-12 col-md-5">
+                            <input type="date" name="date1" value="{{ date1 }}" class="form-control" onChange="this.form.submit()" max="{{ date2 }}"> 
+                        </div>
+                        <div class="col-1">au</div>
+                        <div class="col-sm-12 col-md-6">
+                            <input type="date" name="date2" value="{{ date2 }}" class="form-control" onChange="this.form.submit()" min="{{ date1}}" max="{{ "now"|date("Y-m-d") }}">
+                        </div>
+                        <input type="hidden" name="operation" value="{{operation_search ? operation_search : "Selectionez" }}">
+                    </div>
+                </form>
+                <form  class="form"  method="GET">
+                    <select onChange="this.form.submit()" name="operation" id="" class="form-select">
+                        <option value="{{operation_search ? operation_search : "Selectionez" }}">{{ operation_search ? operation_search : "Selectionez"}}</option>
+                        <option value="facturation">Facturations</option>
+                        <option value="versement">Versements</option>
+                        <option value="recette">Recettes</option>
+                        <option value="decaissement">Decaissements</option>
+                        <option value="depenses">Depenses</option>
+                        <option value="transfert">Transferts</option>
+                        <option value="cloture">Clôtures des Caisses</option>
+                        <option value="echange">Echanges Devises</option>
+                        <option value="cheques-especes">Chèques/Espèces</option>
+                    </select>
+                    <input type="hidden" name="date1" value="{{ date1 }}"> 
+                    <input type="hidden" name="date2" value="{{ date2 }}"> 
+                </form>
+            </div>
+            {% if operation_search is empty %}
+                <table class="table table-bordered table-striped table-hover align-middle">
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="8" class="text-center bg-info text-white">
+                                <div class="d-flex justify-content-between">
+                                    <p>Liste des Opérations comptables à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}</p>
+                                </div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Type d'opération</th>
+                            <th class="bg-info text-white">Montant</th>
+                            <th class="bg-info text-white">Devise</th>
+                            <th class="bg-info text-white">Mode de Paie</th>
+                            <th class="bg-info text-white">Caisse</th>
+                            <th class="bg-info text-white">Collaborateur</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set cumulOp = 0 %}
+                        {% for key, operation in compte_operations %}
+                            
+                            {% set cumulOp = cumulOp + operation.montant %}
+                            <tr>
+                                <td class="text-center">{{ (key +1) }}</td>
+                                <td class="text-center">{{ operation.dateOperation ? operation.dateOperation|date('d/m/Y') : '' }}</td>
+                                <td>{{ operation.typeMouvement|ucfirst }}</td>
+                                <td class="text-end text-nowrap">{{ operation.devise.nomDevise == 'gnf' ? operation.montant|number_format(0,',',' ') : operation.montant|number_format(2,',',' ') }}</td>
+                                <td class="text-center">{{ operation.devise.nomDevise|strtoupper }}</td>
+                                <td class="text-center">{{ operation.modePaie ? operation.modePaie.designation|ucfirst :"" }}</td>
+                                <td class="text-center">{{ operation.caisse.designation|ucfirst }}</td>
+                                <td class="text-center">{{ operation.caisse.designation|ucfirst }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="8">Aucune opération enregistrée</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="8" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in solde_caisses_devises %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? cumul.solde|number_format(0,',',' ') : cumul.solde|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+                </table>
+            {% elseif operation_search == 'facturation' %}
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="11" class="text-center bg-info text-white">
+                                <div class="d-flex justify-content-between">
+                                    <p>Liste des facturations à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}</p>
+                                </div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">N° Facture</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Client</th>
+                            <th class="bg-info text-white">Total Facture</th>
+                            <th class="bg-info text-white">Remise</th>
+                            <th class="bg-info text-white">Frais</th>  
+                            <th class="bg-info text-white">Montant Payé</th>
+                            <th class="bg-info text-white">Etat</th>
+                            <th class="bg-info text-white">Vendeur</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set cumulMontantFacture = 0 %}
+                        {% set cumulMontantPaye = 0 %}
+                        {% set cumulMontantFrais = 0 %}
+                        {% set cumulMontantRemise = 0 %}
+                        {% for key, facturation in op_facturations.data %}
+                            {% set cumulMontantFacture = cumulMontantFacture + facturation.totalFacture %}
+                            {% set cumulMontantPaye = cumulMontantPaye +  facturation.montantpaye %}
+                            {% set cumulMontantFrais = cumulMontantFrais + facturation.fraisSup %}
+                            {% set cumulMontantRemise = cumulMontantRemise + facturation.montantRemise %}
+                            <tr>
+                                <td class="text-center">
+                                    {{ (key +1) }}
+                                    <a target="_blank"  href="{{path("app_logescom_vente_facturation_facture", { id : facturation.id, site : site.id }) }}" ><i class="fa fa-file-pdf fs-3 text-success"></i></a>
+                                </td>
+                                <td class="text-center">{{ facturation.numeroFacture|strtoupper }}</td>
+                                <td class="text-center">{{ facturation.dateSaisie ? facturation.dateSaisie|date('d/m/Y') : '' }}</td>
+                                <td>{{ facturation.client ? (facturation.client.prenom|ucwords ~ " " ~ facturation.client.nom |strtoupper ) : facturation.nomClientCash|ucfirst}}</td>
+                                <td class="text-end text-nowrap">{{ facturation.totalFacture|number_format(0,',',' ') }}</td>
+                                <td class="text-end text-nowrap">{{facturation.montantRemise|number_format(0,',',' ') }}</td>
+                                <td class="text-end text-nowrap">{{facturation.fraisSup|number_format(0,',',' ') }}</td>
+                                <td class="text-end text-nowrap">{{facturation.montantpaye|number_format(0,',',' ') }}</td>
+                                <td class="text-center">{{ facturation.etat|ucfirst ~ " " ~ facturation.etatLivraison|ucfirst }}</td>
+                                <td>{{ facturation.saisiePar.prenom|ucwords }}</td>
+
+                                <td class="text-center">
+                                    <a class="btn btn-success" href="{{ path('app_logescom_vente_facturation_show', {'id': facturation.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="11">Aucun facturation éffectuée</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="bg-info text-white text-center">Cumul</th>
+                            <th class="bg-info text-white text-end">{{ cumulMontantFacture|number_format(0,',',' ') }}</th>
+                            <th class="bg-info text-white text-end">{{ cumulMontantRemise|number_format(0,',',' ') }}</th>
+                            <th class="bg-info text-white text-end">{{ cumulMontantFrais|number_format(0,',',' ') }}</th>
+                            <th class="bg-info text-white text-end">{{ cumulMontantPaye|number_format(0,',',' ') }}</th>
+
+                        </tr>
+                    </tfoot>
+                </table>
+
+
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="11" class="text-center bg-info text-white">
+                                <div class="d-flex justify-content-between">
+                                    <p>Liste des facturations crédits à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}</p>
+                                </div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">N° Facture</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Client</th>
+                            <th class="bg-info text-white">Total Facture</th>
+                            <th class="bg-info text-white">Remise</th>
+                            <th class="bg-info text-white">Frais</th>  
+                            <th class="bg-info text-white">Montant Payé</th>
+                            <th class="bg-info text-white">Etat</th>
+                            <th class="bg-info text-white">Vendeur</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set cumulMontantFacture = 0 %}
+                        {% set cumulMontantPaye = 0 %}
+                        {% set cumulMontantFrais = 0 %}
+                        {% set cumulMontantRemise = 0 %}
+                        {% for key, facturation in op_facturationsCredits.data %}
+                            {% set cumulMontantFacture = cumulMontantFacture + facturation.totalFacture %}
+                            {% set cumulMontantPaye = cumulMontantPaye +  facturation.montantpaye %}
+                            {% set cumulMontantFrais = cumulMontantFrais + facturation.fraisSup %}
+                            {% set cumulMontantRemise = cumulMontantRemise + facturation.montantRemise %}
+                            <tr>
+                                <td class="text-center">
+                                    {{ (key +1) }}
+                                    <a target="_blank"  href="{{path("app_logescom_vente_facturation_facture", { id : facturation.id, site : site.id }) }}" ><i class="fa fa-file-pdf fs-3 text-success"></i></a>
+                                </td>
+                                <td class="text-center">{{ facturation.numeroFacture|strtoupper }}</td>
+                                <td class="text-center">{{ facturation.dateSaisie ? facturation.dateSaisie|date('d/m/Y') : '' }}</td>
+                                <td>{{ facturation.client ? (facturation.client.prenom|ucwords ~ " " ~ facturation.client.nom |strtoupper ) : facturation.nomClientCash|ucfirst}}</td>
+                                <td class="text-end text-nowrap">{{ facturation.totalFacture|number_format(0,',',' ') }}</td>
+                                <td class="text-end text-nowrap">{{facturation.montantRemise|number_format(0,',',' ') }}</td>
+                                <td class="text-end text-nowrap">{{facturation.fraisSup|number_format(0,',',' ') }}</td>
+                                <td class="text-end text-nowrap">{{facturation.montantpaye|number_format(0,',',' ') }}</td>
+                                <td class="text-center">{{ facturation.etat|ucfirst ~ " " ~ facturation.etatLivraison|ucfirst }}</td>
+                                <td>{{ facturation.saisiePar.prenom|ucwords }}</td>
+
+                                <td class="text-center">
+                                    <a class="btn btn-success" href="{{ path('app_logescom_vente_facturation_show', {'id': facturation.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="11">Aucun facturation éffectuée</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="bg-info text-white text-center">Cumul</th>
+                            <th class="bg-info text-white text-end">{{ cumulMontantFacture|number_format(0,',',' ') }}</th>
+                            <th class="bg-info text-white text-end">{{ cumulMontantRemise|number_format(0,',',' ') }}</th>
+                            <th class="bg-info text-white text-end">{{ cumulMontantFrais|number_format(0,',',' ') }}</th>
+                            <th class="bg-info text-white text-end">{{ cumulMontantPaye|number_format(0,',',' ') }}</th>
+
+                        </tr>
+                    </tfoot>
+                </table>
+            
+            {% elseif operation_search == 'versement' %}
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="10" class="text-center bg-info text-white">
+                                <div class="d-flex justify-content-between">
+                                    <p>Liste des versements à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}</p>
+                                </div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Collaborateur</th>
+                            <th class="bg-info text-white">Motif</th>
+                            <th class="bg-info text-white">Montant</th>
+                            <th class="bg-info text-white">Taux</th>
+                            <th class="bg-info text-white">Devise</th>
+                            <th class="bg-info text-white">Mode de Paie</th>
+                            <th class="bg-info text-white">Caisse</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, versement in op_facturations.data %}
+                            <tr>
+                                <td class="text-center">
+                                    {{ (key +1) }}
+                                    <a target="_blank"  href="{{ path('app_logescom_entrees_versement_recu_pdf', {'id':  versement.id, 'site' : site.id }) }}" ><i class="fa fa-file-pdf fs-3"></i></a>
+                                </td>
+                                <td class="text-center">{{ versement.dateSaisie ? versement.dateSaisie|date('d/m/Y') : '' }}</td>
+                                <td>{{ versement.client.prenom|ucwords ~ " " ~ versement.client.nom |strtoupper }}</td>
+                                <td>{{ versement.commentaire|ucfirst }}</td>
+                                <td class="text-end text-nowrap">{{ versement.devise.nomDevise == 'gnf' ? versement.montant|number_format(0,',',' ') : versement.montant|number_format(2,',',' ') }}</td>
+                                <td class="text-end text-nowrap">{{versement.taux|number_format(2,',',' ') }}</td>
+                                <td class="text-center">{{ versement.devise.nomDevise|strtoupper }}</td>
+                                <td class="text-center">{{ versement.modePaie.designation|ucfirst }}</td>
+                                <td class="text-center">{{ versement.compte.designation|ucfirst }}</td>
+                            
+                                <td class="text-center">
+                                    <a class="btn btn-success" href="{{ path('app_logescom_entrees_versement_show', {'id': versement.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                                    {# <a href="{{ path('app_logescom_entrees_versement_edit', {'id': versement.id, site : site.id}) }}">edit</a> #}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="10">Aucun versement éffectué</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="10" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in cumul_operations %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(0,',',' ') : (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+
+                </table>
+            {% elseif operation_search == 'recette' %}
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="10" class="text-center bg-info text-white">
+                                <div class="d-flex justify-content-between">
+                                    <p>Liste des recettes à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}</p>
+                                </div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Catégorie</th>
+                            <th class="bg-info text-white">Commentaire</th>
+                            <th class="bg-info text-white">Montant</th>
+                            <th class="bg-info text-white">Devise</th>
+                            <th class="bg-info text-white">Mode de Paie</th>
+                            <th class="bg-info text-white">Caisse</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, recette in op_facturations.data %}
+                            <tr>
+                                <td class="text-center">
+                                    {{ (key +1) }}
+                                </td>
+                                <td class="text-center">{{ recette.dateSaisie ? recette.dateSaisie|date('d/m/Y') : '' }}</td>
+                                <td>{{ recette.categorie.designation|ucwords}}</td>
+                                <td>{{ recette.commentaire|ucfirst }}</td>
+                                <td class="text-end text-nowrap">{{ recette.devise.nomDevise == 'gnf' ? recette.montant|number_format(0,',',' ') : recette.montant|number_format(2,',',' ') }}</td>
+                                <td class="text-center">{{ recette.devise.nomDevise|strtoupper }}</td>
+                                <td class="text-center">{{ recette.modePaie.designation|ucfirst }}</td>
+                                <td class="text-center">{{ recette.caisse.designation|ucfirst }}</td>
+                            
+                                <td class="text-center">
+                                    <a class="btn btn-success" href="{{ path('app_logescom_entrees_recette_show', {'id': recette.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="9">Aucune recette éffectuée</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="10" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in cumul_operations %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(0,',',' ') : (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+                </table>
+            {% elseif operation_search == 'decaissement' %}
+                <table class="table table-bordered table-striped table-hover align-middle">
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="9" class="text-center bg-info text-white">Liste des décaissements à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}</th>
+                        </tr>
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Collaborateur</th>
+                            <th class="bg-info text-white">Motif</th>
+                            <th class="bg-info text-white">Montant</th>
+                            <th class="bg-info text-white">Devise</th>
+                            <th class="bg-info text-white">Mode de Paie</th>
+                            <th class="bg-info text-white">Caisse</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, decaissement in op_facturations.data %}
+                            <tr>
+                                <td class="text-center">
+                                    {{ (key +1) }}
+                                        <a class="" target="_blank"  href="{{ path('app_logescom_sorties_decaissement_recu_pdf', {'id':  decaissement.id, 'site' : site.id }) }}" ><i class="fa fa-file-pdf fs-3 text-success"></i></a>
+
+                                    {% if decaissement.document is not empty %}
+                                        <a href="{{ asset('decaissement/' ~ decaissement.document) }}" target="_blank"><i class="fa-solid fa-file-pdf fs-3"></i> </a>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ decaissement.dateSaisie ? decaissement.dateSaisie|date('d/m/Y') : '' }}</td>
+                                <td>{{ decaissement.client.prenom|ucwords ~ " " ~ decaissement.client.nom |strtoupper }}</td>
+                                <td>{{ decaissement.commentaire|ucfirst }}</td>
+                                <td class="text-end text-nowrap">{{ decaissement.devise.nomDevise == 'gnf' ? decaissement.montant|number_format(0,',',' ') : decaissement.montant|number_format(2,',',' ') }}</td>
+                                <td class="text-center">{{ decaissement.devise.nomDevise|strtoupper }}</td>
+                                <td class="text-center">{{ decaissement.modePaie.designation|ucfirst }}</td>
+                                <td class="text-center">{{ decaissement.compteDecaisser.designation|ucfirst }}</td>
+                            
+                                <td class="text-center">
+                                    <a class="btn btn-success" href="{{ path('app_logescom_sorties_decaissement_show', {'id': decaissement.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                                    {# <a href="{{ path('app_logescom_sorties_decaissement_edit', {'id': decaissement.id, site : site.id}) }}">edit</a> #}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="9">Aucun décaissement éffectué</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="9" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in cumul_operations %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(0,',',' ') : (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+                </table>
+            {% elseif operation_search == 'depenses' %}
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="10" class="text-center bg-info text-white">
+                                Liste des dépenses  à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}
+                            </th>
+                        </tr>                        
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Description</th>
+                            <th class="bg-info text-white">Montant TTC</th>
+                            <th class="bg-info text-white">TVA</th>
+                            <th class="bg-info text-white">Devise</th>
+                            <th class="bg-info text-white">Mode de paie</th>
+                            <th class="bg-info text-white">Caisse</th>
+                            <th class="bg-info text-white">Traité par</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set cumulMontant = 0 %}
+                        {% for key, depense in op_facturations.data %}
+                            {% set cumulMontant = cumulMontant + depense.montant  %}
+                                <tr>
+                                    <td class="text-center">
+                                        {{ (key +1) }}
+                                        {% if depense.justificatif is not empty %}
+                                            <a href="{{ asset('depenses/' ~ depense.justificatif) }}" target="_blank"><i class="fa-solid fa-file-pdf fs-3"></i> </a>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ depense.dateDepense ? depense.dateDepense|date('d/m/Y') : '' }}</td>
+                                    <td>{{ depense.description }}</td>
+                                    <td class="text-end text-nowrap">{{ depense.devise.nomDevise == 'gnf' ? depense.montant|number_format(0,',',' ') : depense.montant|number_format(2,',',' ') }}</td>
+                                    <td class="text-end text-nowrap">{{ depense.devise.nomDevise == 'gnf' ? depense.tva|number_format(0,',',' ') : depense.tva|number_format(2,',',' ') }}</td>
+                                    <td class="text-center">{{ depense.devise.nomDevise|strtoupper }}</td>
+                                    <td class="text-center">{{ depense.modePaiement.designation }}</td>
+                                    <td class="text-center">{{ depense.caisseRetrait.designation }}</td>
+                                    <td>{{ depense.traitePar.prenom | ucwords ~ " " ~ depense.traitePar.nom | strtoupper }}</td>
+                                    <td class="text-center">
+
+                                        <a class="btn btn-success" href="{{ path('app_logescom_sorties_depenses_show', {'id': depense.id, site : site.id}) }}"><i class="fa fa-eye"></i></a>
+                                    </td>
+                                </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="10">Aucune depense trouvée</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="10" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in cumul_operations %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(0,',',' ') : (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+                </table>
+            {% elseif operation_search == 'transfert' %}
+
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="9" class="text-center bg-info text-white">
+                                Liste des transferts des fonds à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Référence</th>
+                            <th class="bg-info text-white">Montant</th>
+                            <th class="bg-info text-white">Devise</th>
+                            <th class="bg-info text-white">caisse Dép</th>
+                            <th class="bg-info text-white">caisse Récep</th>
+                            <th class="bg-info text-white">Commentaire</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, transfert in op_facturations.data %}
+                        <tr>
+                            <td class="text-center">
+                                {{ (key +1) }}
+                                {% if transfert.document is not empty %}
+                                    <a href="{{ asset('caisse/' ~ transfert.document) }}" target="_blank"><i class="fa-solid fa-file-pdf fs-3"></i> </a>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ transfert.dateSaisie ? transfert.dateSaisie|date('d/m/Y') : '' }}</td>
+                            <td>{{ transfert.reference }}</td>
+                            <td class="text-end text-nowrap">{{ transfert.devise.nomDevise == 'gnf' ? transfert.montant|number_format(0,',',' ') : transfert.montant|number_format(2,',',' ') }}</td>
+                            <td class="text-center">{{ transfert.devise.nomDevise|strtoupper }}</td>
+                            <td>{{ transfert.caisseDepart ? transfert.caisseDepart.designation|ucfirst ~ " " ~ (transfert.caisseDepart.pointDeVente ? transfert.caisseDepart.pointDeVente.lieuVente.lieu : "") : (transfert.type == 'autres' ? 'autres' : "") }}</td>
+                            <td>{{ transfert.caisseReception ? transfert.caisseReception.designation|ucfirst ~ " " ~ (transfert.caisseReception.pointDeVente ? transfert.caisseReception.pointDeVente.lieuVente.lieu : "") : (transfert.type == 'autres' ? 'autres' : "") }}</td>
+                            <td>{{ transfert.commentaire|ucfirst }}</td>
+                            <td class="text-center">
+                                <a class="btn btn-success" href="{{ path('app_logescom_caisse_transfert_fond_show', {'id': transfert.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="9">Aucun transfert éffectué</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="9" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in cumul_operations %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(0,',',' ') : (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+                </table>
+            {% elseif operation_search == 'cloture' %}
+
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="6" class="text-center  bg-info text-white">
+                                <div class="row align-items-center">
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-center align-items-center">
+                                        Liste des clôtures à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}
+                                        </div>
+                                    </div>  
+                                </div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class=" bg-info text-white">Caisse</th>
+                            <th class=" bg-info text-white">Montant théo</th>
+                            <th class=" bg-info text-white">Montant Réel</th>
+                            <th class=" bg-info text-white">Difference</th>
+                            <th class=" bg-info text-white">Devise</th>
+                            <th class=" bg-info text-white">Clôturé par</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set cumulCaissesTheo = 0 %}
+                        {% set cumulCaissesReel = 0 %}
+                        {% set cumulCaissesDiff = 0 %}
+                        {% for cloture in op_facturations.data %}
+                            {% set cumulCaissesTheo = cumulCaissesTheo + cloture.montantTheo %}
+                            {% set cumulCaissesReel = cumulCaissesReel + cloture.montantReel %}
+                            {% set cumulCaissesDiff = cumulCaissesDiff + cloture.difference %}
+
+                            <tr>
+                                <form method="POST" Action="{{path("app_logescom_caisse_cloture_caisse_delete", {id : cloture.id} )}}"  onsubmit="return confirm('Etes vous sûr de vouloir supprimer ce montant?');">
+                                    <td class=" fw-bold">{{ cloture.caisse.designation|ucwords }}</td>
+                                    <td class="text-end  fw-bold">{{ cloture.montantTheo|number_format(0,',',' ')}}</td>
+                                    <td class="text-end  fw-bold">{{ cloture.montantReel|number_format(0,',',' ')}}</td>
+                                    <td class="text-end  fw-bold">{{ cloture.difference| number_format(0,',',' ')}}</td>
+                                    <td class="text-end  fw-bold">{{ cloture.devise.nomDevise|strtoupper}}</td>
+                                    <td>{{ cloture.saisiePar.prenom|ucwords}}</td>
+                                </form>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="6" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in cumul_operations %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(0,',',' ') : (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+                    
+                </table>
+            {% elseif operation_search == 'echange' %}
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="8" class="text-center bg-info text-white">
+                                Liste des échanges devise à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}} 
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Montant</th>
+                            <th class="bg-info text-white">Taux</th>
+                            <th class="bg-info text-white">Montant Réçu</th>
+                            <th class="bg-info text-white">caisses</th>
+                            <th class="bg-info text-white">Commentaire</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, echange in op_facturations.data %}
+                        <tr>
+                            <td class="text-center">
+                                {{ (key +1) }}
+                                {% if echange.document is not empty %}
+                                    <a href="{{ asset('caisse/' ~ echange.document) }}" target="_blank"><i class="fa-solid fa-file-pdf fs-3"></i> </a>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ echange.dateSaisie ? echange.dateSaisie|date('d/m/Y') : '' }}</td>
+
+                            <td class="text-end text-nowrap">{{ echange.deviseOrigine.nomDevise == 'gnf' ? echange.montantOrigine|number_format(0,',',' ') : echange.montantOrigine|number_format(2,',',' ') }} {{ echange.deviseOrigine.nomDevise|strtoupper }}</td>
+
+                            <td class="text-center">{{ echange.taux|number_format(2,',',' ') }}</td>
+
+                            <td class="text-end text-nowrap">{{ echange.deviseDestination.nomDevise == 'gnf' ? echange.montantDestination|number_format(0,',',' ') : echange.montantDestination|number_format(2,',',' ') }} {{ echange.deviseDestination.nomDevise|strtoupper }}</td>
+
+                            <td class="text-center">{{ echange.caisseOrigine.designation|ucfirst ~ " -> " ~ echange.caisseDestination.designation|ucfirst }}</td>
+
+                            <td>{{ echange.commentaire|ucfirst }}</td>
+
+                            <td class="text-center">
+                                <a class="btn btn-success" href="{{ path('app_logescom_caisse_echange_devise_show', {'id': echange.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8">Aucun échange éffectué</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="8" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in cumul_operations %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(0,',',' ') : (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+                </table>
+            {% elseif operation_search == 'cheques-especes' %}
+
+                <table class="table table-bordered table-striped table-hover align-middle">
+
+                    <thead class="sticky-top bg-light text-center">
+                        <tr>
+                            <th colspan="10" class="text-center bg-info text-white">
+                                Liste des opérations chèque->espèces à la date du {{date1|date('d/m/Y')}} au {{date2|date('d/m/Y')}}
+                            </th>
+                        </tr>
+                        
+                        <tr>
+                            <th class="bg-info text-white">N°</th>
+                            <th class="bg-info text-white">Date</th>
+                            <th class="bg-info text-white">Collaborateur</th>
+                            <th class="bg-info text-white">Commentaire</th>
+                            <th class="bg-info text-white">Mt Chèque</th>
+                            <th class="bg-info text-white">Détail Cheq</th>
+                            <th class="bg-info text-white">Caisse dépôt</th>
+                            <th class="bg-info text-white">Montant Réçu</th>
+                            <th class="bg-info text-white">Caisse Retrait</th>
+                            <th class="bg-info text-white">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, versement in op_facturations.data %}
+                        <tr>
+                            <td class="text-center">
+                                {{ (key +1) }}
+                            </td>
+                            <td class="text-center">{{ versement.dateSaisie ? versement.dateSaisie|date('d/m/Y') : '' }}</td>
+                            <td>{{ versement.collaborateur.prenom|ucwords ~ " " ~ versement.collaborateur.nom |strtoupper }}</td>
+                            <td>{{ versement.commentaire|ucfirst }}</td>
+                            <td class="text-end text-nowrap">{{ versement.montantCheque|number_format(0,',',' ') }}</td>
+                            <td>{{ "heq N°:" ~ versement.numeroCheque ~ " banque:" ~ versement.banqueCheque }}</td>
+                            <td class="text-center">{{ versement.caisseDepot.designation|ucfirst }}</td>
+                            <td class="text-end text-nowrap">{{ versement.montantRecu|number_format(0,',',' ') }}</td>
+                            <td class="text-center">{{ versement.caisseRetrait.designation|ucfirst }}</td>
+                        
+                            <td class="text-center">
+                                <a class="btn btn-success" href="{{ path('app_logescom_entrees_cheque_espece_show', {'id': versement.id, site : site.id }) }}"><i class="fa fa-eye"></i></a>
+                            </td>
+                        </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="10">Aucune opération éffectuée</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-info text-white bg-opacity-75">
+                            <th colspan="10" class="bg-info text-white bg-opacity-20 text-end  fw-bold">
+                            <div class="d-flex justify-content-between">
+                                {% for cumul in cumul_operations %}
+                                    <div> Cumul {{cumul.nomDevise|strtoupper}}
+                                        {{cumul.nomDevise == 'gnf' ? (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(0,',',' ') : (cumul.solde > 0 ? cumul.solde : (- cumul.solde))|number_format(2,',',' ')}}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            </th>                        
+                        </tr>
+                    </tfoot>
+                </table>
+            
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

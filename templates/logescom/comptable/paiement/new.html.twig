@@ -1,0 +1,83 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}💸 Nouveau paiement{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    <div class="row">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {{ include("_common/_messages_flash.html.twig") }}
+
+            <div class="card shadow-lg border-0 mb-4 rounded-3">
+                <!-- 🔹 En-tête -->
+                <div class="card-header bg-dark text-white py-3 px-4">
+                    <h5 class="mb-0">
+                        <i class="fa fa-coins me-2 text-warning"></i>
+                        Enregistrer un nouveau paiement
+                    </h5>
+                </div>
+
+                <!-- 🔵 Infos essentielles de la facture -->
+                <div class="card-body bg-white border-bottom py-0 my-0">
+                    <div class="row text-muted">
+
+                        <div class="col-md-2 mb-1">
+                            <strong class="text-dark">Référence :</strong><br>
+                            {{ facture.reference }}
+                        </div>
+
+                        <div class="col-md-2 mb-1">
+                            <strong class="text-dark">Bien surveillé :</strong><br>
+                            {{ facture.contrat.bien.nom }}
+                        </div>
+
+                        <div class="col-md-2 mb-1">
+                            <strong class="text-dark">Total :</strong><br>
+                            {{ facture.montantTotal|number_format(0,'.',' ') }} GNF
+                        </div>
+
+                        <div class="col-md-2 mb-1">
+                            <strong class="text-dark">Payé :</strong><br>
+                            <span class="text-primary fw-bold">
+                                {{ facture.montantPaye|number_format(0,'.',' ') }} GNF
+                            </span>
+                        </div>
+
+                        <div class="col-md-2 mb-1">
+                            <strong class="text-dark">Reste à payer :</strong><br>
+                            <span class="text-danger fw-bold">
+                                {{ (facture.montantTotal - facture.montantPaye)|number_format(0,'.',' ') }} GNF
+                            </span>
+                        </div>
+
+                        <div class="col-md-2 mb-1">
+                            <strong class="text-dark">Période facturée :</strong><br>
+                            Du {{ facture.periodeDebut|date('d/m/Y') }} au {{ facture.periodeFin|date('d/m/Y') }}
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 📋 Formulaire -->
+                <div class="card-body bg-light p-4">
+
+                    {{ include('logescom/comptable/paiement/_form.html.twig', {'button_label': 'Valider'}) }}
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a class="btn btn-outline-secondary rounded-pill"
+                           href="{{ path('app_logescom_comptable_facture_show', {id : facture.id, site: site.id }) }}">
+                            <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

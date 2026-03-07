@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>REÇU DE PAIEMENT - {{ paiement.reference }}</title>
+
+    <style>
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            margin: 8px 12px;
+            color: #333;
+            font-size: 12px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 16px;
+            padding: 6px 0;
+            border: 1px solid #111;
+            margin: 10px 0 15px 0;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            font-size: 13px;
+            margin: 10px 0 6px 0;
+            border-left: 3px solid #0d6efd;
+            padding-left: 6px;
+            text-transform: uppercase;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 4px 5px;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f4f4f4;
+            font-weight: bold;
+        }
+
+        .bordered th, .bordered td {
+            border: 1px solid #aaa;
+        }
+
+        .totaux td {
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .signature-table td {
+            width: 50%;
+            text-align: center;
+            height: 120px;
+            vertical-align: bottom;
+        }
+
+        .sig-line {
+            border-top: 1px solid #000;
+            width: 80%;
+            margin: 0 auto;
+            padding-top: 3px;
+        }
+
+        .footer {
+            margin-top: 8px;
+            border-top: 1px solid #ccc;
+            padding-top: 3px;
+            text-align: center;
+            font-size: 11px;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ⬛ HEADER -->
+    <table style="width:100%; margin-bottom:6px;">
+        <tr>
+            <!-- LOGO -->
+            <td style="width:25%; text-align:left;">
+                <img src="data:image/png;base64,{{ logoPath }}" style="width:110px; height:auto;">
+            </td>
+
+            <!-- ENTREPRISE -->
+            <td style="width:50%; text-align:center; font-size:12px;">
+                <strong style="font-size:14px;">{{ site.entreprise.nom|upper }}</strong><br>
+                {{ site.adresse.nom }}<br>
+                Tél : {{ site.telephone }}<br>
+                <span style="font-size:11px;">N° Agrément : {{ site.entreprise.numeroAgrement }}</span>
+            </td>
+
+            <!-- INFO PAIEMENT -->
+            <td style="width:25%; text-align:right; font-size:12px;">
+                <strong>Reçu :</strong> {{ paiement.reference }}<br>
+                <strong>Date :</strong> {{ paiement.dateOperation|date('d/m/Y H:i') }}<br>
+                <strong>Montant :</strong> {{ paiement.montant|number_format(0,'.',' ') }} {{paiement.devise.nom|upper}}
+            </td>
+        </tr>
+    </table>
+
+    <div style="border-bottom:1px solid #000; margin-bottom:6px;"></div>
+
+
+    <!-- 🔵 TITRE -->
+    <h1>
+        REÇU DE PAIEMENT
+        <br>
+        <span style="font-size:13px; font-weight:normal;">
+            Mode : {{ paiement.modePaie.designation }} — Caisse : {{ paiement.caisse.nom }}
+        </span>
+    </h1>
+
+
+    <!-- 🔵 CLIENT -->
+    <h2>Client</h2>
+    <table class="bordered">
+        <tr>
+            <th style="width:30%;">Nom complet</th>
+            <td>
+                <strong>{{ paiement.facture.first.contrat.bien.nom|capitalize }} — {{ paiement.facture.first.contrat.bien.client.nomComplet|capitalize }}</strong>
+            </td>
+        </tr>
+        <tr>
+            <th>Téléphone</th>
+            <td>{{ paiement.facture.first.contrat.bien.client.telephone }}</td>
+        </tr>
+        <tr>
+            <th>Adresse</th>
+            <td>{{ paiement.facture.first.contrat.bien.client.adresse.nom }}</td>
+        </tr>
+    </table>
+
+
+    <!-- 🔵 FACTURES PAYÉES -->
+    <h2>Factures réglées</h2>
+
+    <table class="bordered">
+        <thead>
+            <tr>
+                <th>Référence</th>
+                <th>Période</th>
+                <th>Montant total</th>
+                {# <th>Payé avant</th> #}
+                <th>Montant payé</th>
+                <th>Reste à date</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for detail in  paiement.detailPaiementFactures %}
+            <tr>
+                <td>{{ detail.facture.reference }}</td>
+                <td>{{ detail.facture.periodeDebut|date('d/m/Y') }} → {{ detail.facture.periodeFin|date('d/m/Y') }}</td>
+                <td>{{ detail.facture.montantTotal|number_format(0,'.',' ') }} {{paiement.devise.nom|upper}}</td>
+                {# <td>
+                    {{ 
+                        (detail.facture.montantPaye - paiement.montant)|number_format(0,'.',' ')
+                    }} {{paiement.devise.nom|upper}}
+                </td> #}
+                <td style="font-weight:bold;">
+                    {{ detail.montant|number_format(0,'.',' ') }} {{paiement.devise.nom|upper}}
+                </td>
+                <td>
+                    {{ (detail.facture.montantPaye - detail.facture.montantTotal)|number_format(0,'.',' ') }} {{paiement.devise.nom|upper}}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+
+    <!-- 🔵 MONTANT DU PAIEMENT -->
+    <h2>Détail du paiement</h2>
+
+    <table class="bordered totaux">
+        <tr>
+            <th style="width:40%;">Montant payé</th>
+            <td>{{ paiement.montant|number_format(0,'.',' ') }} {{paiement.devise.nom|upper}}</td>
+        </tr>
+        <tr>
+            <th>Mode de paiement</th>
+            <td>{{ paiement.modePaie.designation }}</td>
+        </tr>
+        <tr>
+            <th>Caisse</th>
+            <td>{{ paiement.caisse.nom }}</td>
+        </tr>
+
+        {% if paiement.commentaire %}
+        <tr>
+            <th>Commentaire</th>
+            <td>{{ paiement.commentaire }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+
+    <!-- 🔵 SITUATION CLIENT -->
+    {# <h2>Situation du compte client</h2>
+    <table class="bordered">
+        <tr>
+            <th style="width:40%;">Ancien solde</th>
+            <td>
+                {% for s in ancien_solde %}
+                    {{ s.devise|upper }} : {{ s.montant|abs|number_format(0,'.',' ') }}<br>
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <th>Nouveau solde</th>
+            <td>
+                {% for s in solde_collaborateur %}
+                    {{ s.devise|upper }} : {{ s.montant|abs|number_format(0,'.',' ') }}<br>
+                {% endfor %}
+            </td>
+        </tr>
+    </table> #}
+
+
+    <!-- 🔵 SIGNATURES -->
+    <table class="signature-table" style="margin-top:25px;">
+        <tr>
+            <td><div class="sig-line"><strong>{{ site.entreprise.nom|upper }}</strong></div></td>
+            <td><div class="sig-line"><strong>Client</strong></div></td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Reçu imprimé par {{ app.user.prenom }} {{ app.user.nom|upper }}
+        le {{ "now"|date("d/m/Y H:i") }} — Document généré automatiquement.
+    </div>
+
+</body>
+</html>

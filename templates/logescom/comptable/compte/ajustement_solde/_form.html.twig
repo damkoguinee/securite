@@ -1,0 +1,5 @@
+{{ form_start(form) }}
+    {{ form_widget(form) }}
+    <input type="hidden" name="client" value="{{client}}">
+    <button class="btn btn-primary">{{ button_label|default('Ajuster') }}</button>
+{{ form_end(form) }}

@@ -1,0 +1,8 @@
+{% if soldes_collaborateur is not empty %}
+    <div class="row mx-1 px-1 bg-info text-white py-2 fw-bold fs-5">Solde du collaborateur
+        {% for solde_collaborateur in soldes_collaborateur %}
+            <label class="col-3 text-nowrap">{{solde_collaborateur.devise|strtoupper}}: {{solde_collaborateur.devise == 'gnf' ? solde_collaborateur.montant|number_format(0,',',' ') : solde_collaborateur.montant|number_format(2,',',' ') }}</label>
+            
+        {% endfor %}
+    </div>
+{% endif %}

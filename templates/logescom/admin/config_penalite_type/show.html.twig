@@ -1,0 +1,80 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Détail du type de pénalité{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/admin/_nav_admin.html.twig" %}
+    
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+        <div class="container-fluid py-3">
+
+            <!-- 🏷️ En-tête -->
+            <div class="d-flex justify-content-between align-items-center bg-dark text-white rounded-3 p-3 shadow-sm mb-3">
+                <h4 class="m-0">
+                    <i class="fa fa-eye me-2"></i> Détail du type de pénalité
+                </h4>
+                <a href="{{ path('app_logescom_admin_config_penalite_type_index') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fa fa-arrow-left"></i> Retour à la liste
+                </a>
+            </div>
+
+            <!-- 🧾 Carte d'information -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body bg-light rounded-3">
+
+                    <table class="table table-borderless align-middle mb-0">
+                        <tbody>
+                            <tr>
+                                <th class="text-end fw-semibold text-secondary" style="width: 30%;">
+                                    <i class="fa fa-tag me-2 text-dark"></i>Nom :
+                                </th>
+                                <td class="fw-bold text-dark">
+                                    {{ config_penalite_type.nom|capitalize }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th class="text-end fw-semibold text-secondary">
+                                    <i class="fa fa-align-left me-2 text-dark"></i>Description :
+                                </th>
+                                <td>
+                                    {{ config_penalite_type.description ?: '<em class="text-muted">Aucune description fournie</em>'|raw }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th class="text-end fw-semibold text-secondary">
+                                    <i class="fa fa-clock me-2 text-success"></i>Tarif horaire :
+                                </th>
+                                <td class="fw-semibold text-success">
+                                    {% if config_penalite_type.montantDefaut %}
+                                        {{ config_penalite_type.montantDefaut|number_format(0, ',', ' ') }} GNF
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 🔘 Boutons d’action -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a class="btn btn-outline-secondary" href="{{ path('app_logescom_admin_config_penalite_type_index') }}">
+                    <i class="fa fa-arrow-left me-1"></i> Retour
+                </a>
+
+                <div class="d-flex gap-2">
+                    <a class="btn btn-warning" href="{{ path('app_logescom_admin_config_penalite_type_edit', {'id': config_penalite_type.id}) }}">
+                        <i class="fa fa-edit me-1"></i> Modifier
+                    </a>
+                    {{ include('logescom/admin/config_penalite_type/_delete_form.html.twig') }}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

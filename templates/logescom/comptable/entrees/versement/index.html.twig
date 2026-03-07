@@ -1,0 +1,207 @@
+{% extends 'base_comptable.html.twig' %}
+{% block title %}Liste des versements{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">💰 Liste des versements</h5>
+                <a href="{{ path('app_logescom_comptable_entrees_versement_new', {site: site.id}) }}"
+                   class="btn btn-light btn-sm fw-semibold shadow-sm">
+                    <i class="fa fa-plus-circle me-1"></i> Nouveau versement
+                </a>
+            </div>
+
+            <div class="card-body">
+                <form class="row g-2 align-items-center mb-3">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small mb-1">Date début</label>
+                        <input type="date" name="date1" value="{{ date1 }}" class="form-control form-control-sm shadow-sm"
+                               onchange="this.form.submit()" max="{{ date2 }}">
+                        <input type="hidden" name="id_client_search" value="{{ search }}">
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small mb-1">Date fin</label>
+                        <input type="date" name="date2" value="{{ date2 }}" class="form-control form-control-sm shadow-sm"
+                               onchange="this.form.submit()" min="{{ date1 }}" max="{{ 'now'|date('Y-m-d') }}">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small mb-1">Client / Collaborateur</label>
+                        <input type="text" name="search" class="form-control form-control-sm shadow-sm"
+                               id="search_client" placeholder="Recherchez un client">
+                        <div class="bg-light" id="result-search"></div>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover align-middle">
+                        <thead class="table-info text-center align-middle sticky-top shadow-sm">
+                            <tr>
+                                <th class="bg-info text-white">#</th>
+                                <th class="bg-info text-white">Date</th>
+                                <th class="bg-info text-white">Collaborateur</th>
+                                <th class="bg-info text-white">Motif</th>
+                                <th class="bg-info text-white">Montant</th>
+                                <th class="bg-info text-white">Taux</th>
+                                <th class="bg-info text-white">Devise</th>
+                                <th class="bg-info text-white">Mode de paiement</th>
+                                <th class="bg-info text-white">Caisse</th>
+                                <th class="bg-info text-white">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for key, versement in versements.data %}
+                                <tr>
+                                    <td class="text-center fw-semibold">
+                                        {{ key + 1 }}
+                                        <a target="_blank"
+                                           href="{{ path('app_logescom_comptable_entrees_versement_recu_pdf', {'id': versement.id, 'site': site.id }) }}"
+                                           title="Reçu PDF">
+                                           <i class="fa fa-file-pdf text-danger ms-1"></i>
+                                        </a>
+                                    </td>
+                                    <td class="text-center">
+                                        {{ versement.dateOperation ? versement.dateOperation|date('d/m/Y') : '' }}
+                                    </td>
+                                    <td>
+                                        {% if versement.collaborateur %}
+                                            {{ versement.collaborateur.prenom|ucwords ~ " " ~ versement.collaborateur.nom|upper }}
+                                        {% else %}
+                                            <em class="text-muted">N/A</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ versement.commentaire|capitalize }}</td>
+                                    <td class="text-end fw-semibold">
+                                        {{ versement.devise.nom == 'gnf'
+                                            ? versement.montant|number_format(0,',',' ')
+                                            : versement.montant|number_format(2,',',' ') }}
+                                    </td>
+                                    <td class="text-end">{{ versement.taux|number_format(2,',',' ') }}</td>
+                                    <td class="text-center">{{ versement.devise.nom|upper }}</td>
+                                    <td class="text-center">{{ versement.modePaie.designation|capitalize }}</td>
+                                    <td class="text-center">{{ versement.caisse.nom|capitalize }}</td>
+
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ path('app_logescom_comptable_entrees_versement_show', {'id': versement.id, site: site.id}) }}"
+                                               class="btn btn-outline-success" title="Voir">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-3">
+                                        <i class="fa fa-info-circle me-1"></i> Aucun versement effectué
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if versements.nbrePages > 1 %}
+                    <nav aria-label="Pagination">
+                        <ul class="pagination justify-content-center">
+                            {# Page précédente #}
+                            {% if versements.pageEnCours > 1 %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                       app.request.query.all | merge({
+                                           'pageEnCours': versements.pageEnCours - 1,
+                                           'site': site.id,
+                                           'search': search,
+                                           'date1': date1,
+                                           'date2': date2
+                                       })) }}">&laquo;</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                            {% endif %}
+
+                            {% set startPage = max(1, versements.pageEnCours - 2) %}
+                            {% set endPage = min(versements.nbrePages, versements.pageEnCours + 2) %}
+
+                            {# Première page #}
+                            {% if startPage > 1 %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                       app.request.query.all | merge({
+                                           'pageEnCours': 1,
+                                           'site': site.id,
+                                           'search': search,
+                                           'date1': date1,
+                                           'date2': date2
+                                       })) }}">1</a>
+                                </li>
+                                {% if startPage > 2 %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                            {% endif %}
+
+                            {# Pages autour de la page actuelle #}
+                            {% for i in startPage..endPage %}
+                                <li class="page-item {{ i == versements.pageEnCours ? 'active' : '' }}">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                       app.request.query.all | merge({
+                                           'pageEnCours': i,
+                                           'site': site.id,
+                                           'search': search,
+                                           'date1': date1,
+                                           'date2': date2
+                                       })) }}">{{ i }}</a>
+                                </li>
+                            {% endfor %}
+
+                            {# Dernière page #}
+                            {% if endPage < versements.nbrePages %}
+                                {% if endPage < versements.nbrePages - 1 %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                       app.request.query.all | merge({
+                                           'pageEnCours': versements.nbrePages,
+                                           'site': site.id,
+                                           'search': search,
+                                           'date1': date1,
+                                           'date2': date2
+                                       })) }}">{{ versements.nbrePages }}</a>
+                                </li>
+                            {% endif %}
+
+                            {# Page suivante #}
+                            {% if versements.pageEnCours < versements.nbrePages %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                       app.request.query.all | merge({
+                                           'pageEnCours': versements.pageEnCours + 1,
+                                           'site': site.id,
+                                           'search': search,
+                                           'date1': date1,
+                                           'date2': date2
+                                       })) }}">&raquo;</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

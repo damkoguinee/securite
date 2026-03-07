@@ -1,0 +1,561 @@
+{% extends 'base_comptable.html.twig' %}
+{% block title %}Bilan{% endblock %}
+
+{% block presentation %}
+
+<div class="row m-0 p-0">
+
+    {# MENU DE GAUCHE #}
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+
+        {% include "_common/_messages_flash.html.twig" %}
+
+        {% set date1 = app.request.query.get('date1') ?? "now"|date("Y-m-d") %}
+        {% set date2 = app.request.query.get('date2') ?? "now"|date("Y-m-d") %}
+        {% set colspan = devises|length %}
+
+        <!-- ========= ENTÊTE DE LA PAGE ========= -->
+        <div class="card shadow border-0 mb-1">
+            <div class="card-header bg-primary bg-opacity-75 text-white py-3">
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center">
+                    <h4 class="fw-bold mb-0">
+                        <i class="bi bi-graph-up me-2"></i> Bilan général
+                    </h4>
+
+                    {% if is_granted("ROLE_RESPONSABLE") %}
+                        <form method="get" class="d-flex gap-2 align-items-center">
+                            <input type="date" name="date1" value="{{ date1 }}"
+                                   class="form-control form-control-sm"
+                                   onChange="this.form.submit()">
+
+                            <span class="fw-bold">au</span>
+
+                            <input type="date" name="date2" value="{{ date2 }}"
+                                   class="form-control form-control-sm"
+                                   onChange="this.form.submit()">
+                        </form>
+                    {% else %}
+                        <span class="fw-bold">{{ date1|date("d/m/Y") }} → {{ date2|date("d/m/Y") }}</span>
+                    {% endif %}
+
+                    {# <a href="{{ path('app_logescom_comptable_bilan_pdf', { site: site.id, date1, date2 }) }}"
+                       class="btn btn-light btn-sm border border-white ms-2"
+                       target="_blank">
+                        <i class="fa-solid fa-file-pdf text-danger me-1"></i> PDF
+                    </a> #}
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <!-- ================== CAISSES ================== -->
+                <h5 class="fw-bold text-primary mb-1">
+                    <i class="bi bi-cash-coin me-1"></i> Situation des caisses
+                </h5>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-striped table-hover align-middle">
+                        <thead class="table-primary text-center">
+                            <tr>
+                                <th>Désignation</th>
+                                {% for devise in devises %}
+                                    <th>{{ devise.nom|upper }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for caisse, solde_caisse in solde_caisses %}
+                                <tr>
+                                    <td class="fw-semibold">{{ caisse|ucwords }}</td>
+                                    {% for solde in solde_caisse %}
+                                        <td class="text-end fw-bold">
+                                            {{ solde.nomDevise == 'gnf'
+                                                ? solde.solde|number_format(0,',',' ')
+                                                : solde.solde|number_format(2,',',' ')
+                                            }}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="{{ colspan + 1 }}" class="text-center text-muted py-3">
+                                        <em>Aucune donnée disponible</em>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+
+                        <tfoot class="table-primary fw-bold">
+                            <tr>
+                                <th>Total</th>
+                                {% for cumul in solde_caisses_devises %}
+                                    <th class="text-end">
+                                        {{ cumul.nomDevise == 'gnf'
+                                            ? cumul.solde|number_format(0,',',' ')
+                                            : cumul.solde|number_format(2,',',' ')
+                                        }}
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </tfoot>
+
+                    </table>
+                </div>
+
+
+                <!-- ================== FACTURATIONS ================== -->
+                <h5 class="fw-bold text-success mt-1">
+                    <i class="bi bi-receipt me-2"></i> Facturations
+                </h5>
+
+                <div class="table-responsive mb-4">
+
+                    <table class="table table-bordered table-striped align-middle">
+
+                        <thead class="table-success text-center">
+                            <tr>
+                                <th colspan="{{ colspan + 1 }}" class="py-2 fs-6">
+                                    Facturations du {{ date1|date('d/m/Y') }} au {{ date2|date('d/m/Y') }}
+                                    <a href="{{ path('app_logescom_comptable_facture_index', {
+                                        site: site.id,
+                                        date1: date1|date('Y-m-d'),
+                                        date2: date2|date('Y-m-d')
+                                    }) }}"
+                                       class="btn btn-sm btn-outline-success ms-2">
+                                        <i class="fa fa-eye"></i> Voir détails
+                                    </a>
+                                </th>
+                            </tr>
+
+                            <tr>
+                                <th>Désignation</th>
+                                {% for devise in devises %}
+                                    <th>{{ devise.nom|upper }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% set rows = {
+                                'Montant TTC': 'totalTTC',
+                                'Montant HT': 'totalHT',
+                                'Remise appliquée': 'totalRemise',
+                                'Montant TVA': 'totalTVA',
+                                'Créances Clients': 'creance'
+                            } %}
+
+                            {% for label, key in rows %}
+                                <tr class="{{ label == 'Créances Clients' ? 'text-danger fw-bold' : '' }}">
+                                    <td>{{ label }}</td>
+
+                                    {% for devise in devises %}
+                                        {% set value = 0 %}
+                                        {% for f in facturations %}
+                                            {% if f.nomDevise == devise.nom %}
+                                                {% set value = attribute(f, key) %}
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        <td class="text-end">
+                                            {{ devise.nom == 'gnf'
+                                                ? value|number_format(0,',',' ')
+                                                : value|number_format(2,',',' ')
+                                            }}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+
+                        </tbody>
+                    </table>
+
+                </div>
+
+
+                <!-- ================== ENCAISSEMENTS ================== -->
+
+                <h5 class="fw-bold text-primary mt-1">
+                    <i class="bi bi-wallet2 me-2"></i> Encaissements
+                    <a href="{{ path('app_logescom_comptable_caisse_releve', {
+                        site: site.id,
+                        date1: date1|date('Y-m-d'),
+                        date2: date2|date('Y-m-d')
+                    }) }}"
+                        class="btn btn-sm btn-outline-success ms-2">
+                        <i class="fa fa-eye"></i> Voir détails
+                    </a>
+                </h5>
+
+                <div class="table-responsive mb-4">
+
+                    <table class="table table-bordered table-striped align-middle">
+
+                        <thead class="table-primary text-center">
+                            <tr>
+                                <th>Désignation</th>
+                                {% for devise in devises %}
+                                    <th>{{ devise.nom|upper }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {# ========== LISTE DES ENCAISSEMENTS ========== #}
+                            {% for paiement in paiements %}
+                                {% for type, paiementType in paiement %}
+
+                                    {% set afficher = false %}
+                                    {% for p in paiementType %}
+                                        {% if p.montantTotal > 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+
+                                            {% for p in paiementType %}
+                                                {% if p.montantTotal > 0 %}
+                                                    <td class="text-end">
+                                                        {{ p.nomDevise == 'gnf'
+                                                            ? p.montantTotal|number_format(0,',',' ')
+                                                            : p.montantTotal|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+
+                                {% endfor %}
+                            {% endfor %}
+
+
+                            {# ========== VERSEMENTS ========== #}
+                            {% for versement in versements %}
+                                {% for type, versementType in versement %}
+
+                                    {% set afficher = false %}
+                                    {% for v in versementType %}
+                                        {% if v.montantTotal > 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+
+                                            {% for v in versementType %}
+                                                {% if v.montantTotal > 0 %}
+                                                    <td class="text-end">
+                                                        {{ v.nomDevise == 'gnf'
+                                                            ? v.montantTotal|number_format(0,',',' ')
+                                                            : v.montantTotal|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+
+                                {% endfor %}
+                            {% endfor %}
+
+
+                            {# ========== TRANSFERTS ENTRANTS ========== #}
+                            {% for transfert in transferts %}
+                                {% for type, transfertType in transfert %}
+
+                                    {% set afficher = false %}
+                                    {% for t in transfertType %}
+                                        {% if t.montantTotal > 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+
+                                            {% for t in transfertType %}
+                                                {% if t.montantTotal > 0 %}
+                                                    <td class="text-end">
+                                                        {{ t.nomDevise == 'gnf'
+                                                            ? t.montantTotal|number_format(0,',',' ')
+                                                            : t.montantTotal|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+
+                                {% endfor %}
+                            {% endfor %}
+
+
+                            {# ========== RECETTES ========== #}
+                            {% for recette in recettes %}
+                                {% for type, recetteType in recette %}
+
+                                    {% set afficher = false %}
+                                    {% for r in recetteType %}
+                                        {% if r.montantTotal > 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+
+                                            {% for r in recetteType %}
+                                                {% if r.montantTotal > 0 %}
+                                                    <td class="text-end">
+                                                        {{ r.nomDevise == 'gnf'
+                                                            ? r.montantTotal|number_format(0,',',' ')
+                                                            : r.montantTotal|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+
+                                {% endfor %}
+                            {% endfor %}
+
+                            {# ========== TOTAL DES ENCAISSEMENTS ========== #}
+                            <tr class="table-success fw-bold">
+                                <td>Total Encaissements</td>
+                                {% for tot in totauxEncaissements %}
+                                    <td class="text-end">
+                                        {{ tot.nomDevise == 'gnf'
+                                            ? tot.montantTotal|number_format(0,',',' ')
+                                            : tot.montantTotal|number_format(2,',',' ') }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+
+                            <tr class="table-info fw-bold">
+                                <td>Total Entrées (avec transferts)</td>
+                                {% for t in totalEntrees %}
+                                    <td class="text-end">
+                                        {{ t.nomDevise == 'gnf'
+                                            ? t.montantTotal|number_format(0,',',' ')
+                                            : t.montantTotal|number_format(2,',',' ') }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+
+                            <tr class="table-info fw-bold">
+                                <td>Total Entrées (hors transferts)</td>
+                                {% for t in totalEntreesSansTransferts %}
+                                    <td class="text-end">
+                                        {{ t.nomDevise == 'gnf'
+                                            ? t.montantTotal|number_format(0,',',' ')
+                                            : t.montantTotal|number_format(2,',',' ') }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <h5 class="fw-bold text-danger mt-1">
+                    <i class="bi bi-arrow-down-circle me-2"></i> Décaissements
+                </h5>
+
+                <div class="table-responsive mb-4">
+
+                    <table class="table table-bordered table-striped align-middle">
+
+                        <thead class="table-danger text-center">
+                            <tr>
+                                <th>Désignation</th>
+                                {% for devise in devises %}
+                                    <th>{{ devise.nom|upper }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {# ========== DÉCAISSEMENTS #}
+                            {% for decaissement in decaissements %}
+                                {% for type, decaissementType in decaissement %}
+
+                                    {% set afficher = false %}
+                                    {% for d in decaissementType %}
+                                        {% if d.montantTotal != 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+                                            {% for d in decaissementType %}
+                                                {% if d.montantTotal != 0 %}
+                                                    <td class="text-end">
+                                                        {{ d.nomDevise == 'gnf'
+                                                            ? (- d.montantTotal)|number_format(0,',',' ')
+                                                            : (- d.montantTotal)|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+
+                                {% endfor %}
+                            {% endfor %}
+
+
+                            {# ========== DÉPENSES #}
+                            {% for depense in depenses %}
+                                {% for type, depType in depense %}
+                                    {% set afficher = false %}
+                                    {% for d in depType %}
+                                        {% if d.montantTotal != 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+                                            {% for d in depType %}
+                                                {% if d.montantTotal != 0 %}
+                                                    <td class="text-end">
+                                                        {{ d.nomDevise == 'gnf'
+                                                            ? (- d.montantTotal)|number_format(0,',',' ')
+                                                            : (- d.montantTotal)|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+
+                            {# ========== AVANCES #}
+                            {% for avance in avances %}
+                                {% for type, avType in avance %}
+                                    {% set afficher = false %}
+                                    {% for a in avType %}
+                                        {% if a.montantTotal != 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+                                            {% for a in avType %}
+                                                {% if a.montantTotal != 0 %}
+                                                    <td class="text-end">
+                                                        {{ a.nomDevise == 'gnf'
+                                                            ? (- a.montantTotal)|number_format(0,',',' ')
+                                                            : (- a.montantTotal)|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+
+                            {# ========== SALAIRES #}
+                            {% for salaire in salaires %}
+                                {% for type, salType in salaire %}
+                                    {% set afficher = false %}
+                                    {% for s in salType %}
+                                        {% if s.montantTotal != 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+                                            {% for s in salType %}
+                                                {% if s.montantTotal != 0 %}
+                                                    <td class="text-end">
+                                                        {{ s.nomDevise == 'gnf'
+                                                            ? (- s.montantTotal)|number_format(0,',',' ')
+                                                            : (- s.montantTotal)|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+
+                            {# ========== TRANSFERTS SORTANTS #}
+                            {% for transfert in transferts %}
+                                {% for type, transType in transfert %}
+                                    {% set afficher = false %}
+                                    {% for t in transType %}
+                                        {% if t.montantTotal != 0 %}
+                                            {% set afficher = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if afficher %}
+                                        <tr>
+                                            <td>{{ type|ucfirst }}</td>
+                                            {% for t in transType %}
+                                                {% if t.montantTotal != 0 %}
+                                                    <td class="text-end">
+                                                        {{ t.nomDevise == 'gnf'
+                                                            ? (- t.montantTotal)|number_format(0,',',' ')
+                                                            : (- t.montantTotal)|number_format(2,',',' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+
+                            {# ========== TOTAUX DÉCAISSEMENTS ========== #}
+                            <tr class="table-danger fw-bold">
+                                <td>Total Décaissements (avec transferts)</td>
+                                {% for t in totauxDecaissements %}
+                                    <td class="text-end">
+                                        {{ t.nomDevise == 'gnf'
+                                            ? (- t.montantTotal)|number_format(0,',',' ')
+                                            : (- t.montantTotal)|number_format(2,',',' ') }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+
+                            <tr class="table-danger fw-bold">
+                                <td>Total Décaissements (hors transferts)</td>
+                                {% for t in totauxDecaissementsSansTransferts %}
+                                    <td class="text-end">
+                                        {{ t.nomDevise == 'gnf'
+                                            ? (- t.montantTotal)|number_format(0,',',' ')
+                                            : (- t.montantTotal)|number_format(2,',',' ') }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+
+                        </tbody>
+                    </table>
+
+                </div>
+
+
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

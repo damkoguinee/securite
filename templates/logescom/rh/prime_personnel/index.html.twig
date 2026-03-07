@@ -1,0 +1,109 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Liste des primes du personnel{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <!-- 🧾 Carte principale -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fa fa-gift me-2"></i> Liste des primes du personnel
+            </h5>
+            <a class="btn btn-primary btn-sm"
+               href="{{ path('app_logescom_rh_prime_personnel_new', { site: site.id }) }}">
+                <i class="fa fa-plus-circle me-1"></i> Nouvelle prime
+            </a>
+        </div>
+
+        <!-- 📊 Contenu -->
+        <div class="card-body bg-light">
+            {% set cumulGeneral = 0 %}
+
+            {% if primesParMois is not empty %}
+                {% for mois, primes in primesParMois %}
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-secondary bg-opacity-75 text-white d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 text-uppercase">
+                                <i class="fa fa-calendar-alt me-1"></i> Mois : {{ mois }}
+                            </h6>
+                        </div>
+
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle text-center">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Date saisie</th>
+                                            <th>Employé</th>
+                                            <th>Téléphone</th>
+                                            <th>Montant</th>
+                                            <th>Commentaire</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% set cumulMois = 0 %}
+                                        {% for key, prime in primes %}
+                                            {% set cumulMois = cumulMois + prime.montant %}
+                                            {% set cumulGeneral = cumulGeneral + prime.montant %}
+                                            <tr>
+                                                <td>{{ key + 1 }}</td>
+                                                <td>{{ prime.dateSaisie ? prime.dateSaisie|date('d/m/Y') : '—' }}</td>
+                                                <td class="text-start">
+                                                    <i class="fa fa-user text-primary me-1"></i>
+                                                    {{ prime.personnel.prenom|capitalize }} {{ prime.personnel.nom|upper }}
+                                                </td>
+                                                <td>{{ prime.personnel.telephone|default('—') }}</td>
+                                                <td class="text-end fw-semibold text-success">
+                                                    {{ prime.montant|abs|number_format(0, ',', ' ') }}
+                                                </td>
+                                                <td class="text-start">
+                                                    {{ prime.commentaire|default('—') }}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ path('app_logescom_rh_prime_personnel_show', {'id': prime.id, site: site.id}) }}"
+                                                       class="btn btn-sm btn-outline-success" title="Voir">
+                                                        <i class="fa fa-eye"></i>
+                                                    </a>
+                                                    <a href="{{ path('app_logescom_rh_prime_personnel_edit', {'id': prime.id, site: site.id}) }}"
+                                                       class="btn btn-sm btn-outline-warning" title="Modifier">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-secondary fw-bold">
+                                        <tr>
+                                            <td colspan="4" class="text-end">Total {{ mois }}</td>
+                                            <td class="text-end">{{ cumulMois|abs|number_format(0, ',', ' ') }}</td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <!-- 🔹 Total général -->
+                <div class="alert alert-info fw-bold text-end mt-4 mb-0 shadow-sm">
+                    <i class="fa fa-coins me-1"></i> Total général :
+                    <span class="text-dark">{{ cumulGeneral|abs|number_format(0, ',', ' ') }} </span>
+                </div>
+
+            {% else %}
+                <div class="alert alert-secondary text-center my-4">
+                    <i class="fa fa-info-circle me-1"></i> Aucune prime enregistrée.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

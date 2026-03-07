@@ -1,0 +1,328 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}🧾 Liste des factures{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+
+
+    <div class="row">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {% include "_common/_messages_flash.html.twig" %}
+
+            <div class="card shadow-lg border-0 mb-4">
+
+                <!-- 🔹 En-tête -->
+                <div class="card-header bg-dark text-white py-3 px-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                        <!-- 🧾 Titre -->
+                        <h5 class="m-0 d-flex align-items-center">
+                            <i class="fa fa-file-invoice-dollar me-2 text-warning"></i>
+                            Liste des factures
+                        </h5>
+
+                        <!-- 🔍 Filtres + Recherche -->
+                        <form method="get" class="d-flex align-items-center gap-1 flex-nowrap">
+
+                            <!-- 📅 Date début -->
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="date" 
+                                    name="date1" 
+                                    id="date1"
+                                    value="{{ app.request.get('date1') ?? 'now'|date('Y-m-d') }}"
+                                    class="form-control form-control-sm shadow-sm border-0 rounded-pill"
+                                    onchange="this.form.submit()">
+                            </div>
+
+                            <!-- 📅 Date fin -->
+                            <div class="d-flex align-items-center gap-1">
+                                <label class="fw-semibold mb-0">-</label>
+                                <input type="date" 
+                                    name="date2" 
+                                    id="date2"
+                                    value="{{ app.request.get('date2') ?? 'now'|date('Y-m-d') }}"
+                                    class="form-control form-control-sm shadow-sm border-0 rounded-pill"
+                                    onchange="this.form.submit()">
+                            </div>
+
+                            {% set zoneSelected = app.request.get('zone') %}
+                            <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">— Toutes les zones —</option>
+                                {% for zone in zones %}
+                                    <option value="{{ zone.id }}" {{ zoneSelected == zone.id ? 'selected' }}>
+                                        {{ zone.nom|upper }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+
+                            <input type="text"
+                                name="search"
+                                class="form-control form-control-sm shadow-sm rounded-pill ps-4"
+                                placeholder="🔍 Rechercher une facture, collaborateur..."
+                                value="{{ search }}">
+
+                            <!-- 🔎 Bouton rechercher -->
+                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">
+                                Rechercher
+                            </button>
+                        </form>
+
+                        <div class="flex-grow-1 mx-3" style="max-width: 620px;">
+                            <input type="text"
+                                id="search_contrat"
+                                class="form-control form-control-sm shadow-sm"
+                                placeholder="🔍 Rechercher un contrat (client, site, type...)">
+                            <div id="result_search_contrat" class="text-start bg-white small mt-1"></div>
+                        </div>
+
+                        <!-- ➕ Nouvelle -->
+                        <a href="{{ path('app_logescom_comptable_facture_new', {site: site.id}) }}"
+                        class="btn btn-warning btn-sm rounded-pill shadow-sm">
+                            <i class="fa fa-plus-circle me-1"></i> Nouvelle facture
+                        </a>
+
+                         <!-- ➕ generation des factures -->
+                        <a target="_blank" href="{{ path('app_logescom_comptable_facture_pdf', {site: site.id, periode : date1, zone : app.request.get('zone') }) }}"
+                        class="btn btn-warning btn-sm rounded-pill shadow-sm">
+                            <i class="fa fa-file-pdf me-1"></i> Factures PDF
+                        </a>
+
+                    </div>
+                </div>
+
+
+                <!-- 📋 Contenu -->
+                <div class="card-body bg-light p-4">
+
+                    {% if facturesGroup is not empty %}
+
+                        {% set total_general = 0 %}
+                        {% set total_paye = 0 %}
+                        {% set total_reste = 0 %}
+
+                        {% for groupe in facturesGroup %}
+
+                            {# ===== ENTÊTE CLIENT / MOIS ===== #}
+                            <div class="card mb-4 shadow-sm">
+
+                                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>
+                                            {{ groupe.client.nomComplet|default(groupe.client.societe)|upper }}
+                                        </strong>
+                                        <span class="ms-2 badge bg-primary">
+                                            {{ groupe.mois|date('F Y')|capitalize }}
+                                        </span>
+                                    </div>
+
+                                    <div class="fw-bold">
+                                        Total mois :
+                                        {{ groupe.total|number_format(0, ',', ' ') }}
+                                    </div>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover align-middle mb-0">
+                                        <thead class="text-center" style="background:#002b5c; color:white;">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Référence</th>
+                                                <th>Bien</th>
+                                                <th>Total</th>
+                                                <th>Payé</th>
+                                                <th>Reste</th>
+                                                <th>Période</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody class="text-center bg-white">
+
+                                            {% for facture in groupe.facturations %}
+
+                                                {% set reste = facture.montantTotal - facture.montantPaye %}
+
+                                                {% set total_general = total_general + facture.montantTotal %}
+                                                {% set total_paye = total_paye + facture.montantPaye %}
+                                                {% set total_reste = total_reste + reste %}
+
+                                                {% set color =
+                                                    facture.statut == 'payee'
+                                                        ? '#d1f3e0'
+                                                        : (facture.statut == 'partielle'
+                                                            ? '#fff4cc'
+                                                            : '#ffe0e3'
+                                                        )
+                                                %}
+
+                                                <tr style="background: {{ color }};">
+                                                    <td>{{ loop.index }}</td>
+
+                                                    <td class="text-primary fw-semibold">
+                                                        {{ facture.reference }}
+                                                    </td>
+
+                                                    <td class="text-start">
+                                                        {{ facture.contrat.bien.nom|capitalize }}
+                                                    </td>
+
+                                                    <td class="text-end fw-bold">
+                                                        {{ facture.montantTotal|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td class="text-end text-success fw-semibold">
+                                                        {{ facture.montantPaye|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td class="text-end text-danger fw-semibold">
+                                                        {{ reste|number_format(0, ',', ' ') }}
+                                                    </td>
+
+                                                    <td>
+                                                        {{ facture.periodeDebut|date('d/m/Y') }}
+                                                        <br>
+                                                        <i class="fa fa-arrow-down"></i>
+                                                        <br>
+                                                        {{ facture.periodeFin|date('d/m/Y') }}
+                                                    </td>
+
+                                                    <td>
+                                                        <a href="{{ path('app_logescom_comptable_facture_show', {
+                                                                id: facture.id,
+                                                                site: site.id
+                                                            }) }}"
+                                                        class="btn btn-sm btn-outline-success"
+                                                        title="Voir">
+                                                            <i class="fa fa-eye"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        {% endfor %}
+
+                        {# ===== TOTAUX GÉNÉRAUX ===== #}
+                        <div class="card shadow-sm">
+                            <div class="card-body text-end fw-bold" style="background:#002b5c; color:white;">
+                                TOTAL GÉNÉRAL :
+                                {{ total_general|number_format(0, ',', ' ') }}
+                                &nbsp;|&nbsp;
+                                PAYÉ :
+                                <span class="text-success">
+                                    {{ total_paye|number_format(0, ',', ' ') }}
+                                </span>
+                                &nbsp;|&nbsp;
+                                RESTE :
+                                <span class="text-danger">
+                                    {{ total_reste|number_format(0, ',', ' ') }}
+                                </span>
+                            </div>
+                        </div>
+
+                    {% else %}
+                        <div class="alert alert-secondary text-center my-4">
+                            <i class="fa fa-info-circle me-1"></i>
+                            Aucune facture trouvée pour cette période.
+                        </div>
+                    {% endif %}
+
+
+
+                    <!-- 📄 Pagination inchangée -->
+                    <!-- 📄 Pagination -->
+                    {% if factures.nbrePages > 1 %}
+                        <nav class="mt-3">
+                            <ul class="pagination justify-content-center">
+
+                                <!-- Prev -->
+                                <li class="page-item {{ factures.pageEnCours == 1 ? 'disabled' : '' }}">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                       app.request.query.all | merge({'pageEnCours': factures.pageEnCours - 1, 'site': site.id})) }}">
+                                       &laquo;
+                                    </a>
+                                </li>
+
+                                {% set start = max(1, factures.pageEnCours - 2) %}
+                                {% set end = min(factures.nbrePages, factures.pageEnCours + 2) %}
+
+                                {% if start > 1 %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': 1, 'site': site.id})) }}">
+                                           1
+                                        </a>
+                                    </li>
+                                    {% if start > 2 %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% for i in start..end %}
+                                    <li class="page-item {{ i == factures.pageEnCours ? 'active' : '' }}">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': i, 'site': site.id})) }}">
+                                           {{ i }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+
+                                {% if end < factures.nbrePages %}
+                                    {% if end < factures.nbrePages - 1 %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': factures.nbrePages, 'site': site.id})) }}">
+                                           {{ factures.nbrePages }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                <!-- Next -->
+                                <li class="page-item {{ factures.pageEnCours == factures.nbrePages ? 'disabled' : '' }}">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                       app.request.query.all | merge({'pageEnCours': factures.pageEnCours + 1, 'site': site.id})) }}">
+                                       &raquo;
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </nav>
+                    {% endif %}
+
+                </div>
+
+                
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    #result-search {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    #result-search .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+
+<script>
+    window.searchContratUrl = "{{ path('app_logescom_facture_contrat_search', { site: site.id }) }}";
+</script>
+{% endblock %}

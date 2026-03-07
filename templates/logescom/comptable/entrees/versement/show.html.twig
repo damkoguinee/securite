@@ -1,0 +1,137 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}💰 Détail du versement{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    <div class="row">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            <div class="card shadow-lg border-0 mb-4">
+                <!-- 🔹 En-tête -->
+                <div class="card-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fa fa-money-bill-wave me-2 text-success"></i> Détail du versement
+                    </h5>
+
+                    <div>
+                        <a href="{{ path('app_logescom_comptable_entrees_versement_index', {'site': site.id}) }}"
+                           class="btn btn-outline-light btn-sm">
+                            <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 📋 Corps principal -->
+                <div class="card-body bg-light p-4">
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-hover align-middle bg-white shadow-sm">
+                            <tbody>
+                                <tr>
+                                    <th class="bg-secondary text-white w-25">Référence</th>
+                                    <td>{{ versement.reference }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Collaborateur</th>
+                                    <td>
+                                        {% if versement.collaborateur %}
+                                            {% set collab = versement.collaborateur %}
+                                            {% if collab.typeUser == 'client' %}
+                                                {{ collab.societe is not empty
+                                                    ? collab.societe|upper
+                                                    : (collab.prenom|ucwords ~ ' ' ~ collab.nom|upper) }}
+                                            {% else %}
+                                                {{ collab.prenom|ucwords ~ ' ' ~ collab.nom|upper }}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Aucun collaborateur</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Motif</th>
+                                    <td>{{ versement.commentaire|capitalize }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Montant</th>
+                                    <td class="fw-bold">
+                                        {% if versement.devise.nom == 'gnf' %}
+                                            {{ versement.montant|number_format(0, ',', ' ') }}
+                                        {% else %}
+                                            {{ versement.montant|number_format(2, ',', ' ') }}
+                                        {% endif %}
+                                        {{ versement.devise.nom|upper }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Taux</th>
+                                    <td>{{ versement.taux|number_format(2, ',', ' ') }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Devise</th>
+                                    <td>{{ versement.devise.nom|upper }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Mode de paiement</th>
+                                    <td>{{ versement.modePaie.designation|capitalize }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Numéro de paiement</th>
+                                    <td>{{ versement.bordereau ?: '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Caisse</th>
+                                    <td>{{ versement.caisse.nom|capitalize }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Date du versement</th>
+                                    <td>{{ versement.dateOperation ? versement.dateOperation|date('d/m/Y H:i') : '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Date de saisie</th>
+                                    <td>{{ versement.dateSaisie ? versement.dateSaisie|date('d/m/Y H:i') : '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Traité par</th>
+                                    <td>
+                                        {{ versement.saisiePar.prenom|ucwords ~ ' ' ~ versement.saisiePar.nom|upper }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 🔘 Boutons d’action -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a class="btn btn-outline-secondary"
+                           href="{{ path('app_logescom_comptable_entrees_versement_index', {'site': site.id}) }}">
+                            <i class="fa fa-arrow-left me-1"></i> Retour
+                        </a>
+
+                        <div class="d-flex gap-2">
+                            {% if is_granted('ROLE_MODIFICATION') %}
+                                <a href="{{ path('app_logescom_comptable_entrees_versement_edit', {'id': versement.id, 'site': site.id}) }}"
+                                   class="btn btn-warning text-white">
+                                    <i class="fa fa-edit me-1"></i> Modifier
+                                </a>
+                            {% endif %}
+
+                            {% if is_granted('ROLE_SUPPRESSION') %}
+                                <form method="post"
+                                      action="{{ path('app_logescom_comptable_entrees_versement_confirm_delete', {'id': versement.id}) }}"
+                                      onsubmit="return confirm('Voulez-vous vraiment supprimer ce versement ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ versement.id) }}">
+                                    <button class="btn btn-danger">
+                                        <i class="fa fa-trash me-1"></i> Supprimer
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

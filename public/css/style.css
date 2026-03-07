@@ -1,0 +1,27 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+a{
+    text-decoration: none;
+    list-style: none;
+    color: #313031;
+}
+
+li{
+    text-decoration: none;
+    list-style: none;
+}
+
+.btn-primary {
+    background-color:#152736 !important;
+}
+
+.bg-info {
+    background-color:#193c51 !important;
+}
+
+.btn-info {
+    background-color: #53c3e9 !important;
+}
+

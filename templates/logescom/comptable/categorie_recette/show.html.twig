@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}CategorieDepense{% endblock %}
+
+{% block body %}
+    <h1>CategorieDepense</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ categorie_recette.id }}</td>
+            </tr>
+            <tr>
+                <th>Description</th>
+                <td>{{ categorie_recette.nom }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_logescom_comptable_categorie_recette_index') }}">back to list</a>
+
+    <a href="{{ path('app_logescom_comptable_categorie_recette_edit', {'id': categorie_recette.id}) }}">edit</a>
+
+    {{ include('logescom/comptable/categorie_recette/_delete_form.html.twig') }}
+{% endblock %}

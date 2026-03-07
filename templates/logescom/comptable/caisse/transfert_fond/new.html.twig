@@ -1,0 +1,31 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}ajout transfert fond{% endblock %}
+
+{% block presentation %}
+    {% if app.request.query.has('id_client_search') %}
+        {% set client = app.request.query.get('id_client_search') %}
+    {% else %}
+        {% set client = "" %}
+    {% endif %}
+
+    <div class="row m-0 p-0">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            {% include "_common/_messages_flash.html.twig" %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Enregistrer un transfert de fond</h5>
+                </div>
+                <div class="card-body">
+                    <div class="bg-white text-danger fs-5 fw-bold py-2" id="result-search"></div>
+
+                    {{ include('logescom/comptable/caisse/transfert_fond/_form.html.twig') }}
+
+                    <a class="btn btn-light my-4" href="{{ path('app_logescom_comptable_caisse_transfert_fond_index', {site : site.id}) }}">Retour</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

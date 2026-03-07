@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}fiche de paie{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
+        {% block stylesheets %}
+			            <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css">
+			{# <link rel="stylesheet" href="{{ asset('css/style.css') }}"> #}
+		{% endblock %}
+
+        
+    </head>
+    <body>
+        <style>
+            body{
+            margin: 0px;
+            width: 100%;
+            height:68%;
+            padding:0px;}
+            .ticket{
+                margin:0px;
+                width: 100%;
+            }
+            table {
+                width: 100%;
+                color: #717375;
+                font-family: helvetica;
+                border-collapse: collapse;
+            }
+            
+            .border th {
+                border: 1px solid black;
+                padding: 5px;
+                font-weight: bold;
+                font-size: 16px;
+                color: black;
+                background: white;
+                text-align: right;
+            }
+            .border td {
+                border: 1px solid black;
+                padding: 3px;    
+                font-size: 16px;
+                color: black;
+                background: white;
+                text-align: center;
+            }
+            .footer{
+                font-size: 18px;
+                font-style: italic;
+            }
+        </style>
+        
+        
+        <table class="border">
+            <tbody>
+                <tr>
+                    <th colspan="3" style="text-align:center; font-weight: bold; font-size: 18px; padding-top: 5px; border: 0px;">
+                        <img src="data:image/jpeg;base64,{{ logoPath }}" alt="Logo"width="380" height="100">
+                    </th>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align:center; border: 0px;">{{site.typeCommerce ~ " " ~ site.entreprise.numeroAgrement}}</td>
+                </tr>
+        
+                <tr>
+                    <td colspan="3" style="text-align:center; border: 0px; padding-bottom:20px;">{{site.adresse ~ " Tél:"~ site.telephone}}</td>
+                </tr>
+
+                <tr>
+                    <th colspan="3" style="text-align:right; font-size: 16px; border: 0px; ">{{salaire.personnel.prenom|ucwords ~ " " ~ salaire.personnel.nom|strtoupper}}</th>
+                </tr>
+
+                <tr>
+                    <td colspan="3" style="text-align:right; font-size: 16px; border: 0px;">Téléphone: {{salaire.personnel.telephone}}</td>
+                </tr>
+
+            </tbody>
+
+            <tbody>
+                <tr>
+                    <th colspan="3" style="text-align: center;">BULLETIN DE PAIE {{salaire.periode| date("m/Y")}} </th>
+                </tr>
+
+                <tr>
+                    <th style="text-align: center;">Identifiant : {{salaire.personnel.id}} </th>
+                    <th style="text-align: center;">{{salaire.personnel.prenom|ucwords ~ " " ~ salaire.personnel.nom|strtoupper}} </th>
+
+                    <th style="text-align: center;">Taux Horaire : {{personnel.tauxHoraire|number_format(0,',',' ')}} </th>
+
+
+                </tr>
+
+                <tr>
+                    <th style="text-align: center;">Paie N° : {{salaire.id}} </th>
+
+                    <th style="text-align: center;">Mode de Paie : {{salaire.typePaiement.designation|ucfirst}} </th>
+
+                    <th style="text-align: center;">Date de Paie: {{salaire.dateSaisie|date("d/m/Y")}} </th>
+                </tr>
+            </tbody>
+            <thead style="background-color:#f2f2f2; width:100%; font-weight:bold;">
+                <tr>
+                    <th style="width: 30%; text-align: center;">Heure(s)</th>
+                    <th style="width: 40%; text-align: center;">Libellé</th>
+                    <th style="width: 30%; text-align: center;">Montant</th>
+                </tr>
+            </thead>                
+            <tbody>
+                <tr>
+                    <td>--</td>
+                    <td style="text-align:left;">Salaire Brut</td>
+                    <td style="text-align:right;">{{salaire.salaireBrut|number_format(0,',',' ')}}</td>
+                </tr>
+
+                <tr>
+                    <td>{{salaire.heures ? salaire.heures : 0}}</td>
+                    <td style="text-align:left;">Absences / Heures Sup</td>
+                    <td style="text-align:right;">{{ salaire.heures ? ((salaire.heures * personnel.tauxHoraire)|number_format(0,',',' ')) : 0 }}</td>
+                </tr>
+
+                <tr>
+                    <td>--</td>
+                    <td style="text-align:left;">Prime</td>
+                    <td style="text-align:right;">{{salaire.prime|number_format(0,',',' ')}}</td>
+                </tr>
+
+                <tr>
+                    <td>--</td>
+                    <td style="text-align:left;">Avance sur Salaire</td>
+                    <td style="text-align:right;">{{salaire.avanceSalaire|number_format(0,',',' ')}}</td>
+                </tr>
+
+                <tr>
+                    <td>--</td>
+                    <td style="text-align:left;">Cotisation sociale</td>
+                    <td style="text-align:right;">{{0}}</td>
+                </tr>
+                
+                <tr>
+                    <th colspan="3" height="200"></th>
+                </tr>
+                <tr>
+                    <th colspan="3" style="border: 1px solid black; text-align:center;">Salaire Net Payé: {{salaire.salaireNet|number_format(0,',',' ')}} Caisse de paiement : {{salaire.compteRetrait.designation|ucfirst}}</th>
+                </tr>
+                <tr>
+                    <td colspan="3" style="border:0px;"></td>
+                </tr>
+            </tbody>
+            <footer style="position: fixed;bottom: 0; width: 100%;text-align: center;background-color: #f2f2f2;padding: 10px;">
+                <p>Traité par : {{salaire.saisiePar.prenom | ucwords ~ " " ~ salaire.saisiePar.nom | strtoupper ~ " et éditée le " ~ "now"|date("d/m/Y H:i")}}</p>
+            </footer>
+        </table>
+        
+    </body>
+</html>

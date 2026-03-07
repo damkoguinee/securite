@@ -1,0 +1,179 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}🚑 Intervention temporaire{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-lg border-0 mb-4">
+
+        {# ===================== HEADER ===================== #}
+        <div class="card-header bg-warning text-dark py-3 px-4">
+            <h5 class="mb-0">
+                <i class="fa fa-truck-medical me-2"></i>
+                Intervention temporaire d’un agent
+            </h5>
+        </div>
+
+        <div class="card-body bg-light p-4">
+
+            {# ===================== CONTEXTE SOURCE ===================== #}
+            <div class="alert alert-info shadow-sm mb-4">
+                <div class="fw-semibold mb-1">
+                    <i class="fa fa-user me-1"></i>
+                    Agent :
+                    <strong>{{ affectation_source.personnel.nomCompletUser }}</strong>
+                </div>
+
+                <div class="small text-muted">
+                    <i class="fa fa-map-marker-alt me-1"></i>
+                    Site d’origine :
+                    <strong>
+                        {{ affectation_source.contrat.bien.nom }}
+                    </strong>
+                </div>
+
+                <div class="small text-muted">
+                    <i class="fa fa-calendar-day me-1"></i>
+                    Date :
+                    {{ affectation_source.dateOperation|date('d/m/Y') }}
+                    —
+                    {{ affectation_source.heureDebut ? affectation_source.heureDebut|date('H:i') : '—' }}
+                    →
+                    {{ affectation_source.heureFin ? affectation_source.heureFin|date('H:i') : '—' }}
+                </div>
+            </div>
+
+            {# ===================== FORMULAIRE ===================== #}
+            {{ form_start(form) }}
+            {{ form_errors(form) }}
+
+            <div class="row">
+
+                {# ===================== RECHERCHE AGENT ===================== #}
+                <div class="col-md-4">
+                    <label class="fw-semibold mb-1">
+                        🔍 Rechercher un site/contrat
+                    </label>
+
+                    <div class="position-relative">
+                        <input type="text"
+                            id="search_client"
+                            class="form-control form-control-sm rounded-pill ps-4 shadow-sm"
+                            placeholder="Nom, téléphone…">
+
+                        <div id="result-search"
+                            class="list-group position-absolute w-100 shadow-sm bg-info"
+                            style="z-index: 1050;">
+                        </div>
+                    </div>
+
+                    <small class="text-muted">
+                        Tapez pour filtrer la liste des agents
+                    </small>
+                </div>
+
+                {# ===================== SELECT contrat ===================== #}
+                <div class="col-md-4">
+                    {{ form_row(form.contrat, {
+                        label: '🏢 Site / contrat d’intervention',
+                        attr: { class: 'form-select' }
+                    }) }}
+                </div>
+
+                <div class="col-md-4">
+                    {{ form_row(form.poste, {
+                        label: '🧱 Poste'
+                    }) }}
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-2">
+                    {{ form_row(form.heureDebut, {
+                        label: '🕒 Heure de début'
+                    }) }}
+                </div>
+
+                <div class="col-md-2">
+                    {{ form_row(form.heureFin, {
+                        label: '🕕 Heure de fin'
+                    }) }}
+                </div>
+
+                <div class="col-md-2">
+                    {{ form_row(form.dateFinIntervention)}}
+                </div>
+                <div class="col-md-2">
+                    <div class="jours-scroll">
+                        {{ form_row(form.joursIntervention) }}
+                    </div>
+                </div>
+
+
+                <div class="col-md-4">
+                    {{ form_row(form.commentaire, {
+                        label: '💬 Commentaire / raison de l’intervention',
+                        attr: {
+                            rows: 3,
+                            placeholder: 'Ex : Renfort exceptionnel, absence temporaire…'
+                        }
+                    }) }}
+                </div>
+            </div>
+
+            {# ===================== AVERTISSEMENT ===================== #}
+            <div class="alert alert-warning small mt-4">
+                <i class="fa fa-circle-info me-1"></i>
+                Cette intervention est <strong>temporaire</strong>.
+                <br>
+                Le planning d’origine de l’agent <strong>reste inchangé</strong>.
+            </div>
+
+            {# ===================== ACTIONS ===================== #}
+            <div class="text-end mt-4">
+                <a href="{{ path(
+                    'app_logescom_operation_affectation_agent_index',
+                    { site: site.id }
+                ) }}"
+                   class="btn btn-outline-secondary me-2">
+                    Annuler
+                </a>
+
+                <button class="btn btn-warning px-4">
+                    <i class="fa fa-check-circle me-1"></i>
+                    Confirmer l’intervention
+                </button>
+            </div>
+
+            {{ form_end(form) }}
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .jours-scroll {
+    max-height: 180px;       /* ajuste si besoin */
+    overflow-y: auto;
+    padding-right: 6px;      /* évite que la scrollbar colle au texte */
+}
+
+/* Optionnel : scrollbar plus discrète */
+.jours-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.jours-scroll::-webkit-scrollbar-thumb {
+    background-color: #adb5bd;
+    border-radius: 4px;
+}
+.jours-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+</style>
+{% endblock %}

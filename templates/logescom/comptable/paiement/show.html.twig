@@ -1,0 +1,224 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}💸 Détail du paiement{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    <div class="row">
+
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+
+            <div class="card shadow-lg border-0 mb-4">
+
+                <!-- 🔹 En-tête -->
+                <div class="card-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fa fa-receipt me-2 text-warning"></i> Détail du paiement
+                    </h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <!-- PDF -->
+                        <a target="_blank"
+                            href="{{ path('app_logescom_comptable_paiement_recu_pdf', {id: paiement.id, site: site.id}) }}"
+                            class="btn btn-warning btn-sm shadow-sm">
+                            <i class="fa fa-file-pdf me-1"></i> Réçu PDF
+                        </a>
+
+                        <a href="{{ path('app_logescom_comptable_paiement_index', {'site': site.id}) }}"
+                        class="btn btn-outline-light btn-sm">
+                            <i class="fa fa-arrow-left me-1"></i> Retour
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 📋 Corps principal -->
+                <div class="card-body bg-light p-4">
+
+                    <!-- 🔵 INFORMATIONS PAIEMENT -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-hover bg-white shadow-sm">
+                            <tbody>
+                                <tr>
+                                    <th class="bg-secondary text-white w-25">Référence</th>
+                                    <td class="fw-bold">{{ paiement.reference }}</td>
+                                </tr>
+
+                                <!-- Contrat / Bien -->
+                                <tr>
+                                    <th class="bg-secondary text-white">Contrat</th>
+                                    <td>
+                                        <i class="fa fa-file-contract text-primary me-2"></i>
+                                        N° {{ paiement.facture.first.contrat.id }} —
+                                        <strong>{{ paiement.facture.first.contrat.bien.nom|capitalize }} — {{ paiement.facture.first.contrat.bien.client.nomComplet|capitalize }}</strong>
+                                    </td>
+                                </tr>
+
+                                <!-- Client -->
+                                <tr>
+                                    <th class="bg-secondary text-white">Client</th>
+                                    <td>
+                                        {% if paiement.facture.first.contrat.bien.client is defined %}
+                                            <i class="fa fa-user text-primary me-2"></i>
+                                            {{ paiement.facture.first.contrat.bien.client.reference|upper }}
+                                            {{ paiement.facture.first.contrat.bien.client.prenom|capitalize }}
+                                            {{ paiement.facture.first.contrat.bien.client.nom|upper }}
+                                        {% else %}
+                                            <span class="text-muted">Non renseigné</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">Description</th>
+                                    <td>{{ paiement.commentaire ?: '—' }}</td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">Montant payé</th>
+                                    <td class="fw-bold text-primary">
+                                        {% if paiement.devise.nom == 'gnf' %}
+                                            {{ paiement.montant|abs|number_format(0, ',', ' ') }} GNF
+                                        {% else %}
+                                            {{ paiement.montant|abs|number_format(2, ',', ' ') }} {{ paiement.devise.nom|upper }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">Devise</th>
+                                    <td>{{ paiement.devise.nom|upper }}</td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">Mode de paiement</th>
+                                    <td>{{ paiement.modePaie.designation|capitalize }}</td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">Caisse</th>
+                                    <td>{{ paiement.caisse.nom|capitalize }}</td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">
+                                        <i class="fas fa-file-pdf text-danger me-1"></i>Document
+                                    </th>
+                                    <td>
+                                        {% if paiement.document %}
+                                            <a href="{{ asset(chemin_paiements ~ paiement.document) }}"
+                                               target="_blank"
+                                               class="btn btn-sm btn-outline-primary rounded-pill shadow-sm">
+                                                <i class="fas fa-file-pdf me-1"></i> Voir le document
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">Aucun document</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">Date du paiement</th>
+                                    <td>{{ paiement.dateOperation|date('d/m/Y H:i') }}</td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">Date de saisie</th>
+                                    <td>{{ paiement.dateSaisie|date('d/m/Y H:i') }}</td>
+                                </tr>
+
+                                <tr>
+                                    <th class="bg-secondary text-white">Saisi par</th>
+                                    <td>{{ paiement.saisiePar.prenom|capitalize }} {{ paiement.saisiePar.nom|upper }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 🔵 FACTURES PAYÉES -->
+                    <h5 class="mb-3 text-dark"><i class="fa fa-file-invoice-dollar text-success me-1"></i> Factures réglées</h5>
+
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-striped align-middle bg-white shadow-sm">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Référence</th>
+                                    <th>Période</th>
+                                    <th>Montant total</th>
+                                    <th>Payé</th>
+                                    <th>Reste à date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detail in paiement.detailPaiementFactures %}
+                                    <tr>
+                                        <td class="fw-bold">{{ detail.facture.reference }}</td>
+
+                                        <td>
+                                            {{ detail.facture.periodeDebut|date('d/m/Y') }}
+                                            →
+                                            {{ detail.facture.periodeFin|date('d/m/Y') }}
+                                        </td>
+
+                                        <td>{{ detail.facture.montantTotal|number_format(0, ',', ' ') }} GNF</td>
+
+                                        <td class="text-primary fw-bold">
+                                            {{ detail.montant|number_format(0, ',', ' ') }} GNF
+                                        </td>
+
+                                        <td class="text-danger fw-bold">
+                                            {{ (detail.facture.montantTotal - detail.facture.montantPaye)|number_format(0, ',', ' ') }} GNF
+                                        </td>
+
+                                        
+                                        <td>
+                                            <a href="{{ path('app_logescom_comptable_facture_show', {id: detail.facture.id, site: site.id}) }}"
+                                                class="btn btn-sm btn-outline-success" title="Voir">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-3">
+                                            Aucune facture trouvée pour ce paiement.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 🔘 Boutons -->
+                    <div class="d-flex justify-content-between">
+
+                        <a class="btn btn-outline-secondary"
+                           href="{{ path('app_logescom_comptable_paiement_index', {'site': site.id}) }}">
+                            <i class="fa fa-arrow-left me-1"></i> Retour
+                        </a>
+
+                        <div class="d-flex gap-2">
+                            {# <a href="{{ path('app_logescom_comptable_paiement_edit', {
+                                'id': paiement.id,
+                                'site': site.id
+                            }) }}" class="btn btn-warning text-white">
+                                <i class="fa fa-edit me-1"></i> Modifier
+                            </a> #}
+
+                            {% if is_granted('ROLE_SUPPRESSION') %}
+                                {{ include('logescom/comptable/paiement/_delete_form.html.twig') }}
+                            {% endif %}
+
+                            
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

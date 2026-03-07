@@ -1,0 +1,48 @@
+{% extends 'base_comptable.html.twig' %}
+{% set queryParams = app.request.query.all %}
+{% set queryString = queryParams|filter((v, k) => k != "page" and k != "ajustement" and k != "id_stock") | url_encode %}
+
+{% block title %}modification ajustement{% endblock %}
+{% block bandeau %} {% endblock %}
+ {% block carousel %}
+    <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel">
+    </div>
+ {% endblock %}
+ {% block categories %} {% endblock %}
+ {% block contact %} {% endblock %}
+ {% block collaborateurs %} {% endblock %}
+ {% block scroll %} {% endblock %}
+ {% block footer %} {% endblock %}
+ {% block social %} {% endblock %}
+
+{% block produits %}
+    {% if app.request.query.has('id_client_search') %}
+        {% set client = app.request.query.get('id_client_search') %}
+    {% else %}
+        {% set client = client_find.id %}
+    {% endif %}
+
+    <div class="row my-2">
+        {% include "_common/_nav_compte.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {{ include("_common/_messages_flash.html.twig") }}
+
+            {% set client_find = client_find is not empty ? (client_find.prenom|ucwords ~ " " ~ client_find.nom|strtoupper ) : " Récherchez un client "  %}
+            <h3>Modifier l'ajustement : {{ajustement_solde.id }}</h3>
+            {% include "_common/_solde_collaborateur.html.twig" %}            
+            <input type="text" name="search" class="form-control fs-5 fw-bold" id="search_client" placeholder="{{client_find}}">
+            <div class="bg-white text-danger fs-5 fw-bold py-2" id="result-search"></div>
+
+            {{ include('logescom/compte/ajustement_solde/_form.html.twig', {'button_label': 'Modifier'}) }}
+
+            <div class="d-flex justify-content-between my-4">
+
+                <a class="btn btn-light" href="{{ path('app_logescom_comptable_compte_ajustement_solde_index', { lieu_vente : lieu_vente.id}) }}">Retour</a>
+                {% if is_granted("ROLE_SUPPRESSION") %}
+                    {{ include('logescom/compte/ajustement_solde/_delete_form.html.twig') }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Modification versement{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {# {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %} #}
+
+        
+        <div class="col-sm-12 col-md-10 m-auto p-0">
+            {% include "_common/_messages_flash.html.twig" %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">Modification du versement</h5>
+                </div>
+                <div class="card-body">
+    
+                    {% if app.request.query.has('id_client_search') %}
+                        {% set collaborateur = app.request.query.get('id_client_search') %}
+                    {% else %}
+                        {% set collaborateur = client_find.id %}
+                    {% endif %}
+                    {% set client_find = client_find is not empty ? (client_find.prenom|ucwords ~ " " ~ client_find.nom|strtoupper ~ " " ~ client_find.telephone ) : " Récherchez un client "  %}
+                    {% include "_common/_solde_collaborateur.html.twig" %}        
+                    <input type="text" name="search" class="form-control fw-bold" id="search_client" placeholder="{{client_find}}">
+                    <div class="bg-white text-danger fw-bold py-2" id="result-search"></div>
+
+                    {{ include('logescom/comptable/entrees/versement/_form.html.twig', {'button_label': 'Modifier'}) }}
+
+                    <div class="d-flex justify-content-between my-4">
+
+                        <a class="btn btn-light" href="{{ path('app_logescom_comptable_entrees_versement_index', { site : site.id}) }}">Retour</a>
+                        {% if is_granted("ROLE_SUPPRESSION") %}
+                            {{ include('logescom/comptable/entrees/versement/_delete_form.html.twig') }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

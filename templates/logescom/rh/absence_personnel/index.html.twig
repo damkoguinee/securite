@@ -1,0 +1,76 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Gestion des heures et absences{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <!-- 🧾 Carte principale -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fa fa-clock me-2"></i> Gestion des absences et heures supplémentaires
+            </h5>
+            <a class="btn btn-primary btn-sm shadow-sm"
+               href="{{ path('app_logescom_rh_absence_personnel_new', {site: site.id}) }}">
+                <i class="fa fa-plus-circle me-1"></i> Nouvelle saisie
+            </a>
+        </div>
+
+        <!-- 📋 Tableau -->
+        <div class="card-body bg-light">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle text-center shadow-sm">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Employé</th>
+                            <th>Téléphone</th>
+                            <th>Type</th>
+                            <th>Durée (H)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        {% for key, absence in absences_personnels %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ absence.dateAbsence ? absence.dateAbsence|date('d/m/Y') : '—' }}</td>
+                                <td class="text-start fw-semibold">
+                                    <i class="fa fa-user text-primary me-1"></i>
+                                    {{ absence.personnel.prenom|capitalize }} {{ absence.personnel.nom|upper }}
+                                </td>
+                                <td>{{ absence.personnel.telephone ?: '—' }}</td>
+
+                                <td>{{ absence.type|capitalize}}</td>
+
+                                <td class="fw-bold">
+                                    {{ absence.heureAbsence|abs|number_format(2, ',', ' ') }}
+                                    
+                                </td>
+
+                                <td>
+                                    <a href="{{ path('app_logescom_rh_absence_personnel_show', {'id': absence.id, site: site.id}) }}"
+                                       class="btn btn-sm btn-outline-success" title="Voir les détails">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="fa fa-info-circle me-1"></i> Aucune absence ou heure supplémentaire enregistrée.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Modifier un type de pénalité{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/admin/_nav_admin.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+        <div class="container-fluid py-3">
+
+            <!-- 🏷️ En-tête -->
+            <div class="d-flex justify-content-between align-items-center bg-dark text-white rounded-3 p-3 shadow-sm mb-3">
+                <h4 class="m-0">
+                    <i class="fa fa-edit me-2"></i> Modifier un type de pénalité
+                </h4>
+                <a href="{{ path('app_logescom_admin_config_penalite_type_index') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fa fa-arrow-left"></i> Retour à la liste
+                </a>
+            </div>
+
+            <!-- 🧾 Message d'information -->
+            <div class="alert alert-info shadow-sm">
+                <i class="fa fa-info-circle me-1"></i>
+                Vous pouvez modifier les informations du type de pénalité ci-dessous.  
+                Les tarifs sont exprimés en <strong>GNF</strong>.
+            </div>
+
+            <!-- 🧮 Formulaire -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body bg-light rounded-3">
+                    {{ include('logescom/admin/config_penalite_type/_form.html.twig', {'button_label': 'Mettre à jour'}) }}
+                </div>
+            </div>
+
+            <!-- 🔙 Boutons bas de page -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a class="btn btn-outline-secondary" href="{{ path('app_logescom_admin_config_penalite_type_index') }}">
+                    <i class="fa fa-arrow-left me-1"></i> Retour
+                </a>
+
+                <div>
+                    {{ include('logescom/admin/config_penalite_type/_delete_form.html.twig') }}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

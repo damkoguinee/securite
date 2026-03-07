@@ -1,0 +1,4 @@
+<form method="post" action="{{ path('app_logescom_comptable_categorie_recette_delete', {'id': categorie_recette.id}) }}" onsubmit="return confirm('Are you sure you want to delete this item?');">
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ categorie_recette.id) }}">
+    <button class="btn">Delete</button>
+</form>

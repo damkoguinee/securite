@@ -1,0 +1,325 @@
+{% extends 'base_controle.html.twig' %}
+
+{% block title %}📋 Contrôle de présence{% endblock %}
+
+{% block presentation %}
+<div class="row m-auto" style="min-height: 100vh; background-image: url('{{ asset(chemin_images_config) }}fond.jpg'); background-size: cover; background-position: center;">
+    <div class="col-sm-12 col-md-10 col-lg-8 m-auto py-5">
+        
+        {{ include("_common/_messages_flash.html.twig") }}
+
+        <div class="card shadow-lg border-0 rounded-4 bg-light mb-4">
+            <div class="card-body p-5 text-center">
+                <h3 class="mb-4 text-primary">
+                    <i class="fas fa-qrcode me-2"></i> Contrôle de présence
+                </h3>
+
+                <p class="text-muted mb-4">
+                    Scannez le QR code ou saisissez son identifiant.
+                </p>
+
+                <!-- Dernière présence -->
+                <div id="last-scan-card" class="d-flex justify-content-center mb-3"></div>
+
+                <!-- Formulaire auto-submit pour saisie manuelle -->
+                <form method="post" id="form-presence">
+                    <div class="input-group input-group-lg mb-4">
+                        <span class="input-group-text bg-primary text-white">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" name="identifiant" id="identifiant" 
+                            class="form-control shadow-sm" 
+                            placeholder="Scannez ou saisissez le code QR..." autofocus required>
+
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm">
+                        <i class="fas fa-check-circle me-2"></i> Valider la présence
+                    </button>
+                </form>
+
+                <!-- Message visuel après scan -->
+                <div id="alert-scan" class="alert d-none mt-3"></div>
+
+                <hr class="my-4">
+
+                <!-- Bouton activer caméra -->
+                <button id="btn-scan" class="btn btn-outline-secondary btn-lg w-100 shadow-sm mb-3">
+                    <i class="fas fa-camera me-2"></i> Activer le scanner
+                </button>
+
+                <!-- Zone d'affichage du scanner -->
+                <div id="reader" class="mt-3 d-none border rounded-3 shadow-sm" style="width: 100%;"></div>
+
+                <!-- Historique des derniers scans -->
+                <h4 class="mt-4">📋 Historique des derniers scans</h4>
+                <div class="d-flex flex-wrap justify-content-center" id="scan-history"></div>
+            </div>
+        </div>
+        {# ---------------- Tableaux groupés par type d’utilisateur avec pagination ---------------- #}
+
+       <!-- ✅ Bloc Validation des absences -->
+      
+
+        {% for type, list in acceses %}
+            <div class="card shadow-lg border-0 rounded-4 bg-light mb-4">
+                <div class="card-body">
+                    <h4 class="text-primary mb-4">
+                        <i class="fas fa-users me-2"></i>Liste des Pointages à la date du {{"now"|date("d/m/Y à H:i")}}
+                    </h4>
+
+                    {% if list is not empty %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th scope="col">N°</th>
+                                        <th scope="col">Réference</th>
+                                        <th scope="col">Prénom et Nom</th>
+                                        <th scope="col">Téléphone</th>
+                                        <th scope="col">Type de Pointage</th>
+                                        <th scope="col">Statut</th>
+                                        <th scope="col">Heure d’accès</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for acces in list %}
+                                        <tr>
+                                            <th scope="row">{{ loop.index + ((page - 1) * limit) }}</th>
+                                            <td>{{ acces.affectationAgent.personnel.reference|upper }}</td>
+                                            <td>{{ acces.affectationAgent.personnel.nomCompletUser }}</td>
+                                            <td>{{ acces.affectationAgent.personnel.telephone }}</td>
+                                            <td>{{ acces.typePointage|capitalize }}</td>
+                                            <td>{{ acces.statut|capitalize }}</td>
+                                            <td>
+                                                <span class="badge bg-success rounded-pill">
+                                                    {{ acces.datePointage|date('H:i:s') }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Aucun {{ type }} présent pour le moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- HTML5 QR Code et animate.css -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+<!-- 📷 Scanner QR + géolocalisation -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const btnScan = document.getElementById("btn-scan");
+    const reader = document.getElementById("reader");
+    const alertBox = document.getElementById("alert-scan");
+    const lastScanCard = document.getElementById("last-scan-card");
+    const scanHistory = document.getElementById("scan-history");
+
+    let scanner = null;
+    let isScanning = false;
+    let lastScan = { code: null, time: 0 };
+    const history = []; // stocke les derniers scans
+
+    // 🔊 Sons (succès / erreur)
+    function playBeep(success = true) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "triangle";
+        osc.frequency.value = success ? 800 : 300; // aigu = ok / grave = erreur
+        gain.gain.value = 0.15;
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+    }
+
+    // 🔹 Carte utilisateur
+    function createCard(user, success = true) {
+        const col = document.createElement("div");
+        col.classList.add("card", "shadow-sm", "p-3", "m-2", "animate__animated", "animate__fadeInDown");
+        col.style.width = "200px";
+        col.style.textAlign = "center";
+        col.style.border = success ? "2px solid #28a745" : "2px solid #dc3545";
+
+        const photoPath = user.photo 
+            ? "{{ asset('dossier/eleves/') }}" + user.photo 
+            : "{{ asset('images/default-user.png') }}";
+
+        col.innerHTML = `
+            <img src="${photoPath}" alt="${user.prenom} ${user.nom}" 
+                style="width:100px; height:100px; object-fit:cover; border-radius:50%; margin-bottom:10px; border:2px solid ${success ? '#28a745' : '#dc3545'};">
+            <h5 class="mb-1">${user.prenom} ${user.nom}</h5>
+            <p class="mb-1"><strong>${user.matricule ?? user.reference ?? "Inconnu"}</strong></p>
+            <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+        `;
+        return col;
+    }
+
+    // 🔹 Affichage du dernier scan + historique
+    function displayScan(user, success = true) {
+        lastScanCard.innerHTML = '';
+        lastScanCard.appendChild(createCard(user, success));
+
+        history.unshift({ user, success });
+        if (history.length > 5) history.pop();
+
+        scanHistory.innerHTML = '';
+        history.forEach(item => scanHistory.appendChild(createCard(item.user, item.success)));
+    }
+
+    // 🔹 Récupération de la géolocalisation
+    async function getGeoPosition() {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                console.warn("❌ Géolocalisation non supportée");
+                resolve({ latitude: null, longitude: null });
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => resolve({
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude
+                }),
+                (err) => {
+                    console.warn("⚠️ Erreur géolocalisation :", err);
+                    resolve({ latitude: null, longitude: null });
+                },
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        });
+    }
+
+    // 🔹 Envoi des données au serveur
+    async function sendPresenceData(decodedText) {
+        const coords = await getGeoPosition();
+        console.log("📍 Coordonnées envoyées :", coords);
+
+        const bodyData = new URLSearchParams();
+        bodyData.append("identifiant", decodedText);
+        bodyData.append("latitude", coords.latitude ?? "");
+        bodyData.append("longitude", coords.longitude ?? "");
+
+        return fetch(window.location.pathname, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: bodyData.toString()
+        });
+    }
+
+    // 🔹 Gestion du scanner QR
+    btnScan.addEventListener("click", () => {
+        if (!isScanning) {
+            reader.classList.remove("d-none");
+            scanner = new Html5Qrcode("reader");
+
+            scanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                async (decodedText) => {
+                    const now = Date.now();
+                    if (decodedText === lastScan.code && (now - lastScan.time) < 2000) return;
+                    lastScan = { code: decodedText, time: now };
+
+                    console.log("📸 Code détecté :", decodedText);
+
+                    try {
+                        const response = await sendPresenceData(decodedText);
+                        if (!response.ok) throw new Error();
+                        const user = await response.json();
+
+                        playBeep(true);
+                        alertBox.className = "alert alert-success mt-3";
+                        alertBox.innerHTML = `<i class="fas fa-check-circle me-2"></i> Présence enregistrée : ${user.reference ?? user.matricule}`;
+                        displayScan(user, true);
+                    } catch (err) {
+                        console.error("❌ Erreur d’enregistrement :", err);
+                        playBeep(false);
+                        alertBox.className = "alert alert-danger mt-3";
+                        alertBox.innerHTML = `<i class="fas fa-times me-2"></i> Erreur lors de l’enregistrement`;
+                        displayScan({ prenom: "Inconnu", nom: "", matricule: decodedText, photo: null }, false);
+                    }
+                },
+                (errorMessage) => {
+                    console.warn("⚠️ Erreur de lecture :", errorMessage);
+                }
+            ).then(() => {
+                isScanning = true;
+                btnScan.innerHTML = '<i class="fas fa-times me-2"></i> Arrêter le scanner';
+            }).catch(err => {
+                console.error("🚫 Impossible de démarrer le scanner :", err);
+                alertBox.className = "alert alert-danger mt-3";
+                alertBox.innerHTML = "Erreur lors de l’activation de la caméra.";
+            });
+
+        } else {
+            scanner.stop().then(() => {
+                reader.classList.add("d-none");
+                btnScan.innerHTML = '<i class="fas fa-camera me-2"></i> Activer le scanner';
+                isScanning = false;
+            }).catch(err => console.error("Erreur arrêt scanner :", err));
+        }
+    });
+
+    // 🔹 Saisie manuelle (auto-submit avec GPS)
+    const identifiantInput = document.getElementById("identifiant");
+    if (identifiantInput) {
+        identifiantInput.addEventListener("change", async function (e) {
+            e.preventDefault();
+            const input = this;
+            const coords = await getGeoPosition();
+
+            document.getElementById("latitude").value = coords.latitude ?? '';
+            document.getElementById("longitude").value = coords.longitude ?? '';
+            console.log("📍 Coordonnées saisie manuelle :", coords);
+
+            setTimeout(() => input.form.submit(), 300);
+        });
+    }
+});
+</script>
+
+
+
+<!-- SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function confirmSubmit(buttonId, formId) {
+    document.getElementById(buttonId).addEventListener("click", function() {
+        Swal.fire({
+            title: "Confirmer la validation",
+            text: "⚠️ Tous ceux qui ne sont pas présents seront considérés comme ABSENTS. Voulez-vous continuer ?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Oui, valider",
+            cancelButtonText: "Annuler"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById(formId).submit();
+            }
+        });
+    });
+}
+
+// ✅ Lier chaque bouton à son form
+confirmSubmit("btn-valider-eleves-matin", "form-eleves-matin");
+confirmSubmit("btn-valider-eleves-soir", "form-eleves-soir");
+confirmSubmit("btn-valider-personnels-matin", "form-personnels-matin");
+confirmSubmit("btn-valider-personnels-soir", "form-personnels-soir");
+</script>
+
+{% endblock %}

@@ -1,0 +1,262 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+
+<div class="card shadow-sm border-0">
+    <div class="card-body bg-light">
+
+        {# =============================
+           SECTION : INFORMATIONS PERSONNELLES
+        ============================== #}
+        <h5 class="text-primary border-bottom pb-2 mb-3">
+            <i class="fa fa-user me-2"></i> Informations personnelles
+        </h5>
+
+        <div class="row g-1 mb-1">
+            <div class="col-md-2">{{ form_row(form.reference) }}</div>
+            <div class="col-md-2">{{ form_row(form.nom) }}</div>
+            <div class="col-md-3">{{ form_row(form.prenom) }}</div>
+            <div class="col-md-2">{{ form_row(form.telephone) }}</div>
+            <div class="col-md-3">{{ form_row(form.email) }}</div>
+        </div>
+
+
+        {# =============================
+           SECTION : INFORMATIONS PROFESSIONNELLES
+        ============================== #}
+        <h5 class="text-primary border-bottom pb-2 mb-3 mt-4">
+            <i class="fa fa-briefcase me-2"></i> Informations professionnelles
+        </h5>
+
+        <div class="row g-2 mb-1">
+            <div class="col-md-2">{{ form_row(form.typePersonnel) }}</div>
+            <div class="col-md-2">{{ form_row(form.fonction) }}</div>
+            <div class="col-md-3 border rounded p-2" style="max-height: 120px; overflow-y:auto;">
+                {{ form_row(form.zoneRattachement) }}
+            </div>
+            <div class="col-md-3">{{ form_row(form.bienAffecte) }}</div>
+        </div>
+
+        <div class="row g-1 mb-1">
+            <div class="col-md-3">{{ form_row(form.site) }}</div>
+            <div class="col-md-2 border rounded p-2" style="max-height: 120px; overflow-y:auto;">
+                {{ form_row(form.roles) }}
+            </div>
+            
+            <div class="col-md-2">{{ form_row(form.dateEmbauche) }}</div>
+            <div class="col-md-2">{{ form_row(form.tauxHoraire) }}</div>
+            <div class="col-md-3">{{ form_row(form.salaireBase) }}</div>
+            <div class="col-md-2">{{ form_row(form.statut) }}</div>
+            <div class="col-md-2">{{ form_row(form.statutPlanning) }}</div>
+            <div class="col-md-2">{{ form_row(form.dateFinContrat) }}</div>
+
+            <div class="col-md-2">{{ form_row(form.username) }}</div>
+            <div class="col-md-2">{{ form_row(form.password) }}</div>
+        </div>
+
+
+        {# =============================
+           SECTION : ADRESSE
+        ============================== #}
+        <h5 class="text-primary border-bottom pb-2 mb-3 mt-4">
+            <i class="fa fa-map-marker-alt me-2"></i> Adresse
+        </h5>
+
+        <div class="row g-1 mb-1">
+            <div class="col-md-6">{{ form_row(form.adresse) }}</div>
+            <div class="col-md-6">{{ form_row(form.complementAdresse) }}</div>
+        </div>
+
+
+        {# =============================
+           SECTION : FILIATION
+        ============================== #}
+        <h5 class="text-primary border-bottom pb-2 mb-3 mt-4">
+            <i class="fa fa-users me-2"></i> Filiation familiale
+        </h5>
+
+        <div class="row g-1 mb-1">
+            <div class="col-md-4">{{ form_row(form.nomPere) }}</div>
+            <div class="col-md-4">{{ form_row(form.nomMere) }}</div>
+            <div class="col-md-4">{{ form_row(form.telephoneParent) }}</div>
+        </div>
+
+        <div class="row g-1 mb-1">
+            <div class="col-md-4">
+                {{ form_row(form.photo) }}
+            </div>
+            <div class="col-md-4">
+                {{ form_row(form.signature) }}
+            </div>
+            <!-- DOCUMENTS JOINTS EN LIGNE -->
+            <div class="col-md-12">
+    
+                <label class="form-label fw-bold">Documents joints</label>
+    
+                <div class="document-collection"
+                    data-prototype="
+                        <div class='document-item d-flex align-items-center gap-3 p-2 mb-2 bg-light border rounded'>
+                            
+                            <div class='flex-fill'>
+                                {{ form_widget(form.documentUsers.vars.prototype.titre)|e('html_attr') }}
+                            </div>
+    
+                            <div class='flex-fill'>
+                                {{ form_widget(form.documentUsers.vars.prototype.fichier)|e('html_attr') }}
+                            </div>
+    
+                            <button type='button' class='btn btn-danger btn-sm remove-doc'>🗑</button>
+                        </div>
+                    ">
+    
+                    {% for doc in form.documentUsers %}
+                        <div class="document-item d-flex align-items-center gap-3 p-2 mb-2 bg-light border rounded">
+    
+                            <div class="flex-fill">
+                                {{ form_widget(doc.titre) }}
+                            </div>
+    
+                            <div class="flex-fill">
+                                {{ form_widget(doc.fichier) }}
+                            </div>
+    
+                            <button type="button" class="btn btn-danger btn-sm remove-doc">🗑</button>
+    
+                        </div>
+                    {% endfor %}
+                </div>
+    
+                <button type="button" class="btn btn-success btn-sm mt-2 add-doc">
+                    ➕ Ajouter un document
+                </button>
+    
+            </div>
+        </div>
+
+
+
+
+
+
+        {# =============================
+           SECTION : BOUTON
+        ============================== #}
+        <div class="text-end mt-4">
+            <button class="btn btn-primary px-4">
+                <i class="fa fa-save me-1"></i> {{ button_label|default('Enregistrer') }}
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
+
+{# =============================
+   JAVASCRIPT
+============================== #}
+<script>
+    const BIENS_BY_ZONES_URL = "{{ path('ajax_biens_by_zones_personnel') }}";
+    console.log('URL AJAX =', BIENS_BY_ZONES_URL);
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const zoneCheckboxes = document.querySelectorAll('[name="personel[zoneRattachement][]"]');
+        const bienSelect = document.querySelector('[name="personel[bienAffecte]"]');
+
+        if (!zoneCheckboxes.length || !bienSelect) {
+            console.warn('Zones ou champ Bien introuvable');
+            return;
+        }
+
+        zoneCheckboxes.forEach(cb => {
+            cb.addEventListener('change', loadBiens);
+        });
+
+        function loadBiens() {
+            const zones = Array.from(zoneCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            bienSelect.innerHTML = '<option value="">— Chargement… —</option>';
+
+            if (zones.length === 0) {
+                bienSelect.innerHTML = '<option value="">— Sélectionnez une zone —</option>';
+                return;
+            }
+
+            const params = new URLSearchParams();
+            zones.forEach(z => params.append('zones[]', z)); // 👈 IMPORTANT
+
+            fetch(BIENS_BY_ZONES_URL + '?' + params.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
+                return res.json();
+            })
+            .then(data => {
+                bienSelect.innerHTML = '<option value="">— Sélectionner un bien —</option>';
+
+                if (!data.length) {
+                    bienSelect.innerHTML += '<option disabled>Aucun bien trouvé</option>';
+                    return;
+                }
+
+                data.forEach(bien => {
+                    const opt = document.createElement('option');
+                    opt.value = bien.id;
+                    opt.textContent = bien.label;
+                    bienSelect.appendChild(opt);
+                });
+            })
+            .catch(err => {
+                console.error('Erreur AJAX biens:', err);
+                bienSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+            });
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const collectionHolder = document.querySelector('.document-collection');
+        const addButton = document.querySelector('.add-doc');
+
+        collectionHolder.dataset.index = collectionHolder.querySelectorAll('.document-item').length;
+
+        addButton.addEventListener('click', function () {
+
+            let index = collectionHolder.dataset.index;
+
+            let newForm = collectionHolder.dataset.prototype.replace(/__name__/g, index);
+
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = newForm.trim();
+
+            const item = wrapper.firstElementChild;
+
+            item.querySelector('.remove-doc').addEventListener('click', () => {
+                item.remove();
+            });
+
+            collectionHolder.appendChild(item);
+
+            collectionHolder.dataset.index++;
+        });
+
+        document.querySelectorAll('.remove-doc').forEach(btn => {
+            btn.addEventListener('click', function () {
+                this.closest('.document-item').remove();
+            });
+        });
+
+    });
+</script>
+
+
+
+
+{{ form_end(form) }}

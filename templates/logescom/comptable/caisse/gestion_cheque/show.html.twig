@@ -1,0 +1,170 @@
+{% extends 'base_comptable.html.twig' %}
+{% set queryParams = app.request.query.all %}
+{% set queryString = queryParams|filter((v, k) => k != "page" and k != "ajustement" and k != "id_stock") | url_encode %}
+
+{% block title %}détail chèque{% endblock %}
+{% block bandeau %} {% endblock %}
+ {% block carousel %}
+    <div id="carouselExampleAutoplaying" class="carousel slide py-2" data-bs-ride="carousel">
+    </div>
+ {% endblock %}
+ {% block categories %} {% endblock %}
+ {% block contact %} {% endblock %}
+ {% block collaborateurs %} {% endblock %}
+ {% block scroll %} {% endblock %}
+ {% block footer %} {% endblock %}
+ {% block social %} {% endblock %}
+
+{% block produits %}
+    <div class="row my-2">
+        {% include "_common/_nav_cheque.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {{ include("_common/_messages_flash.html.twig") }}
+            <table class="table table-bordered table-striped table-hover align-middle">
+                <tbody>
+                    <tr>
+                        <th>N°Chèque</th>
+                        <td>{{ cheque.bordereau|ucfirst }}</td>
+                    </tr>
+                    <tr>
+                        <th>Banque Chèque</th>
+                        <td>{{ cheque.banqueCheque|ucfirst }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Montant</th>
+                        <td>{{ cheque.devise.nom == 'gnf' ? cheque.montant|number_format(0,',',' ') : cheque.montant|number_format(2,',',' ') }}</td>
+                    </tr>
+
+                    
+                    <tr>
+                        <th>Date Opération</th>
+                        <td>{{ cheque.dateOperation ? cheque.dateOperation|date('d/m/Y') : '' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date de Saisie</th>
+                        <td>{{ cheque.dateSaisie ? cheque.dateSaisie|date('d/m/Y H:i:s') : '' }}</td>
+                    </tr>
+                    {# <tr>
+                        <th>Saisie par</th>
+                        <td>{{ cheque.saisiePar.prenom|ucwords ~ " " ~ cheque.saisiePar.nom |strtoupper }}</td>
+                    </tr> #}
+
+                    <tr>
+                        <th>Etat</th>
+                        <td>{{ cheque.etatOperation|ucfirst }}</td>
+                    </tr>
+                    {% if cheque.etatOperation == 'traité' or cheque.etatOperation == 'en attente' %}
+                        <tr>
+                            <th>Détail</th>
+                            <td>{{ cheque.detailSortie|ucfirst }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Date de Sortie</th>
+                            <td>{{ cheque.dateSortie ? cheque.dateSortie|date('d/m/Y H:i:s') : '' }}</td>
+                        </tr>
+
+                        <tr>
+                            <form action="{{path('app_logescom_caisse_comptable_cheque_show', {id : cheque.id, site : site.id })}}" onsubmit="return confirm('Confirmez-vous cette opération?');">
+                                <th>
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ cheque.id) }}">
+                                    <button name="annuler" value="{{cheque.id}}" class="btn btn-danger">Annuler le transfert</button>
+                                </th>
+                            </form>
+                        </tr>
+                    {% else %}
+                        
+                        <tr>
+                            <form action="{{path('app_logescom_caisse_comptable_cheque_show', {id : cheque.id, site : site.id })}}">
+                                <th >Transferez le Chèque vers les banques </th>
+                                <td>
+                                    <div class="d-flex">
+                                        <input type="hidden" name="">
+                                        <select class="form-select" name="caisse_recep" required id="">
+                                            <option value=""></option>
+                                            {% for banque in banques %}
+                                                <option value="{{banque.id}}">{{banque.designation|ucfirst}}</option>
+                                                
+                                            {% endfor %}
+                                        </select>
+
+                                        <button type="submit" class="btn btn-primary mx-1">Transferez</button>
+                                    </div>
+                                </td>
+                            </form>
+                        </tr>
+
+                        <tr>
+                            <form action="{{path('app_logescom_caisse_comptable_cheque_show', {id : cheque.id, site : site.id })}}">
+                                <th >Chèque --> Espèces </th>
+                                <td>
+                                    <div class="d-flex">
+                                        <input type="hidden" name="">
+                                        <select class="form-select" name="caisse_recep_especes" required id="">
+                                            <option value=""></option>
+                                            {% for banque in banques %}
+                                                <option value="{{banque.id}}">{{banque.designation|ucfirst}}</option>
+                                                
+                                            {% endfor %}
+                                        </select>
+
+                                        <button type="submit" class="btn btn-primary mx-1">Valider</button>
+                                    </div>
+                                </td>
+                            </form>
+                        </tr>
+
+                        <tr>
+                            <form action="{{path('app_logescom_caisse_comptable_cheque_show', {id : cheque.id, site : site.id })}}">
+                                <th>Transferez le Chèque vers un lieu de vente </th>
+                                <td>
+                                    <div class="d-flex">
+                                        <input type="hidden" name="">
+                                        <select class="form-select" name="lieu_recep" required id="">
+                                            <option value=""></option>
+                                            {% for lieu in lieux %}
+                                                <option value="{{lieu.id}}">{{lieu.lieu|ucfirst}}</option>
+                                                
+                                            {% endfor %}
+                                        </select>
+
+                                        <button type="submit" class="btn btn-primary mx-1">Transferez</button>
+                                    </div>
+                                </td>
+                            </form>
+                        </tr>
+
+                        <tr>
+                            <form action="{{path('app_logescom_caisse_comptable_cheque_show', {id : cheque.id, site : site.id })}}">
+                                <th>Remettre le Chèque à un collaborateur </th>
+                                <td>
+                                    <div class="d-flex">
+                                        <input type="hidden" name="collaborateur" value="{{collaborateur ? collaborateur.id : ""}}">
+                                        <input type="text" name="search" class="form-control fs-5 fw-bold" id="search_client" placeholder="{{collaborateur ? collaborateur.prenom|ucfirst ~ " " ~ collaborateur.nom|strtoupper : 'Recherchez un collaborateur'}}">
+                                        
+
+                                        <button type="submit" class="btn btn-primary mx-1">Transferez</button>
+                                    </div>
+                                    
+                                </td>
+                            </form>
+
+                        </tr>
+                        <tr>
+                            <th colspan="2">
+                                <div class="bg-white text-danger fs-5 fw-bold py-2" id="result-search"></div>
+                            </th>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <div class="d-flex justify-content-between">
+
+                <a class="btn btn-light" href="{{ path('app_logescom_caisse_comptable_cheque_index', { site : site.id}) }}">Retour</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

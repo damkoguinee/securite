@@ -1,0 +1,116 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Gestion horaire — Nouvelle saisie{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <!-- 🧾 Carte principale -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fa fa-clock me-2"></i> Enregistrer des absences ou heures supplémentaires
+            </h5>
+
+            <!-- 📅 Sélecteur de date -->
+            <form class="d-flex align-items-center mb-0" style="gap: 6px;">
+                <label for="jour" class="fw-semibold mb-0" style="white-space: nowrap;">Date :</label>
+                <input type="date" id="jour" name="jour"
+                       value="{{ app.request.query.get('jour') ?? 'now'|date('Y-m-d') }}"
+                       max="{{ 'now'|date('Y-m-d') }}"
+                       class="form-control form-control-sm bg-light border-0 shadow-sm"
+                       style="max-width: 180px;"
+                       onchange="this.form.submit()">
+            </form>
+        </div>
+
+        <!-- 📋 Corps principal -->
+        <div class="card-body bg-light">
+            {% set jour = app.request.query.get('jour') ?? 'now'|date('Y-m-d') %}
+
+            {% if jour is not empty %}
+                <form method="post">
+                    <input type="hidden" name="jour" value="{{ jour }}">
+                    <div class="table-responsive mt-3">
+                        <table class="table table-hover table-bordered align-middle shadow-sm">
+                            <thead class="table-dark text-center">
+                                <tr>
+                                    <th colspan="7" class="bg-secondary bg-opacity-75 text-white text-center">
+                                        <i class="fa fa-calendar-alt me-2"></i>
+                                        Saisie du {{ jour|date('d/m/Y') }}
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Employé</th>
+                                    <th>Téléphone</th>
+                                    <th>Type</th>
+                                    <th>Durée (heures)</th>
+                                    <th>Commentaire</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-center align-middle bg-white">
+                                {% for key, personnel in personnels %}
+                                    <tr>
+                                        <td>{{ key + 1 }}</td>
+                                        <td class="text-start fw-semibold">
+                                            <i class="fa fa-user text-primary me-1"></i>
+                                            {{ personnel.prenom|capitalize }} {{ personnel.nom|upper }}
+                                            <input type="hidden" name="absences[{{ key }}][personnel]" value="{{ personnel.id }}">
+                                        </td>
+                                        <td>{{ personnel.telephone ?: '—' }}</td>
+                                        <td>
+                                            <select name="absences[{{ key }}][type]" class="form-select form-select-sm">
+                                                <option value="">— Choisir —</option>
+                                                <option value="absence">Absence</option>
+                                                <option value="heures_sup">Heures Supplémentaires</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" step="0.5" min="0" name="absences[{{ key }}][duree]"
+                                                   class="form-control form-control-sm text-center"
+                                                   placeholder="0.0">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="absences[{{ key }}][commentaire]"
+                                                   class="form-control form-control-sm"
+                                                   placeholder="Commentaire (facultatif)">
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-muted py-3">
+                                            <i class="fa fa-info-circle me-1"></i> Aucun employé trouvé pour ce site.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn btn-success shadow-sm">
+                            <i class="fa fa-check-circle me-1"></i> Enregistrer toutes les saisies
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <div class="alert alert-secondary text-center mt-3">
+                    <i class="fa fa-info-circle me-1"></i> Veuillez sélectionner une date pour enregistrer les absences ou heures supplémentaires.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 🔹 Pied de page -->
+        <div class="card-footer text-end bg-white border-top">
+            <a class="btn btn-outline-secondary shadow-sm"
+               href="{{ path('app_logescom_rh_absence_personnel_index', {site: site.id}) }}">
+                <i class="fa fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

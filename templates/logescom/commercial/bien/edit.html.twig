@@ -1,0 +1,32 @@
+{% extends 'base_site.html.twig' %}
+
+{% block title %}Modifier un bien{% endblock %}
+
+{% block presentation %}
+<div class="row justify-content-center mt-3">
+    <div class="col-12 col-md-11 col-lg-10">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-warning text-dark text-center rounded-top">
+                <h4 class="mb-0">
+                    <i class="fas fa-edit me-2"></i>Modifier un bien
+                </h4>
+            </div>
+            <div class="card-body bg-light">
+
+                {{ include('logescom/commercial/bien/_form.html.twig', {'button_label': 'Modifier'}) }}
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ path('app_logescom_commercial_bien_index', {'site': site.id}) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Retour à la liste
+                    </a>
+
+                    <div>
+                        {{ include('logescom/commercial/bien/_delete_form.html.twig') }}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

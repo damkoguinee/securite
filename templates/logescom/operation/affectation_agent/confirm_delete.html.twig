@@ -1,0 +1,136 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Confirmation de la suppression{% endblock %}
+
+{% block body %}
+<div class="container-fluid bg-light py-5"
+     style="min-height: 90vh; background-image: url('{{ asset(chemin_images_config) }}fond.jpg'); background-size: cover;">
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fa fa-exclamation-triangle me-2"></i>
+                        Confirmation de la suppression
+                    </h5>
+                </div>
+
+                <div class="card-body">
+                    <p class="text-danger mb-4">
+                        <strong>⚠️ Attention :</strong>
+                        {% if param == 'group' %}
+                            Vous êtes sur le point de <u>supprimer tous les créneaux</u> liées à ce groupe.
+                            <br>Cette opération supprimera <strong>toutes les lignes de planning associées</strong> et est <u>irréversible</u>.
+                        {% elseif param == 'agent' %}
+                            Vous êtes sur le point de <u>supprimer tous les créneaux</u> liées à cet agent.
+                            <br>Cette opération supprimera <strong>toutes les lignes de planning associées</strong> et est <u>irréversible</u>.
+                        {% else %}
+                            Vous êtes sur le point de supprimer <u>une affectation individuelle</u>.
+                            <br>Cette action est <u>irréversible</u>.
+                        {% endif %}
+                    </p>
+
+                    <h4 class="bg-warning text-dark p-2 rounded mb-3">
+                        <i class="fa fa-info-circle me-2"></i>
+                        Détail de l'affectation concernée
+                    </h4>
+
+                    <div class="mb-4 ps-3 border-start border-3 border-warning">
+                        <p class="mb-1">
+                            <strong>🏢 Site concerné :</strong>
+                            {{ operation.contrat.bien.nom|capitalize }}
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>👤 Agent :</strong>
+                            {{ operation.personnel.nomCompletUser }}
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>👔 Poste :</strong>
+                            {{ operation.poste ?: '—' }}
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>📅 Date d’opération :</strong>
+                            {{ operation.dateOperation ? operation.dateOperation|date('d/m/Y') : '—' }}
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>🕒 Heure de début :</strong>
+                            {{ operation.heureDebut ? operation.heureDebut|date('H:i') : '—' }}
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>🕔 Heure de fin :</strong>
+                            {{ operation.heureFin ? operation.heureFin|date('H:i') : '—' }}
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>📋 Présence :</strong>
+                            {% if operation.presenceConfirme %}
+                                <span class="badge bg-success px-3 py-2">
+                                    <i class="fa fa-check-circle me-1"></i> Confirmée
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary px-3 py-2">
+                                    <i class="fa fa-hourglass-half me-1"></i> Non confirmée
+                                </span>
+                            {% endif %}
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>💬 Commentaire :</strong>
+                            {{ operation.commentaire ?: '—' }}
+                        </p>
+
+                        {% if param == 'group' and groupe_affectations is defined and groupe_affectations|length > 1 %}
+                            <hr>
+                            <p class="fw-semibold text-danger mb-2">
+                                <i class="fa fa-layer-group me-1"></i> Affectations liées à ce groupe :
+                            </p>
+                            <ul class="small list-unstyled ps-3">
+                                {% for aff in groupe_affectations %}
+                                    <li>• {{ aff.dateOperation|date('d/m/Y') }} — {{ aff.poste }} ({{ aff.heureDebut|date('H:i') }} → {{ aff.heureFin|date('H:i') }})</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+
+                    <form method="post" action="{{ route_suppression }}" 
+                          onsubmit="return confirm('Confirmer la suppression {% if param == 'group' %}de toutes ces affectations{% else %}de cette affectation{% endif %} ?');">
+                        
+                        <div class="mb-3">
+                            <label for="deleteReason" class="form-label fw-semibold text-dark">
+                                Motif de suppression <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control shadow-sm" id="deleteReason" name="delete_reason" rows="3" required></textarea>
+                        </div>
+
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ operation.id) }}">
+                        <input type="hidden" name="param" value="{{ param }}">
+
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <button type="submit" class="btn btn-danger shadow-sm px-4">
+                                <i class="fa fa-trash me-1"></i>
+                                {% if param == 'group' %}
+                                    Supprimer toutes les affectations du groupe
+                                {% elseif param == 'agent' %}
+                                    Supprimer tous les créneaux de l'agent
+                                {% else %}
+                                    Supprimer cette affectation
+                                {% endif %}
+                            </button>
+
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary shadow-sm">
+                                <i class="fas fa-arrow-left me-1"></i> Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

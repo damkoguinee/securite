@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}ControlAcces index{% endblock %}
+
+{% block body %}
+    <h1>ControlAcces index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>DateAcces</th>
+                <th>DateSaisie</th>
+                <th>Promo</th>
+                <th>Periode</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for control_acce in control_acces %}
+            <tr>
+                <td>{{ control_acce.id }}</td>
+                <td>{{ control_acce.dateAcces ? control_acce.dateAcces|date('Y-m-d H:i:s') : '' }}</td>
+                <td>{{ control_acce.dateSaisie ? control_acce.dateSaisie|date('Y-m-d H:i:s') : '' }}</td>
+                <td>{{ control_acce.promo }}</td>
+                <td>{{ control_acce.periode }}</td>
+                <td>
+                    <a href="{{ path('app_gandaal_administration_securite_control_acces_show', {'id': control_acce.id}) }}">show</a>
+                    <a href="{{ path('app_gandaal_administration_securite_control_acces_edit', {'id': control_acce.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="6">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_gandaal_administration_securite_control_acces_new') }}">Create new</a>
+{% endblock %}

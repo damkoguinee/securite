@@ -1,0 +1,218 @@
+{% extends 'base_admin.html.twig' %}
+{% block title %}statistiques{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "_common/_nav_direction.html.twig" %}  
+        <div class="col-sm-12 col-md-10 m-auto p-0">
+
+            {% if app.request.query.has('date1') %}
+                {% set date1 = app.request.query.get('date1') %}
+                {% set date2 = app.request.query.get('date2') %}
+
+            {% else %}
+                {% set date1 = "now"|date("Y-01-01") %}
+                {% set date2 = "now"|date("Y-12-31") %}
+            {% endif %}
+            {% include "_common/_messages_flash.html.twig" %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                        <h5 class="bg-info text-white p-2">Classement par jour</h5>
+
+
+                        {% if is_granted("ROLE_RESPONSABLE") %}
+                            <div class="d-flex flex-wrap gap-2">
+                                <!-- Date Filter -->
+                                <form class="d-flex align-items-center gap-2">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">Du</span>
+                                        <input type="date" name="date1" value="{{ date1 }}" class="form-control" onChange="this.form.submit()" max="{{ date2 }}">
+                                    </div>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">Au</span>
+                                        <input type="date" name="date2" value="{{ date2 }}" class="form-control" onChange="this.form.submit()" min="{{ date1 }}" max="{{ "now"|date("Y-m-d") }}">
+                                    </div>
+                                </form>
+
+                                <!-- Site Filter -->
+                                <form>
+                                    <input type="hidden" name="date1" value="{{ date1 }}">
+                                    <input type="hidden" name="date2" value="{{ date2 }}">
+                                    <select name="search_bien" class="form-select form-select-sm" onChange="this.form.submit()">
+                                        {% if search_bien is not empty %}
+                                            <option value="{{ search_bien.id }}">{{ search_bien.nom|strtoupper }}</option>
+                                        {% else %}
+                                            <option value="">-- Sélectionner un bien --</option>
+                                        {% endif %}
+                                        {% for bien in biens %}
+                                            <option value="{{ bien.id }}">{{ bien.nom|strtoupper }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Stats par jour -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered text-center align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Jour</th>
+                                    <th>Nb Réservations</th>
+                                    <th>Heures</th>
+                                    <th>Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for jour, stats in statsByDay %}
+                                    <tr>
+                                        <td>{{ jour }}</td>
+                                        <td>{{ stats.nb_reservations }}</td>
+                                        <td>{{ stats.total_heures|number_format(0, ',', ' ') }}</td>
+                                        <td>{{ stats.montant_total|number_format(0, ',', ' ') }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Graphiques -->
+                    <div class="row">
+                        <h5 class="bg-info text-white p-2">Graphiques</h5>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <div class="bg-white p-2 border rounded">
+                                    <canvas id="graphMois"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="bg-white p-2 border rounded">
+                                    <canvas id="graphAnnees"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="bg-white p-2 border rounded">
+                                    <canvas id="graphChiffreAffaires"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="bg-white p-2 border rounded">
+                                    <canvas id="graphChiffreAffairesParMois"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+     
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+
+
+    <script>
+        const graphMois = document.getElementById('graphMois');
+        new Chart(graphMois, {
+            type: 'bar',
+            data: {
+            labels: {{dates_mois|raw}},
+            datasets: [{
+                label: 'Repartition des réservations par mois',
+                data: {{nbre_vente_mois|raw}},
+                borderColor: '#000080',
+                backgroundColor: '#000080',
+                borderWidth: 1
+            }]
+            },
+            options: {
+                scales: {
+                    // x: {
+                    //     barPercentage: 0.7, // Ajustez cette valeur pour réduire ou augmenter la largeur des barres
+                    // },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });   
+        
+        const graphAnnees = document.getElementById('graphAnnees');
+        new Chart(graphAnnees, {
+            type: 'bar',
+            data: {
+            labels: {{dates_annees|raw}},
+            datasets: [{
+                label: 'Repartition des réservations par années',
+                data: {{nbre_vente_annees|raw}},
+                borderColor: '#000080',
+                backgroundColor: '#000080',
+                borderWidth: 1
+            }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        }); 
+        
+        const graphChiffreAffaires = document.getElementById('graphChiffreAffaires');
+        new Chart(graphChiffreAffaires, {
+            type: 'bar',
+            data: {
+            labels: {{dates_chiffre_affaire_annees|raw}},
+            datasets: [{
+                label: "Chiffre d'affaires par années",
+                data: {{chiffre_affaire_annees|raw}},
+                borderColor: '#000080',
+                backgroundColor: '#000080',
+                borderWidth: 1
+            }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });   
+        
+        const graphChiffreAffairesParMois = document.getElementById('graphChiffreAffairesParMois');
+        new Chart(graphChiffreAffairesParMois, {
+            type: 'bar',
+            data: {
+            labels: {{dates_chiffre_affaire_mois|raw}},
+            datasets: [{
+                label: "Chiffre d'affaires par mois",
+                data: {{chiffre_affaire_mois|raw}},
+                borderColor: '#000080',
+                backgroundColor: '#000080',
+                borderWidth: 1
+            }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });   
+    </script>
+{% endblock %}

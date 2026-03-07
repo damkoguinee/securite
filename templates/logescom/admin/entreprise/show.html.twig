@@ -1,0 +1,68 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Détail de l'entreprise{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/admin/_nav_admin.html.twig" %}
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            <div class="card shadow-sm mb-4">
+                    
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0 text-center">Détail de l'entreprise</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-striped table-hover align-middle">
+                        
+                        <tbody>
+                            <tr>
+                                <th class="text-nowrap">Id</th>
+                                <td>{{ entreprise.id }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Nom</th>
+                                <td>{{ entreprise.nom }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Identifiant</th>
+                                <td>{{ entreprise.identifiant }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Numéro d'Agrément</th>
+                                <td>{{ entreprise.numeroAgrement }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Téléphone</th>
+                                <td>{{ entreprise.telephone }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Logo</th>
+                                <td>{{ entreprise.logo }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Adresse</th>
+                                <td>{{ entreprise.adresse.nom|capitalize }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Complément d'Adresse</th>
+                                <td>{{ entreprise.complementAdresse }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="d-flex justify-content-between my-4">
+                        <a class="btn btn-outline-primary" href="{{ path('app_logescom_admin_entreprise_index') }}">
+                            <i class="fa fa-arrow-left"></i> Retour à la liste
+                        </a>
+
+                        <a class="btn btn-outline-warning" href="{{ path('app_logescom_admin_entreprise_edit', {'id': entreprise.id}) }}">
+                            <i class="fa fa-edit"></i> Modifier
+                        </a>
+
+                        {{ include('logescom/admin/entreprise/_delete_form.html.twig') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> 
+{% endblock %}

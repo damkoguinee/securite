@@ -1,0 +1,93 @@
+{{ form_errors(form) }}
+
+{# ⚠️ ID EXPLICITE POUR LE FORM (CSRF SAFE) #}
+{{ form_start(form, { attr: { id: 'paiementSalairePersonnelType' } }) }}
+
+{# ===================== INFOS PAIEMENT ===================== #}
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.periode, { label: '📅 Période de paie *' }) }}
+    </div>
+
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.caisse, { label: '💰 Caisse décaissée *' }) }}
+    </div>
+
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.modePaie, { label: '💳 Mode de paiement *' }) }}
+    </div>
+</div>
+
+
+{# ===================== PERSONNEL ===================== #}
+
+<div class="row">
+
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.personnel, {
+            label: '👨‍💼 Personnel concerné *',
+            attr: { class: 'form-select' }
+        }) }}
+    </div>
+
+
+    {# ===================== RECHERCHE PERSONNEL ===================== #}
+
+    <div class="col-md-4">
+        <label class="fw-semibold mb-1">
+            🔍  Rechercher un site/contrat
+        </label>
+
+        <div class="position-relative">
+            <input type="text"
+                id="search_client"
+                class="form-control form-control-sm rounded-pill ps-4 shadow-sm"
+                placeholder="Nom, téléphone…">
+
+            <div id="result-search"
+                class="list-group position-absolute w-100 shadow-sm bg-info"
+                style="z-index: 1050;">
+            </div>
+        </div>
+
+        <small class="text-muted">
+            Tapez pour filtrer les contrats
+        </small>
+    </div>
+
+
+    <div class="col-md-4 mb-3">
+        {{ form_row(form.contrat, {
+            label: '📜 Contrat de surveillance',
+            attr: { class: 'form-select' }
+        }) }}
+    </div>
+
+</div>
+
+
+{# ===================== COMMENTAIRE ===================== #}
+
+<div class="row">
+    <div class="col-md-12 mb-3">
+        {{ form_row(form.commentaire, {
+            label: '💬 Détails du paiement',
+            attr: {
+                rows: 3,
+                placeholder: 'Ex: Bordereau, N° chèque, virement...'
+            }
+        }) }}
+    </div>
+</div>
+
+
+{# ===================== BOUTON ===================== #}
+
+<div class="text-end mt-3">
+    <button type="submit" class="btn btn-success">
+    {{ button_label|default('Enregistrer') }}
+</button>
+</div>
+
+{{ form_end(form) }}

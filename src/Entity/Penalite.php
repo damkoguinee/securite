@@ -1,0 +1,129 @@
+<?php
+
+namespace App\Entity;
+
+use App\Repository\PenaliteRepository;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: PenaliteRepository::class)]
+class Penalite
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\ManyToOne(inversedBy: 'penalites')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?AffectationAgent $affectationAgent = null;
+
+    #[ORM\ManyToOne(inversedBy: 'penalites')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?ConfigPenaliteType $penaliteType = null;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 18, scale: 2, nullable: true)]
+    private ?string $montant = null;
+
+    #[ORM\Column]
+    private ?\DateTime $dateSaisie = null;
+
+    #[ORM\ManyToOne(inversedBy: 'penalites')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Personel $saisiePar = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $commentaire = null;
+
+    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    private ?\DateTime $periode = null;
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getAffectationAgent(): ?AffectationAgent
+    {
+        return $this->affectationAgent;
+    }
+
+    public function setAffectationAgent(?AffectationAgent $affectationAgent): static
+    {
+        $this->affectationAgent = $affectationAgent;
+
+        return $this;
+    }
+
+    public function getPenaliteType(): ?ConfigPenaliteType
+    {
+        return $this->penaliteType;
+    }
+
+    public function setPenaliteType(?ConfigPenaliteType $penaliteType): static
+    {
+        $this->penaliteType = $penaliteType;
+
+        return $this;
+    }
+
+    public function getMontant(): ?string
+    {
+        return $this->montant;
+    }
+
+    public function setMontant(?string $montant): static
+    {
+        $this->montant = $montant;
+
+        return $this;
+    }
+
+    public function getDateSaisie(): ?\DateTime
+    {
+        return $this->dateSaisie;
+    }
+
+    public function setDateSaisie(\DateTime $dateSaisie): static
+    {
+        $this->dateSaisie = $dateSaisie;
+
+        return $this;
+    }
+
+    public function getSaisiePar(): ?Personel
+    {
+        return $this->saisiePar;
+    }
+
+    public function setSaisiePar(?Personel $saisiePar): static
+    {
+        $this->saisiePar = $saisiePar;
+
+        return $this;
+    }
+
+    public function getCommentaire(): ?string
+    {
+        return $this->commentaire;
+    }
+
+    public function setCommentaire(?string $commentaire): static
+    {
+        $this->commentaire = $commentaire;
+
+        return $this;
+    }
+
+    public function getPeriode(): ?\DateTime
+    {
+        return $this->periode;
+    }
+
+    public function setPeriode(\DateTime $periode): static
+    {
+        $this->periode = $periode;
+
+        return $this;
+    }
+}

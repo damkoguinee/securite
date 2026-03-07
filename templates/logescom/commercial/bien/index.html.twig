@@ -1,0 +1,201 @@
+{% extends 'base_site.html.twig' %}
+
+{% block title %}Liste des sites sécurisés{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-sm mb-4 border-0">
+
+        <div class="card-header bg-dark text-white">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+
+                {# Titre #}
+                <h5 class="mb-0">
+                    <i class="fas fa-building me-2"></i> Sites sécurisés par client
+                </h5>
+
+                <form method="get" class="d-flex align-items-center gap-1 flex-nowrap">
+                    {% set zoneSelected = app.request.get('zone') %}
+                    <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">— Toutes les zones —</option>
+                        {% for zone in zones %}
+                            <option value="{{ zone.id }}" {{ zoneSelected == zone.id ? 'selected' }}>
+                                {{ zone.nom|upper }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <input type="text"
+                        class="form-control form-control-sm"
+                        name="search"
+                        placeholder="Nom client, référence, bien, tel, mode..."
+                        value="{{ search ?? '' }}"
+                        style="min-width: 200px">
+
+                    <button type="submit" class="btn btn-light btn-sm">
+                        <i class="fa fa-search text-danger"></i>
+                    </button>
+                </form>
+
+                {# 🔍 Barre de recherche #}
+                <div class="flex-grow-1 mx-3" style="max-width: 320px;">
+                    <input type="text"
+                        name="search"
+                        id="search_client"
+                        class="form-control form-control-sm shadow-sm"
+                        placeholder="🔍 Rechercher un bien (Nom, téléphone, société...)">
+                        <div id="result-search" class="text-start bg-white small mt-1"></div>
+                </div>
+
+                {# Bouton ajouter #}
+                <a class="btn btn-primary btn-sm"
+                href="{{ path('app_logescom_commercial_bien_new', {'site': site.id}) }}">
+                    <i class="fa fa-plus-circle me-1"></i> Ajouter un site
+                </a>
+            </div>
+        </div>
+
+
+        <div class="card-body bg-light">
+
+            <table class="table table-hover align-middle shadow-sm rounded">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>N°</th>
+                        <th>Client</th>
+                        <th>Nom du site</th>
+                        <th>Description</th>
+                        <th>Adresse</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for group in biensGroup %}
+
+                        {# 🔹 Ligne de regroupement par client #}
+                        <tr class="table-warning">
+                            <td colspan="7" class="fw-bold">
+                                <i class="fa fa-user-circle me-2"></i>
+                                {{ group.client ? group.client.nomComplet : 'Client non défini' }}
+                            </td>
+                        </tr>
+
+                        {# 🔹 Lignes des biens de ce client #}
+                        {% for bien in group.biens %}
+                            {% set color = bien.statut == 'actif' ? 'success' : 'secondary' %}
+                            <tr>
+                                <td class="text-center">{{ loop.index }}</td>
+
+                                <td>{{ group.client ? group.client.nomComplet : '-' }}</td>
+
+                                <td class="fw-semibold text-{{ color }}">
+                                    {{ bien.nom|capitalize }}
+                                    {% if bien.zoneRattachement %}
+                                        <span class="text-muted">({{ bien.zoneRattachement.nom|upper }})</span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-muted small">{{ bien.description|default('-') }}</td>
+
+                                <td>
+                                    {{ bien.adresse.nom|default('N/A') }}
+                                    {% if bien.adresse.divisionLocale %}
+                                        <small class="text-muted">
+                                            ({{ bien.adresse.divisionLocale.nom }})
+                                        </small>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="badge bg-{{ color }}">{{ bien.statut|capitalize }}</span>
+                                </td>
+
+                               <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+
+                                        <a class="btn btn-sm btn-outline-success"
+                                        href="{{ path('app_logescom_commercial_bien_show', {
+                                            id: bien.id, site: site.id
+                                        }) }}">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+
+                                        <a class="btn btn-sm btn-outline-warning"
+                                        href="{{ path('app_logescom_commercial_bien_edit', {
+                                            id: bien.id, site: site.id
+                                        }) }}">
+                                            <i class="fa fa-edit"></i>
+                                        </a>
+
+                                    </div>
+                                </td>
+
+                            </tr>
+                        {% endfor %}
+
+                    {% endfor %}
+
+                </tbody>
+            </table>
+
+
+            {# PAGINATION #}
+            {% if nbrePages > 1 %}
+                <nav class="mt-3">
+                    <ul class="pagination justify-content-center">
+
+                        {# Page précédente #}
+                        <li class="page-item {{ pageEnCours == 1 ? 'disabled' : '' }}">
+                            <a class="page-link" 
+                            href="{{ path(app.request.attributes.get('_route'),
+                                    app.request.query.all|merge({
+                                        'pageEnCours': pageEnCours - 1,
+                                        'site': site.id
+                                    })
+                            ) }}">
+                                &laquo;
+                            </a>
+                        </li>
+
+                        {# Pages #}
+                        {% for i in 1..nbrePages %}
+                            <li class="page-item {{ i == pageEnCours ? 'active' : '' }}">
+                                <a class="page-link" 
+                                href="{{ path(app.request.attributes.get('_route'),
+                                        app.request.query.all|merge({
+                                            'pageEnCours': i,
+                                            'site': site.id
+                                        })
+                                ) }}">
+                                    {{ i }}
+                                </a>
+                            </li>
+                        {% endfor %}
+
+                        {# Page suivante #}
+                        <li class="page-item {{ pageEnCours == nbrePages ? 'disabled' : '' }}">
+                            <a class="page-link" 
+                            href="{{ path(app.request.attributes.get('_route'),
+                                    app.request.query.all|merge({
+                                        'pageEnCours': pageEnCours + 1,
+                                        'site': site.id
+                                    })
+                            ) }}">
+                                &raquo;
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endif %}
+
+
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Modifier le salaire{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <div class="card shadow-sm border-0 mb-4">
+
+            {# 🧾 En-tête #}
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fa fa-edit me-2"></i> Modifier le salaire
+                </h5>
+
+                <a class="btn btn-outline-light btn-sm"
+                   href="{{ path('app_logescom_comptable_salaire_personnel_index', { site: site.id }) }}">
+                    <i class="fa fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+
+            {# 💰 Formulaire #}
+            <div class="card-body bg-light">
+
+                <div class="row justify-content-center">
+                    <div class="col-lg-10">
+
+                        {{ include(
+                            'logescom/comptable/salaire_personnel/_form.html.twig',
+                            { button_label: '💾 Mettre à jour' }
+                        ) }}
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

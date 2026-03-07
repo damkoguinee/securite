@@ -1,0 +1,242 @@
+{% extends 'base_site.html.twig' %}
+
+{% block title %}Liste des contrats de surveillance{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-sm mb-4 border-0">
+
+        <!-- 🔹 HEADER IDENTIQUE AUX BIENS -->
+        <div class="card-header bg-dark text-white">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+
+                <h5 class="mb-0">
+                    <i class="fa fa-shield-alt me-2"></i> Contrats de surveillance par client
+                </h5>
+
+                <form method="get" class="d-flex align-items-center gap-1 flex-nowrap">
+                    {% set zoneSelected = app.request.get('zone') %}
+                    <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">— Toutes les zones —</option>
+                        {% for zone in zones %}
+                            <option value="{{ zone.id }}" {{ zoneSelected == zone.id ? 'selected' }}>
+                                {{ zone.nom|upper }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <input type="text"
+                           name="search"
+                           class="form-control form-control-sm"
+                           placeholder="Nom client, site, type, mode..."
+                           value="{{ search ?? '' }}"
+                           style="min-width: 200px">
+
+                    <button class="btn btn-light btn-sm" type="submit">
+                        <i class="fa fa-search text-danger"></i>
+                    </button>
+                </form>
+
+                <div class="flex-grow-1 mx-3" style="max-width: 320px;">
+                    <input type="text"
+                           id="search_client"
+                           class="form-control form-control-sm shadow-sm"
+                           placeholder="🔍 Rechercher un contrat (client, site, type...)">
+                    <div id="result-search" class="text-start bg-white small mt-1"></div>
+                </div>
+
+                <a class="btn btn-primary btn-sm"
+                   href="{{ path('app_logescom_commercial_contrat_surveillance_new', {'site': site.id}) }}">
+                    <i class="fa fa-plus-circle me-1"></i> Nouveau contrat
+                </a>
+            </div>
+        </div>
+
+
+        <!-- 🔹 BODY -->
+        <div class="card-body bg-light">
+
+            <table class="table table-hover align-middle shadow-sm rounded">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>N°</th>
+                        <th>Types surveillance</th>
+                        <th>Site</th>
+                        <th>Date début</th>
+                        <th>Tarifs (GNF)</th>
+                        <th>Agents Jour</th>
+                        <th>Agents Nuit</th>
+                        <th>Heures Agent</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for group in contratsGroup %}
+
+                        <!-- 🔹 LIGNE DE GROUPAGE CLIENT -->
+                        <tr class="table-warning">
+                            <td colspan="11" class="fw-bold">
+                                <i class="fa fa-user-circle me-2"></i>
+                                {{ group.client ? group.client.nomComplet : 'Client non défini' }}
+                            </td>
+                        </tr>
+
+                        {% for contrat in group.contrats %}
+
+                            <!-- Ligne principale du contrat -->
+                            <tr class="text-center fw-bold bg-light">
+                                <td>{{ loop.index }}</td>
+                                <td colspan="9">
+                                    <i class="fa fa-shield-halved me-1"></i>
+                                    Types de surveillance du contrat
+                                </td>
+                            </tr>
+
+                            {% for ts in contrat.typesSurveillance %}
+                                <tr class="text-center">
+
+                                    <!-- Numéro -->
+                                    <td>{{ loop.parent.loop.index }}.{{ loop.index }}</td>
+
+                                    <!-- Type -->
+                                    <td>
+                                        <span class="badge bg-primary">{{ ts.typeSurveillance.nom }}</span>
+                                    </td>
+
+                                    <!-- Site -->
+                                    <td>{{ contrat.bien.nom|capitalize }}</td>
+
+                                    <!-- Date début -->
+                                    <td>{{ contrat.dateDebut|date('d/m/Y') }}</td>
+
+                                    <!-- Tarifs -->
+                                    <td class="text-end">
+
+                                        {% if contrat.modeFacturation == 'horaire' %}
+                                            {{ ts.tarifHoraire|number_format(0, '.', ' ') }} /h
+
+                                        {% elseif contrat.modeFacturation in ['mensuel', 'mensuel_agent'] %}
+                                            {{ ts.tarifMensuel|number_format(0, '.', ' ') }} /mois
+
+                                        {% elseif contrat.modeFacturation == 'forfait' %}
+                                            {{ ts.tarifForfait|number_format(0, '.', ' ') }}
+
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Agents jour -->
+                                    <td class="text-end">
+                                        {{ ts.nbAgentsJour ?? 0 }}
+                                    </td>
+
+                                    <!-- Agents nuit -->
+                                    <td class="text-end">
+                                        {{ ts.nbAgentsNuit ?? 0 }}
+                                    </td>
+
+                                    <!-- Heures par agent -->
+                                    <td class="text-end">
+                                        {{ ts.heureParAgent ?? '—' }}
+                                    </td>
+
+                                    <!-- Statut -->
+                                    <td>
+                                        <span class="badge bg-{{ contrat.statut == 'actif' ? 'success' :
+                                                                (contrat.statut == 'suspendu' ? 'warning' : 'secondary') }}">
+                                            {{ contrat.statut|capitalize }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td>
+                                        <div class="d-flex justify-content-center gap-2">
+
+                                            <a class="btn btn-sm btn-outline-success"
+                                            href="{{ path('app_logescom_commercial_contrat_surveillance_show', {
+                                                    id: contrat.id, site: site.id
+                                            }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+
+                                            <a class="btn btn-sm btn-outline-warning"
+                                            href="{{ path('app_logescom_commercial_contrat_surveillance_edit', {
+                                                    id: contrat.id, site: site.id
+                                            }) }}">
+                                                <i class="fa fa-edit"></i>
+                                            </a>
+
+                                        </div>
+                                    </td>
+
+                                </tr>
+                            {% endfor %}
+
+                        {% endfor %}
+
+
+                    {% endfor %}
+
+                </tbody>
+            </table>
+
+
+            <!-- 🔹 PAGINATION IDENTIQUE AUX BIENS -->
+            {% if nbrePages > 1 %}
+                <nav class="mt-3">
+                    <ul class="pagination justify-content-center">
+
+                        <li class="page-item {{ pageEnCours == 1 ? 'disabled' : '' }}">
+                            <a class="page-link"
+                               href="{{ path(app.request.attributes.get('_route'),
+                                    app.request.query.all|merge({
+                                        'pageEnCours': pageEnCours - 1,
+                                        'site': site.id
+                                    })
+                               ) }}">
+                                &laquo;
+                            </a>
+                        </li>
+
+                        {% for i in 1..nbrePages %}
+                            <li class="page-item {{ i == pageEnCours ? 'active' : '' }}">
+                                <a class="page-link"
+                                   href="{{ path(app.request.attributes.get('_route'),
+                                        app.request.query.all|merge({
+                                            'pageEnCours': i,
+                                            'site': site.id
+                                        })
+                                   ) }}">
+                                    {{ i }}
+                                </a>
+                            </li>
+                        {% endfor %}
+
+                        <li class="page-item {{ pageEnCours == nbrePages ? 'disabled' : '' }}">
+                            <a class="page-link"
+                               href="{{ path(app.request.attributes.get('_route'),
+                                    app.request.query.all|merge({
+                                        'pageEnCours': pageEnCours + 1,
+                                        'site': site.id
+                                    })
+                               ) }}">
+                                &raquo;
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

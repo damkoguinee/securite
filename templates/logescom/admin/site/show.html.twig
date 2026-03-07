@@ -1,0 +1,74 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Détail du site{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/admin/_nav_admin.html.twig" %}
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            <div class="card shadow-sm mb-4">
+                    
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0 text-center">Détail du site</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-striped table-hover align-middle">
+                        {# <thead class="thead-dark table-dark">
+                            <tr>
+                                <th class="text-center" colspan="2">
+                                    <h3 class="mb-0">Informations sur la site</h3>
+                                </th>
+                            </tr>
+                        </thead> #}
+                        <tbody>
+                            <tr>
+                                <th class="text-nowrap">Id</th>
+                                <td>{{ site.id }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Nom</th>
+                                <td>{{ site.nom }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Description</th>
+                                <td>{{ site.description }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Complément d'Adresse</th>
+                                <td>{{ site.complementAdresse }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Email</th>
+                                <td>{{ site.email }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Date d'Ouverture</th>
+                                <td>{{ site.dateOuverture ? site.dateOuverture|date('Y-m-d') : 'Non précisé' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Téléphone</th>
+                                <td>{{ site.telephone }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-nowrap">Initiales</th>
+                                <td>{{ site.initial }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="d-flex justify-content-between my-4">
+                        <a class="btn btn-outline-primary" href="{{ path('app_logescom_admin_site_index') }}">
+                            <i class="fa fa-arrow-left"></i> Retour à la liste
+                        </a>
+
+                        <a class="btn btn-outline-warning" href="{{ path('app_logescom_admin_site_edit', {'id': site.id}) }}">
+                            <i class="fa fa-edit"></i> Modifier
+                        </a>
+
+                        {{ include('logescom/admin/site/_delete_form.html.twig') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

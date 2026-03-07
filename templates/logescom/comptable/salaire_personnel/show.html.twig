@@ -1,0 +1,189 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Détail du salaire{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+     <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+        <div class="card shadow-sm border-0 mb-4">
+            <!-- 🧾 En-tête -->
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fa fa-receipt me-2"></i> Détail du salaire
+                </h5>
+                <a class="btn btn-outline-light btn-sm"
+                href="{{ path('app_logescom_comptable_salaire_personnel_index', { site: site.id }) }}">
+                    <i class="fa fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            <!-- 💰 Contenu -->
+            <div class="card-body bg-light">
+                <div class="row justify-content-center">
+                    <div class="col-lg-12">
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle bg-white shadow-sm">
+                                <tbody>
+                                    <tr class="table-primary">
+                                        <th colspan="2" class="text-center text-uppercase fw-bold">
+                                            Informations du salarié
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th style="width: 30%">Prénom & Nom</th>
+                                        <td class="fw-semibold text-start">
+                                            <i class="fa fa-user text-primary me-1"></i>
+                                            {{ salaire_personnel.personnel.prenom|capitalize }} {{ salaire_personnel.personnel.nom|upper }} {{ salaire_personnel.personnel.reference|upper }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Contact</th>
+                                        <td>{{ salaire_personnel.personnel.telephone|default('—') }}</td>
+                                    </tr>
+
+                                    <tr class="table-primary">
+                                        <th colspan="2" class="text-center text-uppercase fw-bold">
+                                            Détails de la paie
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th>Période</th>
+                                        <td class="text-success fw-semibold">
+                                            {{ salaire_personnel.periode ? salaire_personnel.periode|date('m/Y') : '' }}
+
+                                            {{salaire_personnel.contrat ? ('Site de ' ~ salaire_personnel.contrat.bien.client.nomCompletUser) : ''}}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Salaire brut</th>
+                                        <td class="text-end">{{ salaire_personnel.salaireBrut|number_format(0, ',', ' ') }}</td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <th>Prime</th>
+                                        <td class="text-end text-success">
+                                            + {{ salaire_personnel.prime|number_format(0, ',', ' ') }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Repos travaillé</th>
+                                        <td class="text-end text-success">
+                                            + {{ salaire_personnel.reposTravaille|default(0)|number_format(0, ',', ' ') }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Journée entière</th>
+                                        <td class="text-end text-success">
+                                            + {{ salaire_personnel.journeeEntiere|default(0)|number_format(0, ',', ' ') }}
+                                        </td>
+                                    </tr>
+
+                                    
+
+                                    <tr>
+                                        <th>Taux horaire</th>
+                                        <td class="text-end">
+                                            {{ salaire_personnel.tauxHoraire|default(0)|number_format(0, ',', ' ') }}
+                                        </td>
+                                    </tr>
+
+
+                                    
+                                    <tr>
+                                        <th>Avance sur salaire</th>
+                                        <td class="text-end text-danger">
+                                            - {{ salaire_personnel.avanceSalaire|number_format(0, ',', ' ') }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Pénalité</th>
+                                        <td class="text-end text-danger">
+                                            - {{ salaire_personnel.penalite|number_format(0, ',', ' ') }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Cotisation</th>
+                                        <td class="text-end">
+                                            - {{ salaire_personnel.cotisation|number_format(0, ',', ' ') }}
+                                        </td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <th class="fw-bold text-uppercase">Salaire net</th>
+                                        <td class="fw-bold text-success text-end">
+                                            {{ salaire_personnel.montant|abs|number_format(0, ',', ' ') }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Jours travaillées</th>
+                                        <td class="text-end">
+                                            {{ salaire_personnel.jourTravaille|default(0)|number_format(2, ',', ' ') }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Mode de paiement</th>
+                                        <td class="text-start">{{ salaire_personnel.modePaie.designation|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Compte / Caisse</th>
+                                        <td class="text-start">{{ salaire_personnel.caisse.nom|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Commentaire</th>
+                                        <td class="text-start text-muted">
+                                            {{ salaire_personnel.commentaire|default('—') }}
+                                        </td>
+                                    </tr>
+
+                                    <tr class="table-primary">
+                                        <th colspan="2" class="text-center text-uppercase fw-bold">
+                                            Saisie et validation
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th>Traité par</th>
+                                        <td class="text-start">
+                                            <i class="fa fa-user-check text-success me-1"></i>
+                                            {{ salaire_personnel.saisiePar.nomCompletUser }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date de saisie</th>
+                                        <td>
+                                            {{ salaire_personnel.dateSaisie ? salaire_personnel.dateSaisie|date('d/m/Y H:i') : '' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a class="btn btn-outline-secondary shadow-sm"
+                            href="{{ path('app_logescom_comptable_salaire_personnel_index', { site: site.id }) }}">
+                                <i class="fa fa-arrow-left"></i> Retour à la liste
+                            </a>
+
+                            <a class="btn btn-outline-warning shadow-sm"
+                            href="{{ path('app_logescom_comptable_salaire_personnel_edit', {id: salaire_personnel.id, site: site.id }) }}">
+                                <i class="fa fa-edit"></i> Modifier
+                            </a>
+
+                            <a class="btn btn-danger shadow-sm"
+                            href="{{ path('app_logescom_comptable_salaire_personnel_confirm_delete', { id: salaire_personnel.id, site: site.id }) }}"
+                            onclick="alerteConfirmation()">
+                                <i class="fa fa-trash"></i> Supprimer
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

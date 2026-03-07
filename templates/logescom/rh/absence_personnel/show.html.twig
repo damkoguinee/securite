@@ -1,0 +1,91 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Détail — Absence / Heure Supplémentaire{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <!-- 🧾 Carte principale -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fa fa-clock me-2"></i> Détail de l'absence / heure supplémentaire
+            </h5>
+            <a class="btn btn-outline-light btn-sm"
+               href="{{ path('app_logescom_rh_absence_personnel_index', {site: site.id}) }}">
+                <i class="fa fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+
+        <div class="card-body bg-light">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle shadow-sm m-0 bg-white">
+                    <tbody>
+                        <tr>
+                            <th class="bg-secondary bg-opacity-75 text-white" style="width:30%">Prénom & Nom</th>
+                            <td class="fw-semibold">
+                                <i class="fa fa-user text-primary me-1"></i>
+                                {{ absence_personnel.personnel.prenom|capitalize }} {{ absence_personnel.personnel.nom|upper }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="bg-secondary bg-opacity-75 text-white">Type</th>
+                            <td>
+                                {% if absence_personnel.heureAbsence > 0 %}
+                                    <span class="badge bg-danger bg-opacity-75">
+                                        <i class="fa fa-user-slash me-1"></i> Absence
+                                    </span>
+                                {% else %}
+                                     <span class="badge bg-success bg-opacity-75">
+                                        <i class="fa fa-clock me-1"></i> Heures Supplémentaires
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="bg-secondary bg-opacity-75 text-white">Durée</th>
+                            <td class="fw-bold">
+                                {{ absence_personnel.heureAbsence|abs|number_format(2, ',', ' ') }} h
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="bg-secondary bg-opacity-75 text-white">Date concernée</th>
+                            <td>{{ absence_personnel.dateAbsence ? absence_personnel.dateAbsence|date('d/m/Y') : '—' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-secondary bg-opacity-75 text-white">Commentaire</th>
+                            <td>{{ absence_personnel.commentaire ?: 'Aucun commentaire' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-secondary bg-opacity-75 text-white">Saisi par</th>
+                            <td>
+                                <i class="fa fa-user-pen text-info me-1"></i>
+                                {{ absence_personnel.saisiePar.prenom|capitalize }} {{ absence_personnel.saisiePar.nom|upper }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="bg-secondary bg-opacity-75 text-white">Date de saisie</th>
+                            <td>{{ absence_personnel.dateSaisie ? absence_personnel.dateSaisie|date('d/m/Y H:i') : '—' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 🔹 Actions -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a class="btn btn-outline-secondary"
+                   href="{{ path('app_logescom_rh_absence_personnel_index', {site: site.id}) }}">
+                    <i class="fa fa-arrow-left"></i> Retour
+                </a>
+
+                <a class="btn btn-danger"
+                   onclick="return confirm('⚠️ Voulez-vous vraiment supprimer cet enregistrement ?');"
+                   href="{{ path('app_logescom_rh_absence_personnel_delete', {'id': absence_personnel.id, site: site.id}) }}">
+                    <i class="fa fa-trash-alt"></i> Supprimer
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

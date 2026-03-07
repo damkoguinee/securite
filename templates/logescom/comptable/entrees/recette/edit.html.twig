@@ -1,0 +1,54 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}✏️ Modification d’une recette{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    <div class="row">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+        <div class="col-sm-12 col-md-10">
+            {{ include("_common/_messages_flash.html.twig") }}
+
+            <div class="card shadow-lg border-0 mb-4 rounded-3">
+                <!-- 🟠 En-tête -->
+                <div class="card-header bg-warning text-white py-3 px-4">
+                    <h5 class="mb-0">
+                        <i class="fa fa-edit me-2"></i> Modifier une recette
+                    </h5>
+                </div>
+
+                <!-- 📋 Corps -->
+                <div class="card-body bg-light p-4">
+                    <p class="text-muted mb-4">
+                        Mettez à jour les informations de la recette, puis validez les modifications.
+                    </p>
+
+                    {{ include('logescom/comptable/entrees/recette/_form.html.twig', {'button_label': 'Mettre à jour'}) }}
+
+                    <hr class="my-4">
+
+                    <!-- 🔘 Boutons d’action -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ path('app_logescom_comptable_entrees_recette_index', {'site': site.id}) }}" 
+                           class="btn btn-outline-secondary rounded-pill">
+                            <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                        </a>
+
+                        <div class="d-flex gap-2">
+                            {% if is_granted('ROLE_SUPPRESSION') %}
+                                {{ include('logescom/comptable/entrees/recette/_delete_form.html.twig') }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card-header i {
+        color: #212529;
+    }
+</style>
+{% endblock %}

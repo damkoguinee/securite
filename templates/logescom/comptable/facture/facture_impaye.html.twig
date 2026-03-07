@@ -1,0 +1,344 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Factures impayées{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-sm">
+
+        <!-- 🔴 HEADER -->
+        <div class="card-header bg-danger text-white">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+
+                <!-- TITRE -->
+                <span class="fw-bold fs-5">
+                    <i class="fa fa-exclamation-triangle me-1"></i> Liste des impayés
+                </span>
+
+                <!-- FORMULAIRE SEARCH -->
+                <form method="get"
+                    class="d-flex align-items-center gap-2 mb-0">
+
+                    <input type="text"
+                        class="form-control form-control-sm"
+                        name="search"
+                        placeholder="Nom client, référence, bien, tel, mode..."
+                        value="{{ search ?? '' }}"
+                        style="min-width: 200px">
+
+                    <button type="submit" class="btn btn-light btn-sm">
+                        <i class="fa fa-search text-danger"></i>
+                    </button>
+                </form>
+
+                <!-- FORMULAIRE CONTRAT -->
+                <form method="get"
+                    class="d-flex align-items-center gap-2 mb-0">
+
+                    <select name="contratId"
+                        class="form-select form-select-sm"
+                        onchange="this.form.submit()"
+                        style="min-width: 220px">
+
+                        <option value="">📍 Tous les contrats</option>
+
+                        {% for contrat in contrats %}
+                            <option value="{{ contrat.id }}"
+                                {% if contrat.id == selectedContrat %}selected{% endif %}>
+                                {{ contrat.bien.nom|capitalize }} — {{ contrat.bien.client.nomComplet }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+
+            </div>
+        </div>
+
+        <!-- 🔵 FACTURES NON GÉNÉRÉES -->
+        {% if facturesNonGenerees is not empty %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    <i class="fa fa-file-invoice me-1"></i> Factures non générées
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover align-middle mb-0">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th>Client</th>
+                                    <th>Bien surveillé</th>
+                                    <th class="text-center">Contrat</th>
+                                    <th class="text-center">Mois/Année</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% set idx = 1 %}
+
+                                {% for contratId, moisManquants in facturesNonGenerees %}
+
+                                    <!-- Ligne contrat -->
+                                    <tr class="table-secondary fw-bold">
+                                        <td colspan="6">
+                                            📄 Contrat #{{ contratId }}
+                                            — {{ moisManquants[0].contrat.bien.client.nomComplet }}
+                                            — {{ moisManquants[0].contrat.bien.nom }}
+                                        </td>
+                                    </tr>
+
+                                    {% for item in moisManquants %}
+                                        <tr>
+                                            <td class="text-center">{{ idx }}</td>
+
+                                            <td>
+                                                {{ item.contrat.bien.client.nomComplet }}
+                                            </td>
+
+                                            <td>
+                                                {{ item.contrat.bien.nom }}
+                                            </td>
+
+                                            <td class="text-center">
+                                                #{{ item.contrat.id }}
+                                            </td>
+
+                                            <td class="text-center">
+                                                {{ item.label }}
+                                            </td>
+
+                                            <td class="text-center">
+
+                                                <!-- Bouton : ouverture du modal -->
+                                                <button class="btn btn-sm btn-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalGenerate_{{ item.contrat.id }}_{{ item.annee }}_{{ item.mois }}">
+                                                    <i class="fa fa-plus"></i> Générer facture
+                                                </button>
+
+                                            </td>
+
+                                        </tr>
+
+                                        {% set idx = idx + 1 %}
+
+                                        <!-- MODAL CONFIRMATION -->
+                                        <div class="modal fade"
+                                            id="modalGenerate_{{ item.contrat.id }}_{{ item.annee }}_{{ item.mois }}"
+                                            tabindex="-1"
+                                            aria-hidden="true">
+
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content shadow-lg">
+
+                                                    <div class="modal-header bg-primary text-white">
+                                                        <h5 class="modal-title">
+                                                            <i class="fa fa-exclamation-circle me-2"></i>
+                                                            Confirmation de génération
+                                                        </h5>
+                                                        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                    </div>
+
+                                                    <div class="modal-body">
+                                                        <p class="text-center fs-5">
+                                                            Voulez-vous vraiment <strong>générer la facture</strong> pour :
+                                                        </p>
+
+                                                        <ul class="text-center fw-bold list-unstyled">
+                                                            <li>📄 Contrat #{{ item.contrat.id }}</li>
+                                                            <li>🏷️ {{ item.label }}</li>
+                                                            <li>🏠 {{ item.contrat.bien.nom }}</li>
+                                                            <li>👤 {{ item.contrat.bien.client.nomComplet }}</li>
+                                                        </ul>
+
+                                                        <p class="text-muted text-center">
+                                                            ⚠️ Assurez-vous que toutes les données sont correctes.
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="modal-footer justify-content-between">
+
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            Annuler
+                                                        </button>
+
+                                                        <!-- lien final pour créer la facture -->
+                                                        <a href="{{ path('app_logescom_comptable_facture_new', {
+                                                                contrat: item.contrat.id,
+                                                                site: site.id,
+                                                                annee: item.annee,
+                                                                mois: item.mois
+                                                        }) }}"
+                                                        class="btn btn-primary px-4 rounded-pill">
+
+                                                            <i class="fa fa-check-circle me-1"></i> Confirmer
+                                                        </a>
+
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+
+                                    
+
+                                {% endfor %}
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+
+        <!-- TABLE -->
+        <div class="card-body p-0">
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-striped table-hover align-middle mb-0">
+                    <thead class="table-danger sticky-top">
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>Client</th>
+                            <th class="text-center">Téléphone</th>
+                            <th>Site surveillé</th>
+                            <th class="text-center">Contrat</th>
+                            <th class="text-center">Mois/Année</th>
+                            <th class="text-end">Montant Facture</th>
+                            <th class="text-end text-success">Payé</th>
+                            <th class="text-end text-danger">Reste</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% set index = 1 %}
+                        {% set totalReste = 0 %}
+
+                        {% if impayes is empty %}
+                            <tr>
+                                <td colspan="10" class="text-center text-muted fst-italic py-3">
+                                    Aucun impayé trouvé pour cette période.
+                                </td>
+                            </tr>
+                        {% else %}
+
+                            {% for key, facturesMois in impayes %}
+                                
+                                {% set totalResteMois = 0 %}
+
+                                <!-- 🔵 Entête du mois -->
+                                <tr class="table-secondary fw-bold">
+                                    <td colspan="10">
+                                        📅 {{ moisLabels[key] ?? key }}
+                                    </td>
+                                </tr>
+
+                                {% for impaye in facturesMois %}
+
+                                    {% set totalReste = totalReste + impaye.reste %}
+                                    {% set totalResteMois = totalResteMois + impaye.reste %}
+
+
+                                    <tr>
+                                        <td class="text-center">{{ index }}</td>
+
+                                        <td>
+                                            {{ impaye.contrat.bien.client.nomComplet }}
+                                        </td>
+
+                                        <td class="text-center">
+                                            {{ impaye.contrat.bien.client.telephone }}
+                                        </td>
+
+                                        <td>
+                                            {{ impaye.contrat.bien.nom }}
+                                        </td>
+
+                                        <td class="text-center">
+                                            Contrat #{{ impaye.contrat.id }}
+                                        </td>
+
+                                        <td class="text-center">
+                                            {{ impaye.mois }}/{{ impaye.annee }}
+                                        </td>
+
+                                        <td class="text-end text-nowrap">
+                                            {{ impaye.facture|number_format(0,' ',' ') }}
+                                        </td>
+
+                                        <td class="text-end text-success text-nowrap">
+                                            {{ impaye.paye|number_format(0,' ',' ') }}
+                                        </td>
+
+                                        <td class="text-end text-danger fw-bold text-nowrap">
+                                            {{ impaye.reste|number_format(0,' ',' ') }}
+                                        </td>
+
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm gap-2" role="group">
+                                                <a class="btn btn-success btn-sm"
+                                                href="{{ path('app_logescom_comptable_contrat_historique_paiement', {'client' : impaye.contrat.bien.client.id, 'site' : site.id
+                                                }) }}">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+
+                                                <!-- Bouton Recouvrement -->
+                                                <a class="btn btn-primary btn-sm"
+                                                href="{{ path('app_logescom_comptable_paiement_new', {
+                                                        id: impaye.contrat.factures.first.id,
+                                                        site: site.id
+                                                }) }}">
+                                                    <i class="fa fa-hand-holding-usd"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    {% set index = index + 1 %}
+
+                                {% endfor %}
+
+                                <!-- 🟡 Total du mois -->
+                                <tr class="table-warning fw-bold">
+                                    <td colspan="8" class="text-end">
+                                        Total {{ moisLabels[key] ?? key }}
+                                    </td>
+                                    <td class="text-end text-danger text-nowrap">
+                                        {{ totalResteMois|number_format(0,' ',' ') }}
+                                    </td>
+                                    <td></td>
+                                </tr>
+
+                            {% endfor %}
+
+                        {% endif %}
+                    </tbody>
+
+                    {% if impayes is not empty %}
+                        <tfoot class="table-dark text-white fw-bold">
+                            <tr>
+                                <td colspan="8" class="text-end">CUMUL GÉNÉRAL DES IMPAYÉS</td>
+                                <td class="text-end text-warning text-nowrap">
+                                    {{ totalReste|number_format(0,' ',' ') }}
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

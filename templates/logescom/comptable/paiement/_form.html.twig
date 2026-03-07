@@ -1,0 +1,129 @@
+{{ form_errors(form) }}
+{{ form_start(form) }}
+
+<div class="row">
+    {{ form_row(form.facture) }}
+</div>
+<div class="row g-3 mb-0">
+    <!-- Montant + Devise -->
+    <div class="col-md-4">
+        {{ form_row(form.montant, {
+            label: '💰 Montant *',
+            attr: {'placeholder': 'Entrez le montant...', 'class': 'shadow-sm'}
+        }) }}
+    </div>
+
+    <div class="col-md-2">
+        {{ form_row(form.devise, {
+            label: '💱 Devise',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+
+    <!-- Mode de paiement -->
+    <div class="col-md-3">
+        {{ form_row(form.modePaie, {
+            label: '🏦 Mode de paiement',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+
+    <!-- Caisse -->
+    <div class="col-md-3">
+        {{ form_row(form.caisse, {
+            label: '💼 Caisse',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+
+</div>
+
+<hr class="my-1">
+
+<div class="row g-3 mb-0">    
+
+    <!-- Commentaire -->
+    <div class="col-md-6">
+        {{ form_row(form.commentaire, {
+            label: '📝 Description / Motif',
+            attr: {
+                'placeholder': 'Ajoutez un commentaire...',
+                'rows': 2,
+                'class': 'shadow-sm'
+            }
+        }) }}
+    </div>
+
+    <!-- Date opération -->
+    <div class="col-md-3">
+        {{ form_row(form.dateOperation, {
+            label: '📅 Date du paiement',
+            attr: {'class': 'shadow-sm'}
+        }) }}
+    </div>
+
+    <!-- Document -->
+    <div class="col-md-3">
+        {{ form_row(form.document, {
+            label: '📎 Pièce justificative',
+            attr: {'class': 'shadow-sm'}
+        }) }}
+    </div>
+</div>
+
+<hr class="my-0">
+
+<div class="text-end">
+    <button class="btn btn-primary px-4 shadow-sm">
+        <i class="fas fa-check-circle me-1"></i> {{ button_label|default('Enregistrer') }}
+    </button>
+</div>
+
+{{ form_end(form) }}
+<style>
+    .readonly-style {
+        background-color: #e9ecef !important;
+        cursor: not-allowed;
+    }
+</style>
+
+<!-- 🔥 SCRIPT FORMATAGE + MULTI-FACTURE -->
+<script>
+    // 🔵 FORMATAGE DES MONTANTS (ajout d'espaces)
+    function formatMontant(input) {
+        let v = input.value.replace(/\s/g, '');
+        input.value = v.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    // 🔵 AUTO-MAJ DU MONTANT SI PLUSIEURS FACTURES SÉLECTIONNÉES
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const factureSelect = document.querySelector('#paiement_facture');
+        const montantInput = document.querySelector('#paiement_montant');
+
+        if (!factureSelect || !montantInput) return;
+
+        const updateMontant = () => {
+            const selected = Array.from(factureSelect.selectedOptions);
+            let total = 0;
+
+            selected.forEach(option => {
+                total += parseFloat(option.getAttribute('data-montant')) || 0;
+            });
+
+            montantInput.value = new Intl.NumberFormat('fr-FR').format(total);
+
+            if (selected.length > 1) {
+                montantInput.readOnly = true;
+                montantInput.classList.add('readonly-style');
+            } else {
+                montantInput.readOnly = false;
+                montantInput.classList.remove('readonly-style');
+            }
+        };
+
+        updateMontant();
+        factureSelect.addEventListener('change', updateMontant);
+
+    });
+</script>

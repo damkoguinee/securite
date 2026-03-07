@@ -1,0 +1,167 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Ajout des salaires{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="mb-2 mb-md-0">
+                <i class="fa fa-money-bill-wave me-2"></i> Paiement des salaires
+            </h5>
+
+            <form class="d-flex align-items-center mb-0" style="gap: 6px;">
+                <label for="periode" class="fw-semibold mb-0 text-nowrap">Période :</label>
+                <input type="date" id="periode" name="periode"
+                       value="{{ app.request.query.get('periode') ?? 'now'|date('Y-m-d') }}"
+                       class="form-control form-control-sm bg-light border-0 shadow-sm"
+                       style="max-width: 180px;"
+                       onchange="this.form.submit()">
+            </form>
+        </div>
+
+        <!-- 📋 Corps principal -->
+        <div class="card-body bg-light">
+            {% set periode = app.request.query.get('periode') ?? 'now'|date('Y-m-d') %}
+
+            {% if periode is not empty %}
+                <form method="post" id="salairesForm">
+                    <input type="hidden" name="periode" value="{{ periode }}">
+                    
+                    <!-- Bouton principal en haut -->
+                    <div class="text-end mb-3">
+                        <button type="submit" class="btn btn-success shadow-sm">
+                            <i class="fa fa-check-circle"></i> Enregistrer tous les salaires
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle shadow-sm">
+                            <thead class="table-dark text-center align-middle">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Employé</th>
+                                    <th>Salaire brut</th>
+                                    <th>Taux horaire</th>
+                                    <th>Heures Abs.</th>
+                                    <th>Prime</th>
+                                    <th>Avance</th>
+                                    <th class="text-success fw-bold">Salaire net</th>
+                                    <th>Mode de paiement</th>
+                                    <th>Commentaire</th>
+                                    <th>Caisse</th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="text-center bg-white">
+                                {% set cumulBrut = 0 %}
+                                {% set cumulAbsences = 0 %}
+                                {% set cumulHeures = 0 %}
+                                {% set cumulPrimes = 0 %}
+                                {% set cumulAvances = 0 %}
+                                {% set cumulNet = 0 %}
+
+                                {% for key, paiementInfo in paiementsInfos %}
+                                    {% set salaireBrut = paiementInfo.salaireBase %}
+                                    {% set prime = paiementInfo.montant_prime %}
+                                    {% set avance = paiementInfo.montant_avance %}
+                                    {% set absence = paiementInfo.personnel.tauxHoraire * paiementInfo.absences %}
+                                    {% set salaireNet = salaireBrut + prime - avance - absence %}
+                                    {% set cumulBrut = cumulBrut + salaireBrut %}
+                                    {% set cumulAbsences = cumulAbsences + absence %}
+                                    {% set cumulPrimes = cumulPrimes + prime %}
+                                    {% set cumulAvances = cumulAvances + avance %}
+                                    {% set cumulNet = cumulNet + salaireNet %}
+                                    {% set cumulHeures = cumulHeures + paiementInfo.absences %}
+
+                                    <tr>
+                                        <td>{{ key + 1 }}</td>
+                                        <td class="text-start fw-semibold">
+                                            <i class="fa fa-user text-primary me-1"></i>
+                                            {{ paiementInfo.personnel.prenom|capitalize }} {{ paiementInfo.personnel.nom|upper }} ({{ paiementInfo.personnel.matricule|upper }})
+                                            <input type="hidden" name="salaires[{{ key }}][personnel]" value="{{ paiementInfo.personnel.id }}">
+                                        </td>
+                                        <td class="text-end">{{ salaireBrut|number_format(0, ',', ' ') }}</td>
+                                        <td>{{ paiementInfo.personnel.tauxHoraire|number_format(0, ',', ' ') }}</td>
+                                        <td>{{ paiementInfo.absences }}h</td>
+                                        <td class="text-success">{{ prime|default(0)|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-danger">{{ avance|default(0)|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-success fw-bold">{{ salaireNet|number_format(0, ',', ' ') }}</td>
+
+                                        <input type="hidden" name="salaires[{{ key }}][salaireBrut]" value="{{ salaireBrut }}">
+                                        <input type="hidden" name="salaires[{{ key }}][prime]" value="{{ prime }}">
+                                        <input type="hidden" name="salaires[{{ key }}][avance]" value="{{ avance }}">
+                                        <input type="hidden" name="salaires[{{ key }}][heures]" value="{{ paiementInfo.absences }}">
+                                        <input type="hidden" name="salaires[{{ key }}][salaireNet]" value="{{ salaireNet }}">
+
+                                        <td>
+                                            <select name="salaires[{{ key }}][modePaie]" required class="form-select form-select-sm">
+                                                <option value="">—</option>
+                                                {% for modePaie in modePaies %}
+                                                    <option value="{{ modePaie.id }}">{{ modePaie.designation|ucwords }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="text" name="salaires[{{ key }}][commentaire]" class="form-control form-control-sm"
+                                                   placeholder="Observation (facultatif)">
+                                        </td>
+                                        <td>
+                                            <select name="salaires[{{ key }}][compte]" required class="form-select form-select-sm">
+                                                <option value="">—</option>
+                                                {% for compte in comptes %}
+                                                    <option value="{{ compte.id }}">{{ compte.nom|capitalize }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="11" class="text-muted py-3">
+                                            <i class="fa fa-info-circle me-1"></i> Aucun employé trouvé pour cette période.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+
+                            <tfoot class="table-secondary fw-bold text-end">
+                                <tr>
+                                    <td colspan="2" class="text-center">Totaux</td>
+                                    <td class='text-nowrap'>{{ cumulBrut|number_format(0, ',', ' ') }}</td>
+                                    <td class='text-nowrap' colspan="2">{{ cumulHeures }}h / {{ cumulAbsences|number_format(0, ',', ' ') }}</td>
+                                    <td class='text-nowrap'>{{ cumulPrimes|number_format(0, ',', ' ') }}</td>
+                                    <td class='text-nowrap'>{{ cumulAvances|number_format(0, ',', ' ') }}</td>
+                                    <td class='text-nowrap text-success fw-bold'>{{ cumulNet|number_format(0, ',', ' ') }}</td>
+                                    <td class='text-nowrap' colspan="3"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Bouton principal en bas -->
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn btn-success shadow-sm px-4">
+                            <i class="fa fa-check-circle"></i> Enregistrer tous les salaires
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <div class="alert alert-secondary text-center mt-3">
+                    <i class="fa fa-info-circle me-1"></i> Veuillez sélectionner une période pour enregistrer les salaires.
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="card-footer text-end bg-white border-top">
+            <a class="btn btn-outline-secondary shadow-sm"
+               href="{{ path('app_logescom_comptable_salaire_personnel_index', { site: site.id }) }}">
+                <i class="fa fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

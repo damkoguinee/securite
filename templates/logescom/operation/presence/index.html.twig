@@ -1,0 +1,291 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}📋 Contrôle de présence{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-lg border-0 mb-4">
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-dark text-white py-3 px-1 d-flex flex-wrap justify-content-between align-items-center">
+            <h5 class="mb-3 mb-md-0">
+                <i class="fa fa-user-check me-2 text-warning"></i> Suivi de présence des agents
+            </h5>
+
+            <!-- 🔍 Filtres -->
+            <div class="filters d-flex flex-wrap align-items-center gap-3">
+                <form class="d-flex align-items-center gap-2 flex-nowrap">
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="fw-semibold text-white mb-0">Jour</label>
+                        <input type="date" name="date1" value="{{ date1 }}"
+                               class="form-control form-control-sm shadow-sm border-0 rounded-pill"
+                               onchange="this.form.submit()">
+                    </div>
+                    <input type="hidden" name="id_client_search" value="{{ search }}">
+
+                    {% set zoneSelected = app.request.get('zone') %}
+                    <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">— Toutes les zones —</option>
+                        {% for zone in zones %}
+                            <option value="{{ zone.id }}" {{ zoneSelected == zone.id ? 'selected' }}>
+                                {{ zone.nom|upper }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    {% set fonctionSelected = app.request.get('fonction') %}
+
+                    <select name="fonction"
+                            class="form-select form-select-sm"
+                            onchange="this.form.submit()">
+
+                        <option value="">— Toutes les fonctions —</option>
+
+                        <option value="agent" {{ fonctionSelected == 'agent' ? 'selected' }}>
+                            Agent
+                        </option>
+
+                        <option value="agent releve" {{ fonctionSelected == 'agent releve' ? 'selected' }}>
+                            Agent Relève
+                        </option>
+                    </select>
+                </form>
+
+                <!-- 👤 Recherche agent -->
+                <div class="position-relative" style="min-width: 280px;">
+                    <input type="text" name="search" id="search_client"
+                           class="form-control form-control-sm shadow-sm rounded-pill ps-4"
+                           placeholder="🔍 Rechercher un agent (Nom, téléphone...)">
+                    <div id="result-search" class="position-absolute w-100 mt-1 bg-white border rounded shadow-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📋 Contenu -->
+        <div class="card-body bg-light p-1">
+            {% if affectationsGroupes is not empty %}
+                <form method="post" action="{{ path('app_logescom_operation_presence_batch_validate', { site: site.id }) }}">
+                    <div class="table-responsive">
+                    <!-- 🟢 Validation groupée -->
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="submit" name="action" value="entree" class="btn btn-success rounded-pill px-3">
+                            <i class="fa fa-play me-1"></i> Confirmer le début
+                        </button>
+                        <button type="submit" name="action" value="sortie" class="btn btn-info rounded-pill px-3">
+                            <i class="fa fa-stop me-1"></i> Confirmer le départ
+                        </button>
+
+                        <input type="hidden" name="zone" value="{{app.request.get('zone')}}">
+                        <input type="hidden" name="fonction" value="{{app.request.get('fonction')}}">
+                        <input type="hidden" name="date1" value="{{date1}}">
+                    </div>
+                        <table class="table table-striped table-hover align-middle shadow-sm border">
+                            <thead class="table-dark text-center align-middle">
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="checkAll"></th>
+                                    <th style="width: 40px;">#</th>
+                                    <th>👤 Agent</th>
+                                    <th>🏢 Site</th>
+                                    <th>👔 Poste</th>
+                                    <th>🕒 Horaire prévu</th>
+                                    <th>📋 Détails de présence</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                {% for groupe in affectationsGroupes %}
+
+                                    {# ===== SITE / BIEN ===== #}
+                                    <tr class="table-secondary">
+                                        <td colspan="8" class="fw-bold text-start text-uppercase">
+                                            <i class="fa fa-map-marker-alt text-primary me-1"></i>
+                                            {{ groupe.bien_nom }}
+                                            <span class="badge bg-primary ms-2">
+                                                {{ groupe.affectations|length }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {# ===== AFFECTATIONS ===== #}
+                                    {% for key, aff in groupe.affectations %}
+
+                                        <tr class="align-top">
+                                            <td>
+                                                {% if aff.statutAffectation == 'repos' %}
+                                                    <span class="badge bg-warning">
+                                                        Repos
+                                                    </span>
+                                                {% else %}
+                                                    <input type="checkbox" name="affectations[]" value="{{ aff.id }}">
+                                                {% endif %}
+                                            </td>
+                                            <td class="fw-semibold">{{ key + 1 }}</td>
+
+                                            <!-- 👤 Agent -->
+                                            <td class="text-start">
+                                                <div class="fw-semibold text-primary">
+                                                    <i class="fa fa-user me-1"></i> {{ aff.personnel.nomCompletUser }}
+                                                </div>
+                                                <small class="text-muted d-block">
+                                                    <i class="fa fa-phone me-1"></i>{{ aff.personnel.telephone }}<br>
+                                                    <i class="fa fa-id-card me-1"></i>Réf: {{ aff.personnel.reference }}
+                                                </small>
+                                            </td>
+
+                                            <!-- 🏢 Site -->
+                                            <td class="text-start">
+                                                <i class="fa fa-building me-1 text-secondary"></i>
+                                                {{ aff.contrat.bien.nom|capitalize }}
+                                            </td>
+
+                                            <!-- 👔 Poste -->
+                                            <td>
+                                                <i class="fa fa-briefcase me-1 text-muted"></i>
+                                                {{ aff.poste ?: '—' }}
+                                            </td>
+
+                                            <!-- 🕒 Horaire prévu -->
+                                            <td class="fw-semibold">
+                                                <i class="fa fa-clock text-secondary me-1"></i>
+                                                {{ aff.heureDebut ? aff.heureDebut|date('H:i') : '—' }}
+                                                <span class="text-muted">–</span>
+                                                {{ aff.heureFin ? aff.heureFin|date('H:i') : '—' }}
+                                            </td>
+
+                                            <!-- 📋 Présences -->
+                                            <td class="p-0">
+                                                {% if aff.presences is not empty %}
+                                                    <table class="table table-sm mb-0 table-borderless text-center align-middle">
+                                                        <thead class="table-light border-bottom">
+                                                            <tr>
+                                                                <th>Type</th>
+                                                                <th>Heure</th>
+                                                                <th>Statut</th>
+                                                                <th>Écart</th>
+                                                                <th>Commentaire</th>
+                                                                <th>Action</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for p in aff.presences %}
+                                                                <tr>
+                                                                    <!-- Type -->
+                                                                    <td class="fw-semibold">
+                                                                        {% if p.typePointage == 'entree' or p.typePointage == 'entree' %}
+                                                                            <span class="text-success"><i class="fa fa-sign-in-alt me-1"></i> Entrée</span>
+                                                                        {% else %}
+                                                                            <span class="text-info"><i class="fa fa-sign-out-alt me-1"></i> Sortie</span>
+                                                                        {% endif %}
+                                                                    </td>
+
+                                                                    <!-- Heure -->
+                                                                    <td>
+                                                                        <i class="fa fa-clock text-secondary me-1"></i>
+                                                                        {{ p.datePointage|date('H:i') }}
+                                                                    </td>
+
+                                                                    <!-- Statut -->
+                                                                    <td>
+                                                                        {% if p.statut == 'retard' %}
+                                                                            <span class="badge bg-warning text-dark">
+                                                                                <i class="fa fa-clock me-1"></i> Retard
+                                                                            </span>
+                                                                        {% elseif p.statut == 'present' %}
+                                                                            <span class="badge bg-success">
+                                                                                <i class="fa fa-check-circle me-1"></i> Présent
+                                                                            </span>
+                                                                        {% elseif p.statut == 'sorti' %}
+                                                                            <span class="badge bg-info text-white">
+                                                                                <i class="fa fa-person-walking-arrow-right me-1"></i> Sorti
+                                                                            </span>
+                                                                        {% elseif p.statut == 'absent' %}
+                                                                            <span class="badge bg-danger">
+                                                                                <i class="fa fa-xmark me-1"></i> Absent
+                                                                            </span>
+                                                                        {% elseif p.statut == 'mission' %}
+                                                                            <span class="badge bg-primary">
+                                                                                <i class="fa fa-briefcase me-1"></i> Mission
+                                                                            </span>
+                                                                        {% else %}
+                                                                            <span class="badge bg-secondary">—</span>
+                                                                        {% endif %}
+                                                                    </td>
+
+                                                                    <!-- Écart -->
+                                                                    <td>
+                                                                        {% if p.ecart is not null %}
+                                                                            {% if p.ecart > 0 %}
+                                                                                <span class="text-warning fw-bold">
+                                                                                    +{{ p.ecart }}h
+                                                                                </span>
+                                                                            {% elseif p.ecart < 0 %}
+                                                                                <span class="text-info fw-bold">
+                                                                                    -{{ p.ecart|abs }}h
+                                                                                </span>
+                                                                            {% else %}
+                                                                                <span class="text-success fw-bold">0h</span>
+                                                                            {% endif %}
+                                                                        {% else %}
+                                                                            <span class="text-muted">—</span>
+                                                                        {% endif %}
+                                                                    </td>
+
+                                                                    <!-- Commentaire -->
+                                                                    <td class="text-start small text-muted">
+                                                                        {{ p.commentaire ?: '—' }}
+                                                                    </td>
+
+                                                                    <!-- Action -->
+                                                                    <td>
+                                                                        <a href="{{ path('app_logescom_operation_presence_edit', {'id': p.id, site: site.id}) }}"
+                                                                        class="btn btn-sm btn-outline-primary rounded-circle"
+                                                                        title="Modifier la présence">
+                                                                            <i class="fa fa-pen"></i>
+                                                                        </a>
+                                                                    </td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                {% else %}
+                                                    <div class="text-muted fst-italic p-2">Aucun pointage</div>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+
+                    
+                </form>
+            {% else %}
+                <div class="alert alert-secondary text-center my-4">
+                    <i class="fa fa-info-circle me-1"></i> Aucune affectation trouvée pour ce jour.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    #result-search {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    #result-search .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+    table.table-sm th, table.table-sm td {
+        padding: 0.35rem 0.5rem;
+    }
+</style>
+
+<!-- ✅ JS minimal pour cocher/décocher tout -->
+<script>
+    document.getElementById('checkAll')?.addEventListener('click', function() {
+        document.querySelectorAll('input[name="affectations[]"]').forEach(cb => cb.checked = this.checked);
+    });
+</script>
+{% endblock %}

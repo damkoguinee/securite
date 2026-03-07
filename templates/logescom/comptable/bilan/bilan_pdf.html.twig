@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bilan de la site {{ site.nom }}</title>
+
+    <style>
+        @page { margin: 20px 25px; }
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+            color: #222;
+        }
+
+        h3, h4 { margin: 6px 0; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+        }
+
+        th, td {
+            border: 1px solid #999;
+            padding: 5px;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #e0f2f7;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        td {
+            text-align: right;
+        }
+
+        td:first-child, th:first-child {
+            text-align: left;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #444;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+        }
+
+        .header img {
+            height: 60px;
+            margin-bottom: 5px;
+        }
+
+        .section-title {
+            background-color: #bde0fe;
+            font-weight: bold;
+            padding: 4px;
+            margin-top: 10px;
+        }
+
+        .fw-bold { font-weight: bold; }
+        .text-center { text-align: center; }
+        .text-end { text-align: right; }
+        .text-success { color: #198754; }
+        .text-danger { color: #dc3545; }
+        .text-info { color: #0dcaf0; }
+        .table-info th { background-color: #bde0fe; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    {% if logoPath is defined %}
+        <img src="data:image/png;base64,{{ logoPath }}" alt="Logo">
+    {% endif %}
+    <h3>{{ site.entreprise.nom|upper }} - {{ site.nom|upper }}</h3>
+    <h4>Bilan du {{ date1|date('d/m/Y') }} au {{ date2|date('d/m/Y') }}</h4>
+</div>
+
+<h4 class="section-title">Situation des caisses</h4>
+<table>
+    <thead>
+        <tr>
+            <th>Désignation</th>
+            {% for devise in devises %}
+                <th>{{ devise.nom|upper }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for caisse, solde_caisse in solde_caisses %}
+            <tr>
+                <td class="fw-bold">{{ caisse|capitalize }}</td>
+                {% for solde in solde_caisse %}
+                    <td>
+                        {{ solde.nomDevise == 'gnf'
+                            ? solde.solde|number_format(0,',',' ')
+                            : solde.solde|number_format(2,',',' ') }}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="{{ devises|length + 1 }}" class="text-center">
+                    Aucune donnée disponible.
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr class="fw-bold">
+            <td>Totaux</td>
+            {% for cumul in solde_caisses_devises %}
+                <td>
+                    {{ cumul.nomDevise == 'gnf'
+                        ? cumul.solde|number_format(0,',',' ')
+                        : cumul.solde|number_format(2,',',' ') }}
+                </td>
+            {% endfor %}
+        </tr>
+    </tfoot>
+</table>
+
+{# <h4 class="section-title">Bilan Journalier</h4>
+<table>
+    <tr><th>Désignation</th><th>Valeur</th></tr>
+    <tr><td>Nombre de ventes</td><td class="text-center">{{ nombre_ventes }}</td></tr>
+    <tr><td>Chiffre d’affaires</td><td class="text-center">{{ chiffre_affaire|number_format(0,',',' ') }}</td></tr>
+    <tr>
+        <td>Charges</td>
+        <td class="text-center">
+            {% for total_depense in total_depenses %}
+                {{ total_depense.nom == 'gnf'
+                    ? total_depense.montantTotal|number_format(0,',',' ') ~ ' ' ~ total_depense.nom|upper ~ ' / '
+                    : total_depense.montantTotal|number_format(2,',',' ') ~ ' ' ~ total_depense.nom|upper ~ ' / '
+                }}
+            {% endfor %}
+        </td>
+    </tr>
+    {% if is_granted('ROLE_RESPONSABLE') %}
+        <tr>
+            <td>Bénéfice</td>
+            <td class="text-center fw-bold text-success">
+                {{ (benefice_ventes - total_depenses_devise[0]['montantTotal'])|number_format(0,',',' ') }}
+            </td>
+        </tr>
+    {% endif %}
+</table> #}
+
+{% set colspan = devises|length %}
+
+<h4 class="section-title">Bilan détaillé</h4>
+<table>
+    <thead>
+        <tr>
+            <th colspan="{{colspan + 1}}" class="text-center">Bilan détaillé du {{ date1|date('d/m/Y') }} au {{ date2|date('d/m/Y') }}</th>
+        </tr>
+
+        <tr>
+            <th colspan="{{ colspan + 1 }}" class="text-center" style="background-color:#e0f2f7; padding:6px;">
+                <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                    <thead>
+                        <tr style="background-color:#bde0fe;">
+                            <th style="color:#0d6efd; font-weight:bold; padding:4px;">Ventes : <span style="color:#212529;">{{ nombre_ventes }}</span></th>
+                            <th style="color:#198754; font-weight:bold; padding:4px;">C.A : <span style="color:#212529;">{{ chiffre_affaire|number_format(0,',',' ') }}</span></th>
+                            <th style="color:#fd7e14; font-weight:bold; padding:4px;">Charges :
+                                <span style="color:#212529;">
+                                    {% for total_depense in total_depenses %}
+                                        {{ total_depense.nom == 'gnf'
+                                            ? total_depense.montantTotal|abs|number_format(0,',',' ') ~ ' ' ~ total_depense.nom|upper ~ ' / '
+                                            : total_depense.montantTotal|abs|number_format(2,',',' ') ~ ' ' ~ total_depense.nom|upper ~ ' / '
+                                        }}
+                                    {% endfor %}
+                                </span>
+                            </th>
+                            <th style=" font-weight:bold; padding:4px;">Bénéfice :
+                                {% if is_granted('ROLE_RESPONSABLE') %}
+                                    <span>
+                                        {{ (benefice_ventes - total_depenses_devise[0]['montantTotal']|abs)|number_format(0,',',' ') }}
+                                    </span>
+                                {% endif %}
+                            </th>
+                        </tr>
+                    </thead>
+                </table>
+            </th>
+        </tr>
+
+
+        <tr>
+            <th>Désignation</th>
+            {% for devise in devises %}
+                <th>{{ devise.nom|upper }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {# Facturations #}
+        {% for facturation in facturations %}
+            {% for type, facturationType in facturation %}
+                {% set afficher = false %}
+                {% for f in facturationType %}
+                    {% if f.montantTotal > 0 %}
+                        {% set afficher = true %}
+                    {% endif %}
+                {% endfor %}
+                {% if afficher %}
+                    <tr>
+                        <td>{{ type|capitalize }}</td>
+                        {% for f in facturationType %}
+                            <td>{{ f.nomDevise == 'gnf' ? f.montantTotal|number_format(0,',',' ') : f.montantTotal|number_format(2,',',' ') }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+
+        <tr><td class="fw-bold">Totaux Facturations</td>
+            {% for cumul in solde_caisses_type %}
+                <td class="fw-bold text-end">{{ cumul.nomDevise == 'gnf' ? cumul.solde|number_format(0,',',' ') : cumul.solde|number_format(2,',',' ') }}</td>
+            {% endfor %}
+        </tr>
+        {% if cuveRemises is not empty %}
+            {% for cuveRemise in cuveRemises %}
+                {% for type, cuveRemiseType in cuveRemise %}
+                    {% set afficher = false %}
+
+                    {# On vérifie s'il existe au moins un montant non nul #}
+                    {% for cuveRemiseMontant in cuveRemiseType %}
+                        {% if cuveRemiseMontant.montantTotal != 0 %}
+                            {% set afficher = true %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {# On affiche seulement si au moins un montant est non nul #}
+                    {% if afficher %}
+                        <tr>
+                            <td>{{ type|ucfirst }}</td>
+                            {% for cuveRemiseMontant in cuveRemiseType %}
+                                {% if cuveRemiseMontant.montantTotal != 0 %}
+                                    <td class="text-end">
+                                        {{ cuveRemiseMontant.nomDevise == 'gnf' 
+                                            ? (- cuveRemiseMontant.montantTotal)|number_format(0,',',' ')
+                                            : (- cuveRemiseMontant.montantTotal)|number_format(2,',',' ')
+                                        }}
+                                    </td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        {% endif %}
+
+        <tr class="text-success"><td>Chiffre d'affaires</td><td colspan="{{colspan}}" class="text-center fw-bold">{{ chiffre_affaire|number_format(0,',',' ') }}</td></tr>
+        <tr class="text-danger"><td>Créances Clients</td><td colspan="{{colspan}}" class="text-center fw-bold">{{ (chiffre_affaire - facturations_payees)|number_format(0,',',' ') }}</td></tr>
+
+        <tr><td colspan="{{colspan + 1}}" class="text-center text-success fw-bold">Encaissements</td></tr>
+
+        {# Versements #}
+        {% for versement in versements %}
+            {% for type, versementType in versement %}
+                {% set afficher = false %}
+                {% for v in versementType %}
+                    {% if v.montantTotal > 0 %}{% set afficher = true %}{% endif %}
+                {% endfor %}
+                {% if afficher %}
+                    <tr>
+                        <td>{{ type|capitalize }}</td>
+                        {% for v in versementType %}
+                            <td>{{ v.nomDevise == 'gnf' ? v.montantTotal|number_format(0,',',' ') : v.montantTotal|number_format(2,',',' ') }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+
+        {% for transfert in transferts %}
+            {% for type, transfertType in transfert %}
+                {% set afficher = false %}
+
+                {# Vérifier s'il existe au moins un montant > 0 #}
+                {% for transfertMontant in transfertType %}
+                    {% if transfertMontant.montantTotal > 0 %}
+                        {% set afficher = true %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if afficher %}
+                    <tr>
+                        <td>{{ type|ucfirst }}</td>
+                        {% for transfertMontant in transfertType %}
+                            {% if transfertMontant.montantTotal > 0 %}
+                                <td class="text-end">
+                                    {{ transfertMontant.nomDevise == 'gnf' 
+                                        ? transfertMontant.montantTotal|number_format(0,',',' ') 
+                                        : transfertMontant.montantTotal|number_format(2,',',' ')
+                                    }}
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+
+        {% for recette in recettes %}
+            {% for type, recetteType in recette %}
+                {% set afficher = false %}
+
+                {# Vérifier s'il existe au moins un montant > 0 #}
+                {% for recetteMontant in recetteType %}
+                    {% if recetteMontant.montantTotal > 0 %}
+                        {% set afficher = true %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if afficher %}
+                    <tr>
+                        <td>{{ type|ucfirst }}</td>
+                        {% for recetteMontant in recetteType %}
+                            {% if recetteMontant.montantTotal > 0 %}
+                                <td class="text-end">
+                                    {{ recetteMontant.nomDevise == 'gnf' 
+                                        ? recetteMontant.montantTotal|number_format(0,',',' ') 
+                                        : recetteMontant.montantTotal|number_format(2,',',' ')
+                                    }}
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+
+
+        <tr class="text-success">
+            <td class="fw-bold" >Totaux Encaissements</td>
+            {% for totauxEncaissement in totauxEncaissements %}
+                <td class="fw-bold text-end">{{ totauxEncaissement.nomDevise == 'gnf' ? (totauxEncaissement.montantTotal)|number_format(0,',',' ') : ( totauxEncaissement.montantTotal)|number_format(2,',',' ')}}</td>
+            {% endfor %}
+        </tr>
+        <tr class="text-info">
+            <td class="fw-bold" >Total des Entrées avec transfert</td>
+            {% for totalEntree in totalEntrees %}
+                <td class="fw-bold text-end">{{ totalEntree.nomDevise == 'gnf' ? (totalEntree.montantTotal)|number_format(0,',',' ') : ( totalEntree.montantTotal)|number_format(2,',',' ')}}</td>
+            {% endfor %}
+        </tr>
+        <tr class="text-info">
+            <td class="fw-bold" >Total des Entrées</td>
+            {% for totalEntree in totalEntreesSansTransferts %}
+                <td class="fw-bold text-end">{{ totalEntree.nomDevise == 'gnf' ? (totalEntree.montantTotal)|number_format(0,',',' ') : ( totalEntree.montantTotal)|number_format(2,',',' ')}}</td>
+            {% endfor %}
+        </tr>
+
+        <tr class="text-danger"><td colspan="{{colspan + 1}}" class="fw-bold text-center">Décaissements</td></tr>
+
+        {# Décaissements, Cuve Remises, Dépenses, Avances, Salaires, Transferts #}
+        {% for bloc in [decaissements, cuveRemises, depenses, avances, salaires, transferts] %}
+            {% if bloc is not empty %}
+                {% for element in bloc %}
+                    {% for type, elementType in element %}
+                        {% set afficher = false %}
+                        {% for item in elementType %}
+                            {% if item.montantTotal != 0 %}{% set afficher = true %}{% endif %}
+                        {% endfor %}
+                        {% if afficher %}
+                            <tr>
+                                <td>{{ type|ucfirst }}</td>
+                                {% for item in elementType %}
+                                    {% if item.montantTotal != 0 %}
+                                        <td class="text-end">
+                                            {{ item.nomDevise == 'gnf'
+                                                ? (- item.montantTotal)|number_format(0,',',' ')
+                                                : (- item.montantTotal)|number_format(2,',',' ') }}
+                                        </td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+
+        <tr class="text-danger">
+            <td class="fw-bold">Totaux Décaissements avec transfert</td>
+            {% for totauxDecaissement in totauxDecaissements %}
+                <td class="fw-bold text-end">
+                    {{ totauxDecaissement.nomDevise == 'gnf'
+                        ? (- totauxDecaissement.montantTotal)|number_format(0,',',' ')
+                        : (- totauxDecaissement.montantTotal)|number_format(2,',',' ') }}
+                </td>
+            {% endfor %}
+        </tr>
+
+        <tr class="text-danger">
+            <td class="fw-bold">Totaux Décaissements</td>
+            {% for totauxDecaissement in totauxDecaissementsSansTransferts %}
+                <td class="fw-bold text-end">
+                    {{ totauxDecaissement.nomDevise == 'gnf'
+                        ? (- totauxDecaissement.montantTotal)|number_format(0,',',' ')
+                        : (- totauxDecaissement.montantTotal)|number_format(2,',',' ') }}
+                </td>
+            {% endfor %}
+        </tr>
+    </tbody>
+</table>
+
+{# ==================== LISTE DES DÉPENSES ==================== #}
+<h4 class="section-title">Liste des Dépenses du {{ date1|date('d/m/Y') }} au {{ date2|date('d/m/Y à H:i:s') }}</h4>
+
+<table>
+    <thead>
+        <tr style="background-color:#0d6efd; color:#fff; text-align:center;">
+            <th style="padding:6px;">N°</th>
+            <th style="padding:6px;">Date</th>
+            <th style="padding:6px;">Description</th>
+            <th style="padding:6px;">Montant</th>
+            <th style="padding:6px;">Devise</th>
+            <th style="padding:6px;">Mode de paie</th>
+            <th style="padding:6px;">Caisse</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% set cumulMontantGlobal = 0 %}
+        {% for categorie, depenses in depensesGroupeesParCategorie %}
+            {% set cumulMontantCategorie = 0 %}
+            
+            <tr style="background-color:#dbeafe; font-weight:bold;">
+                <td colspan="7" style="text-align:left; padding:5px;">
+                    {{ categorie|ucfirst }}
+                </td>
+            </tr>
+
+            {% for key, depense in depenses %}
+                {% set montantNegatif = depense.montant|abs %}
+                {% set cumulMontantCategorie = cumulMontantCategorie + montantNegatif %}
+                {% set cumulMontantGlobal = cumulMontantGlobal + montantNegatif %}
+                <tr>
+                    <td style="text-align:center;">{{ key + 1 }}</td>
+                    <td style="text-align:center;">{{ depense.dateOperation ? depense.dateOperation|date('d/m/Y') : '' }}</td>
+                    <td style="text-align:left;">{{ depense.commentaire|capitalize }}</td>
+                    <td style="text-align:right;">
+                        {{ depense.devise.nom == 'gnf' 
+                            ? montantNegatif|number_format(0, ',', ' ') 
+                            : montantNegatif|number_format(2, ',', ' ') }}
+                    </td>
+                    <td style="text-align:center;">{{ depense.devise.nom|upper }}</td>
+                    <td style="text-align:center;">{{ depense.modePaie.designation|capitalize }}</td>
+                    <td style="text-align:center;">{{ depense.caisse.nom }}</td>
+                </tr>
+            {% endfor %}
+
+            <tr style="background-color:#f1f5f9; font-weight:bold;">
+                <td colspan="7" style="text-align:right; padding:4px;">
+                    Total {{ categorie|ucfirst }} :
+                    {{ depenses[0].devise.nom == 'gnf' 
+                        ? cumulMontantCategorie|number_format(0, ',', ' ') 
+                        : cumulMontantCategorie|number_format(2, ',', ' ') }}
+                    {{ depenses[0].devise.nom|upper }}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7" style="text-align:center;">Aucune dépense trouvée</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+
+    <tfoot>
+        <tr style="background-color:#0d6efd; color:#fff; font-weight:bold;">
+            <td colspan="7" style="text-align:left; padding:5px;">
+                {% for cumul in cumulDepenses %}
+                    <div style="margin:3px 0;">
+                        Cumul global {{ cumul.nom|upper }} :
+                        {{ cumul.nom == 'gnf' 
+                            ? cumul.montantTotal|abs|number_format(0, ',', ' ') 
+                            : cumul.montantTotal|abs|number_format(2, ',', ' ') }}
+                    </div>
+                {% endfor %}
+            </td>
+        </tr>
+    </tfoot>
+</table>
+
+
+
+<p class="text-center fw-bold">
+    Généré le {{ "now"|date("d/m/Y à H:i") }} par {{ app.user.nomComplet ?? app.user.username }}
+</p>
+
+
+</body>
+</html>

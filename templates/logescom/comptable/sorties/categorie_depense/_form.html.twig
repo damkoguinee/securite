@@ -1,0 +1,6 @@
+{{ form_start(form) }}
+    {{ form_widget(form) }}
+    <button class="btn btn-primary" type="submit">
+        <i class="fas fa-check-circle"></i> {{ button_label|default('Valider') }}
+    </button>
+{{ form_end(form) }}

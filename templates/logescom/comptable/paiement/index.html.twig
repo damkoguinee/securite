@@ -1,0 +1,221 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}💸 Liste des paiements{% endblock %}
+
+{% block presentation %}
+{% if app.request.query.has('date1') %}
+            {% set date1 = app.request.query.get('date1') %}
+            {% set date2 = app.request.query.get('date2') %}
+        {% else %}
+            {% set date1 = "now"|date("Y-01-01") %}
+            {% set date2 = "now"|date("Y-m-d") %}
+        {% endif %}
+<div class="container-fluid px-3">
+
+    <div class="row">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {% include "_common/_messages_flash.html.twig" %}
+
+            <div class="card shadow-lg border-0 mb-1">
+                <!-- 🔹 En-tête -->
+                <div class="card-header bg-dark text-white py-3 px-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                        <!-- 🧾 Titre -->
+                        <h5 class="m-0 d-flex align-items-center">
+                            <i class="fa fa-file-invoice-dollar me-2 text-warning"></i>
+                            Liste des paiements
+                        </h5>
+
+                        <!-- 🔍 Filtres + Recherche -->
+                        <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+
+                            <!-- 📅 Date début -->
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="fw-semibold mb-0">Du</label>
+                                <input type="date" name="date1" value="{{ date1 }}"
+                                    class="form-control form-control-sm shadow-sm border-0 rounded-pill"
+                                    onchange="this.form.submit()">
+                            </div>
+
+                            <!-- 📅 Date fin -->
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="fw-semibold mb-0">au</label>
+                                <input type="date" name="date2" value="{{ date2 }}"
+                                    class="form-control form-control-sm shadow-sm border-0 rounded-pill"
+                                    onchange="this.form.submit()">
+                            </div>
+
+                            <!-- 🔍 Recherche -->
+                            <div class="position-relative">
+                                <input type="text"
+                                    name="search"
+                                    class="form-control form-control-sm shadow-sm rounded-pill ps-4"
+                                    placeholder="🔍 Rechercher une facture, collaborateur..."
+                                    value="{{ search }}">
+                            </div>
+
+                            <!-- 🔎 Bouton rechercher -->
+                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">
+                                Rechercher
+                            </button>
+                        </form>
+
+                         <!-- 📄 Export PDF -->
+                        {# <a target="_blank"
+                           href="{{ path('app_logescom_comptable_paiement_pdf', {
+                                site: site.id, date1: date1, date2: date2, categorie: search ? search.id : null
+                           }) }}"
+                           class="btn btn-outline-info btn-sm rounded-pill shadow-sm">
+                            <i class="fa fa-file-pdf me-1"></i> Imprimer
+                        </a> #}
+
+                    </div>
+                </div>
+
+                <!-- 📋 Contenu principal -->
+                <div class="card-body bg-light p-1">
+                    {% if paiements.data is not empty %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered align-middle shadow-sm">
+                                <thead class="table-dark text-center align-middle">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Date</th>
+                                        <th>Client</th>
+                                        <th>Montant</th>
+                                        <th>Devise</th>
+                                        <th>Mode de paiement</th>
+                                        <th>Caisse</th>
+                                        <th>Traité par</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white text-center">
+                                    {% set totalPaiement = 0 %}
+                                    {% for key, paiement in paiements.data %}
+                                        {% set totalPaiement = totalPaiement + paiement.montant %}
+                                        <tr>
+                                            <td class="fw-semibold">
+                                                {{ key + 1 }}
+                                                {% if paiement.document %}
+                                                    <a href="{{ asset('paiement/' ~ paiement.document) }}" target="_blank"
+                                                       title="Voir pièce jointe">
+                                                        <i class="fa fa-file-pdf text-danger ms-1"></i>
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ paiement.dateOperation ? paiement.dateOperation|date('d/m/Y') : '—' }}</td>
+                                            <td class="text-start">{{ paiement.facture.first.contrat.bien.client.reference|upper }} {{ paiement.facture.first.contrat.bien.client.nomComplet }}</td>
+                                            <td class="text-end fw-bold text-nowrap">
+                                                {% if paiement.devise.nom == 'gnf' %}
+                                                    {{ paiement.montant|abs|number_format(0, '.', ' ') }}
+                                                {% else %}
+                                                    {{ paiement.montant|abs|number_format(2, ',', ' ') }}
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ paiement.devise.nom|upper }}</td>
+                                            <td>{{ paiement.modePaie.designation|capitalize }}</td>
+                                            <td>{{ paiement.caisse.nom|capitalize }}</td>
+                                            <td>{{ paiement.saisiePar.prenom|ucwords ~ ' ' ~ paiement.saisiePar.nom|upper }}</td>
+                                            <td>
+                                                <a href="{{ path('app_logescom_comptable_paiement_show', {'id': paiement.id, 'site': site.id}) }}"
+                                                   class="btn btn-sm btn-outline-success" title="Voir le détail">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+
+                                <tfoot class="table-dark align-middle">
+                                    <tr>
+                                        <th colspan='3'>Total Paiement</th>
+                                        <th class="text-end text-nowrap">{{totalPaiement|number_format(0,',',' ')}}</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary text-center my-4">
+                            <i class="fa fa-info-circle me-1"></i> Aucune paiement enregistrée pour cette période.
+                        </div>
+                    {% endif %}
+
+                    <!-- 📄 Pagination -->
+                    {% if paiements.nbrePages > 1 %}
+                        <nav class="mt-3">
+                            <ul class="pagination justify-content-center">
+                                <!-- ⬅️ Précédent -->
+                                <li class="page-item {{ paiements.pageEnCours == 1 ? 'disabled' : '' }}">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': paiements.pageEnCours - 1, 'site': site.id})) }}">
+                                       &laquo;
+                                    </a>
+                                </li>
+
+                                {% set start = max(1, paiements.pageEnCours - 2) %}
+                                {% set end = min(paiements.nbrePages, paiements.pageEnCours + 2) %}
+
+                                {% if start > 1 %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                               app.request.query.all | merge({'pageEnCours': 1, 'site': site.id})) }}">1</a>
+                                    </li>
+                                    {% if start > 2 %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% for i in start..end %}
+                                    <li class="page-item {{ i == paiements.pageEnCours ? 'active' : '' }}">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                               app.request.query.all | merge({'pageEnCours': i, 'site': site.id})) }}">{{ i }}</a>
+                                    </li>
+                                {% endfor %}
+
+                                {% if end < paiements.nbrePages %}
+                                    {% if end < paiements.nbrePages - 1 %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ path(app.request.attributes.get('_route'),
+                                               app.request.query.all | merge({'pageEnCours': paiements.nbrePages, 'site': site.id})) }}">
+                                           {{ paiements.nbrePages }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                <!-- ➡️ Suivant -->
+                                <li class="page-item {{ paiements.pageEnCours == paiements.nbrePages ? 'disabled' : '' }}">
+                                    <a class="page-link"
+                                       href="{{ path(app.request.attributes.get('_route'),
+                                           app.request.query.all | merge({'pageEnCours': paiements.pageEnCours + 1, 'site': site.id})) }}">
+                                       &raquo;
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #result-search {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    #result-search .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}

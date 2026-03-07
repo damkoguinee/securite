@@ -1,0 +1,110 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Détail d’une prime{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <!-- 🧾 Carte principale -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fa fa-gift me-2"></i> Détail de la prime du personnel
+            </h5>
+
+            <div class="d-flex" style="gap: 8px;">
+                <a href="{{ path('app_logescom_rh_prime_personnel_edit', {'id': prime_personnel.id, site: site.id}) }}"
+                   class="btn btn-sm btn-warning shadow-sm">
+                    <i class="fa fa-edit"></i> Modifier
+                </a>
+                <a href="{{ path('app_logescom_rh_prime_personnel_index', {site: site.id}) }}"
+                   class="btn btn-sm btn-light border shadow-sm">
+                    <i class="fa fa-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- 📋 Détails -->
+        <div class="card-body bg-light">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle bg-white shadow-sm">
+                    <tbody>
+                        <tr>
+                            <th class="bg-light text-dark" style="width: 30%;">
+                                <i class="fa fa-user text-primary me-2"></i> Employé
+                            </th>
+                            <td class="fw-semibold">
+                                {{ prime_personnel.personnel.prenom|capitalize }} {{ prime_personnel.personnel.nom|upper }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-light text-dark">
+                                <i class="fa fa-money-bill-wave text-success me-2"></i> Montant
+                            </th>
+                            <td class="fw-bold text-end text-success fs-5">
+                                {{ prime_personnel.montant|abs|number_format(0, ',', ' ') }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-light text-dark">
+                                <i class="fa fa-calendar-alt text-primary me-2"></i> Période
+                            </th>
+                            <td>
+                                {{ prime_personnel.periode ? prime_personnel.periode|date('m/Y') : 'Non renseignée' }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-light text-dark">
+                                <i class="fa fa-comment text-secondary me-2"></i> Détails / Commentaire
+                            </th>
+                            <td>
+                                {{ prime_personnel.commentaire ?: '—' }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-light text-dark">
+                                <i class="fa fa-user-check text-info me-2"></i> Saisie par
+                            </th>
+                            <td>
+                                {{ prime_personnel.saisiePar.prenom|capitalize }} {{ prime_personnel.saisiePar.nom|upper }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="bg-light text-dark">
+                                <i class="fa fa-clock text-muted me-2"></i> Saisie le
+                            </th>
+                            <td>
+                                {{ prime_personnel.dateSaisie ? prime_personnel.dateSaisie|date('d/m/Y à H:i') : '—' }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 🔹 Boutons d’action bas -->
+            <div class="d-flex justify-content-between mt-4">
+                <a class="btn btn-light border shadow-sm"
+                   href="{{ path('app_logescom_rh_prime_personnel_index', {site: site.id}) }}">
+                    <i class="fa fa-arrow-left"></i> Retour à la liste
+                </a>
+
+                <div class="d-flex gap-2">
+                    <a href="{{ path('app_logescom_rh_prime_personnel_edit', {'id': prime_personnel.id, site : site.id}) }}" 
+                        class="btn btn-warning">
+                        <i class="fa fa-edit me-1"></i> Modifier
+                    </a>
+                    {{ include('logescom/rh/prime_personnel/_delete_form.html.twig') }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

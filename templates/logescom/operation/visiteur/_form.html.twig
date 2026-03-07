@@ -1,0 +1,32 @@
+
+{{ form_errors(form) }}
+{{ form_start(form) }}
+    <div class="row g-3">
+        <div class="col-md-4">
+            {{ form_row(form.nom) }}
+        </div>
+        <div class="col-md-6">
+            {{ form_row(form.prenom) }}
+        </div>
+        <div class="col-md-2">
+            {{ form_row(form.telephone) }}
+        </div>
+        <div class="col-md-4">
+            {{ form_row(form.statut) }}
+        </div>
+        <div class="col-4">
+            {{ form_row(form.service) }}
+        </div>
+        <div class="col-12">
+            {{ form_row(form.motif) }}
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary btn-lg shadow-sm mb-2">
+            <i class="fas fa-save me-2"></i> {{ button_label|default('Enregistrer') }}
+        </button>
+    </div>
+
+{{ form_end(form) }}
+        

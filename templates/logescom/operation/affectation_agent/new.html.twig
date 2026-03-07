@@ -1,0 +1,367 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}🗓️ Planning des agents — Affectations périodiques{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <!-- 🧾 Carte principale -->
+    <div class="card shadow-lg border-0 mb-4">
+        {% set contratId = app.request.query.get('id_contrat_search') %}
+        {% set jour = app.request.query.get('jour') ?? 'now'|date('Y-m-d') %}
+        <!-- 🔹 En-tête -->
+        <div class="card-header bg-gradient-dark  d-flex flex-wrap justify-content-between align-items-center py-3 px-4 rounded-top">
+            <h5 class="mb-0">
+                <i class="fa fa-calendar-check me-2 text-warning"></i> Planification & Affectations des agents
+            </h5>
+
+            <div class="flex-grow-1 mx-3" style="max-width: 320px;">
+                <input type="text"
+                        id="search_contrat"
+                        class="form-control form-control-sm shadow-sm"
+                        placeholder="🔍 Rechercher un contrat (client, site, type...)">
+                <div id="result_search_contrat" class="text-start bg-white small mt-1"></div>
+            </div>
+
+            <form class="d-flex align-items-center gap-3 flex-wrap mb-0">
+
+                <input type="hidden" name='id_contrat_search' value='{{contratId}}'>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="jour" class="fw-semibold mb-0 text-nowrap">Date début :</label>
+                    <input type="date" id="jour" name="jour"
+                           value="{{ app.request.query.get('jour') ?? 'now'|date('Y-m-d') }}"
+                           class="form-control form-control-sm bg-light border-0 shadow-sm rounded-pill"
+                           style="width: 180px;"
+                           onchange="this.form.submit()">
+                </div>
+            </form>
+        </div>
+
+        <!-- 🔸 Corps -->
+        <div class="card-body bg-light p-4">
+            {% if contratId %}
+                <!-- 🏢 Informations contrat -->
+                <div class="alert alert-primary shadow-sm mb-4">
+                    <i class="fa fa-map-marker-alt me-1"></i>
+                    <strong>Site :</strong> {{ contrat.bien.nom|capitalize }} |
+                    <strong>Type :</strong>{{ contrat.typesSurveillance|map(ts => ts.typeSurveillance.nom)|join(', ') }}  |
+                    <strong>Début :</strong> {{ contrat.dateDebut|date('d/m/Y') }} |
+                    <strong>Fin :</strong> {{ contrat.dateFin ? contrat.dateFin|date('d/m/Y') : 'En cours' }}
+                </div>
+
+                <!-- 🧭 Formulaire principal -->
+                <form method="post" id="affectationForm" class="p-3 bg-white rounded shadow-sm">
+                    <input type="hidden" name="jour" value="{{ jour }}">
+                    <input type="hidden" name="id_contrat_search" value="{{ contrat.id }}">
+
+                    <!-- ⚙️ Options périodiques -->
+                    <div class="border rounded p-3 mb-4 bg-light">
+
+                        <!-- Planification toujours active -->
+                        <input type="hidden" name="periodique" value="1">
+
+                        <div class="row g-3 border-top pt-3">
+                            <div class="col-md-4">
+                                <label class="fw-semibold text-secondary">Jours de la semaine :</label>
+
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+
+                                    <!-- Tous les jours -->
+                                    <div class="form-check me-3">
+                                        <input class="form-check-input" type="checkbox" id="joursTous" checked>
+                                        <label class="form-check-label fw-semibold">Tous les jours</label>
+                                    </div>
+
+                                    {% for j in ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] %}
+                                        <div class="form-check">
+                                            <input
+                                                class="form-check-input jour-item"
+                                                type="checkbox"
+                                                name="jours[]"
+                                                value="{{ j }}"
+                                                {% if app.request.query.all('jours') is empty or j in app.request.query.all('jours') %}
+                                                    checked
+                                                {% endif %}
+                                            >
+                                            <label class="form-check-label small">{{ j }}</label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="fw-semibold text-secondary">Durée :</label>
+                                <select name="duree" class="form-select form-select-sm shadow-sm">
+                                    {% for val, label in {
+                                        '12m': '1 an',
+                                        '1m': '1 mois',
+                                        '2m': '2 mois',
+                                        '3m': '3 mois',
+                                        '6m': '6 mois'
+                                    } %}
+                                        <option value="{{ val }}"
+                                            {% if app.request.query.get('duree') == val %}selected{% endif %}
+                                        >
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+
+                                <small class="text-muted fst-italic">
+                                    La date de fin sera calculée automatiquement
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- 👷 Liste agents -->
+                    <div class="table-responsive mt-4">
+                        <table class="table table-hover table-bordered align-middle shadow-sm">
+                            <thead class="bg-primary text-white text-center">
+                                <tr>
+                                    <th style="width:5%">#</th>
+                                    <th style="width:25%">Agent</th>
+                                    <th>Créneaux</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white text-center align-middle">
+                                <!-- 🔍 Barre de recherche -->
+                                <tr class="bg-light">
+                                    <td colspan="3">
+                                        <div class="row">
+                                            <div class="col-md-6 col-sm-6 mx-auto position-relative">
+                                                <input type="text" name="search" id="search_agent_contrat"
+                                                       class="form-control form-control-sm shadow-sm rounded-pill"
+                                                       placeholder="🔍 Rechercher un agent (Nom, téléphone...)">
+                                                <div id="result-search" class="list-group position-absolute w-100 mt-1 shadow-sm"></div>
+                                            </div>
+
+                                            <div class="col-md-4 col-sm-6 mx-auto position-relative">
+                                                {% set zoneSelected = app.request.get('zone') %}
+
+                                                <select name="zone" id="zone" class="form-select" onchange="this.form.submit()">
+                                                    <option value="">— Toutes les zones —</option>
+
+                                                    {% for zone in zones %}
+                                                        <option value="{{ zone.id }}"
+                                                            {{ zoneSelected is not null and zoneSelected == zone.id ? 'selected' : '' }}>
+                                                            {{ zone.nom|upper }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="text-end mt-4">
+                                            <input type="submit" name="action" value="enregistrer" class="btn btn-success shadow-sm px-4 py-2 rounded-pill">
+                                                {# <i class="fa fa-check-circle me-1"></i> Enregistrer les affectations #}
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                {% set globalKey = 0 %}
+
+                                {% for groupe in personnelsGroupes %}
+
+                                    {# 🔹 Ligne ZONE #}
+                                    <tr class="table-secondary">
+                                        <td colspan="3" class="fw-bold text-uppercase">
+                                            <i class="fa fa-map-marker-alt text-primary me-1"></i>
+                                            {{ groupe.zone_nom }}
+                                            <span class="badge bg-primary ms-2">
+                                                {{ groupe.personnels|length }}
+                                            </span>
+                                        </td>
+                                    </tr>
+
+                                    {# 🔹 Agents de la zone #}
+                                    {% for agent in groupe.personnels %}
+                                        {% set affectation = null %}
+
+                                        {% for aff in agent.affectationAgentPersonnels %}
+                                            {% if aff.contrat is same as(contrat) %}
+                                                {% set affectation = aff %}
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        
+                                        <tr>
+                                            <td>{{ globalKey + 1 }}</td>
+
+                                            <td class="text-start fw-semibold">
+                                                <i class="fa fa-user text-primary me-1"></i>
+                                                {{ agent.prenom|capitalize }}
+                                                {{ agent.nom|upper }}
+                                                - {{ agent.reference|upper }}
+                                                - {{ agent.telephone }}
+
+                                                <input type="hidden"
+                                                    name="affectations[{{ globalKey }}][personnel]"
+                                                    value="{{ agent.id }}">
+                                            </td>
+
+                                            <td>
+                                                <div class="creneaux" data-agent="{{ globalKey }}">
+                                                    <div class="row g-2 align-items-center creneau-item mb-2">
+
+                                                        <div class="col-md-3">
+                                                            <select name="affectations[{{ globalKey }}][creneaux][0][poste]"
+                                                                    class="form-select form-select-sm shadow-sm">
+                                                                <option value="">— Poste —</option>
+                                                                <option value="Jour" {{ affectation and affectation.poste == 'Jour' ? 'selected' : '' }}>Jour</option>
+                                                                <option value="Nuit" {{ affectation and affectation.poste == 'Nuit' ? 'selected' : '' }}>Nuit</option>
+                                                                <option value="Chef Poste" {{ affectation and affectation.poste == 'Chef Poste' ? 'selected' : '' }}>Chef Poste</option>
+                                                                <option value="Autre" {{ affectation and affectation.poste == 'Autre' ? 'selected' : '' }}>Autre</option>
+                                                            </select>
+
+                                                        </div>
+
+                                                        <div class="col-md-3">
+                                                            <input type="time"
+                                                                name="affectations[{{ globalKey }}][creneaux][0][heureDebut]"
+                                                                class="form-control form-control-sm text-center shadow-sm"
+                                                                value="{{ affectation ? affectation.heureDebut|date('H:i') : '' }}">
+
+                                                        </div>
+
+                                                        <div class="col-md-3">
+                                                            <input type="time"
+                                                                name="affectations[{{ globalKey }}][creneaux][0][heureFin]"
+                                                                class="form-control form-control-sm text-center shadow-sm"
+                                                                value="{{ affectation ? affectation.heureFin|date('H:i') : '' }}">
+
+                                                        </div>
+
+                                                        <div class="col-md-3 d-flex gap-1">
+                                                            <input type="text"
+                                                                name="affectations[{{ globalKey }}][creneaux][0][commentaire]"
+                                                                class="form-control form-control-sm shadow-sm"
+                                                                placeholder="Commentaire"
+                                                                value="{{ affectation ? affectation.commentaire : '' }}">
+
+
+                                                            <button type="button"
+                                                                    class="btn btn-sm btn-outline-success add-creneau"
+                                                                    title="Ajouter un créneau">
+                                                                <i class="fa fa-plus"></i>
+                                                            </button>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        {% set globalKey = globalKey + 1 %}
+                                    {% endfor %}
+
+                                {% endfor %}
+
+                            </tbody>
+                            
+                        </table>
+                    </div>
+
+                    
+                </form>
+            {% else %}
+                <div class="alert alert-secondary text-center mt-3">
+                    <i class="fa fa-info-circle me-1"></i> Veuillez sélectionner un contrat et une date.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ✅ Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* ==========================
+       Gestion "Tous les jours"
+    ========================== */
+    const checkAll = document.getElementById('joursTous');
+    const jours = document.querySelectorAll('.jour-item');
+
+    // Tous les jours → coche/décoche tout
+    checkAll.addEventListener('change', () => {
+        jours.forEach(j => j.checked = checkAll.checked);
+    });
+
+    // Si un jour est décoché → désactiver "Tous les jours"
+    jours.forEach(jour => {
+        jour.addEventListener('change', () => {
+            checkAll.checked = [...jours].every(j => j.checked);
+        });
+    });
+
+    /* ==========================
+       Ajouter / supprimer créneau
+    ========================== */
+    document.querySelectorAll('.add-creneau').forEach(button => {
+        button.addEventListener('click', function () {
+
+            const container = this.closest('.creneaux');
+            const agentKey = container.dataset.agent;
+            const index = container.querySelectorAll('.creneau-item').length;
+
+            const newRow = document.createElement('div');
+            newRow.classList.add(
+                'row',
+                'g-2',
+                'align-items-center',
+                'creneau-item',
+                'mb-2'
+            );
+
+            newRow.innerHTML = `
+                <div class="col-md-3">
+                    <select name="affectations[${agentKey}][creneaux][${index}][poste]"
+                            class="form-select form-select-sm shadow-sm">
+                        <option value="">— Poste —</option>
+                        <option value="Jour">Jour</option>
+                        <option value="Nuit">Nuit</option>
+                        <option value="Chef Poste">Chef Poste</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <input type="time"
+                           name="affectations[${agentKey}][creneaux][${index}][heureDebut]"
+                           class="form-control form-control-sm text-center shadow-sm">
+                </div>
+
+                <div class="col-md-3">
+                    <input type="time"
+                           name="affectations[${agentKey}][creneaux][${index}][heureFin]"
+                           class="form-control form-control-sm text-center shadow-sm">
+                </div>
+
+                <div class="col-md-3 d-flex gap-1">
+                    <input type="text"
+                           name="affectations[${agentKey}][creneaux][${index}][commentaire]"
+                           class="form-control form-control-sm shadow-sm"
+                           placeholder="Commentaire">
+
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger remove-creneau"
+                            title="Supprimer ce créneau">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(newRow);
+
+            newRow.querySelector('.remove-creneau')
+                .addEventListener('click', () => newRow.remove());
+        });
+    });
+});
+</script>
+
+{% endblock %}

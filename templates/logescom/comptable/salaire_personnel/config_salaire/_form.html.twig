@@ -1,0 +1,98 @@
+{{ form_start(form) }}
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-secondary text-white">
+        <i class="fa fa-gear me-1"></i>
+        Paramétrage du salaire
+    </div>
+
+    <div class="card-body bg-light">
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                {{ form_row(form.code, {
+                    label: 'Code',
+                    attr: {
+                        class: 'form-control',
+                        placeholder: 'Ex: CNSS, PRIME_NUIT'
+                    }
+                }) }}
+            </div>
+
+            <div class="col-md-8 mb-3">
+                {{ form_row(form.libelle, {
+                    label: 'Libellé',
+                    attr: {
+                        class: 'form-control',
+                        placeholder: 'Ex: Cotisation CNSS salariale'
+                    }
+                }) }}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                {{ form_row(form.taux, {
+                    label: 'Taux (%)',
+                    attr: {
+                        class: 'form-control',
+                        placeholder: 'Ex: 5'
+                    },
+                    help: 'Laisser vide si montant fixe'
+                }) }}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form_row(form.type, {
+                    label: 'Type',
+                    attr: {
+                        class: 'form-select'
+                    }
+                }) }}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form_row(form.montant, {
+                    label: 'montant',
+                    attr: {
+                        class: 'form-control',
+                        placeholder: 'Ex: 50 000'
+                    },
+                    help: 'Applicable uniquement si montant'
+                }) }}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="form-check form-switch mt-2">
+                    {{ form_widget(form.actif, {
+                        attr: {
+                            class: 'form-check-input'
+                        }
+                    }) }}
+                    {{ form_label(form.actif, 'Configuration active', {
+                        label_attr: {
+                            class: 'form-check-label fw-semibold'
+                        }
+                    }) }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card-footer bg-white d-flex justify-content-between">
+        <a href="{{ path('app_logescom_comptable_salaire_personnel_config_salaire_index', { site: site.id }) }}"
+           class="btn btn-outline-secondary">
+            <i class="fa fa-arrow-left me-1"></i> Retour
+        </a>
+
+        <button class="btn btn-success px-4">
+            <i class="fa fa-save me-1"></i>
+            {{ button_label|default('Enregistrer') }}
+        </button>
+    </div>
+</div>
+
+{{ form_end(form) }}

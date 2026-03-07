@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>FACTURES — {{ site.entreprise.nom }}</title>
+
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; margin: 8px 12px; color: #333; font-size: 12px; }
+        h1 { text-align:center; font-size:18px; background:#0d6efd; color:white; padding:8px; border-radius:4px; }
+        h2 { font-size:13px; margin-top:15px; border-left:4px solid #0d6efd; padding-left:8px; color:#0d47a1; }
+
+        table { width:100%; border-collapse:collapse; margin-bottom:5px; }
+        th, td { padding:6px; }
+        th { background:#e9f1ff; border-bottom:1px solid #bcd0f7; color:#0d47a1; font-weight:bold; }
+        .bordered td, .bordered th { border:1px solid #cbd5e1; }
+
+        .total-row { background:#f1f5ff; font-weight:bold; }
+        .montant-lettres { background:#fffbe6; border-left:5px solid #ffca28; padding:8px; margin-top:8px; }
+
+        .footer { margin-top:12px; text-align:center; font-size:10px; color:#666; }
+        .page-break { page-break-after: always; }
+    </style>
+</head>
+
+<body>
+
+{% for bloc in facturesRegroupees %}
+    {% set client = bloc.client %}
+    {% set factures = bloc.factures %}
+    {% set mode = bloc.mode %}
+    {% set groupe = bloc.groupe %}
+    {% set modeFacturation = bloc.modeFacturation %}
+    
+    {# ===================== CHOIX DU TEMPLATE ===================== #}
+    {% if factures|length > 1 %}
+        {% include "logescom/comptable/facture/facture_multiple.html.twig" %}
+    {% else %}
+
+        {% for facture in factures %}
+            {# 🔹 Saut de page AVANT chaque facture, sauf la toute première #}
+            {% if not (loop.first and loop.parent.loop.first) %}
+                <div style="page-break-before: always;"></div>
+            {% endif %}
+
+            <!-- ===================== HEADER ===================== -->
+            <table class="header-table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <td style="width:25%;">
+                            <img src="data:image/png;base64,{{ logoPath }}" style="width:110px;">
+                        </td>
+
+                        <td style="width:50%; text-align:center;">
+                            <strong style="font-size:14px;">{{ site.entreprise.nom|upper }}</strong><br>
+                            {{ site.adresse.nom }}<br>
+                            {{ site.description }}<br>
+                            Tél : {{ site.telephone }}<br>
+                            <span style="font-size:11px;">{{ site.entreprise.numeroAgrement }}</span>
+                        </td>
+
+                        <td style="width:25%; text-align:right; font-size:12px;">
+                            <strong>Facture :</strong> {{ facture.reference }}<br>
+                            <strong>Émise le :</strong> {{ facture.dateEmission|date('d/m/Y') }}<br>
+                            <strong>Période :</strong><br>
+                            {{ facture.periodeDebut|date('d/m/Y') }} → {{ facture.periodeFin|date('d/m/Y') }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="3">
+                            <div style="border-bottom:1px solid #000; margin:5px 0 10px 0;"></div>
+                        </td>
+                    </tr>
+                </thead>
+            </table>
+
+
+            <!-- ===================== TITRE ===================== -->
+            <h1>
+                Facture de Surveillance
+                <div style="font-size:12px; font-weight:normal; margin-top:3px;">
+                    Client : 
+                            {{ client.nomComplet }} -
+                            {{ client.telephone }} — 
+                    Site : {{ facture.contrat.bien.nom }}
+                </div>
+            </h1>
+
+            <!-- ===================== INFORMATIONS ===================== -->
+            <h2>Informations</h2>
+
+            <table class="bordered">
+                <tr><th>Facture N°</th><td>{{ facture.reference }}</td></tr>
+                <tr><th>Date émission</th><td>{{ facture.dateEmission|date('d/m/Y') }}</td></tr>
+                <tr><th>Date d’échéance</th><td style="color:#d00; font-weight:bold;">{{ facture.dateEcheance|date('d/m/Y') }}</td></tr>
+                <tr>
+                    <th>Période facturée</th>
+                    <td>Du {{ facture.periodeDebut|date('d/m/Y') }} au {{ facture.periodeFin|date('d/m/Y') }}</td>
+                </tr>
+            </table>
+
+            {% if mode != 'horaire' %}
+                <!-- ===================== TYPES DE SURVEILLANCE ===================== -->
+                <h2>Type(s) de surveillance</h2>
+
+                {# =================== LIGNES DE FACTURATION =================== #}
+
+                {% set hasRemise = facture.remisePourcentage and facture.remisePourcentage > 0 %}
+                {% set hasTVA = facture.tauxTVA and facture.tauxTVA > 0 %}
+
+                {% set totalRemise = 0 %}
+                {% set totalTVA = 0 %}
+                {% set totalTTC = 0 %}
+                {% set totalHTApresRemise = 0 %}
+
+                <table class="bordered" style="font-size:11px;">
+                    <thead>
+                        <tr>
+                            <th>Type de Prestation</th>
+                            <th style="text-align:center;">Agents</th>
+                            <th style="text-align:center;">Jour</th>
+                            <th style="text-align:center;">Nuit</th>
+                            <th style="text-align:right;">Tarif / Agent</th>
+
+                            {% if hasRemise %}
+                                <th style="text-align:right;">Remise {{ facture.remisePourcentage }}%</th>
+                            {% endif %}
+
+                            {% if hasTVA %}
+                                <th style="text-align:right;">TVA {{ facture.tauxTVA }}%</th>
+                            {% endif %}
+
+                            <th style="text-align:right;">Montant TTC</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {# 🔁 Calcul prorata complémentaire #}
+
+                        {% set dateDebutActive = facture.contrat.dateDebut > facture.periodeDebut 
+                            ? facture.contrat.dateDebut 
+                            : facture.periodeDebut %}
+
+                        {% set dateFinActive = facture.contrat.dateFin and facture.contrat.dateFin < facture.periodeFin
+                            ? facture.contrat.dateFin
+                            : facture.periodeFin %}
+
+                        {% set nbJoursMois = 30 %}
+
+                        {% set jourDebut = min(30, (dateDebutActive|date('d') + 0)) %}
+                        {% set jourFin = dateFinActive|date('d') + 0 %}
+
+                        {# si c'est le dernier jour réel du mois #}
+                        {% if dateFinActive|date('d') == dateFinActive|date('t') %}
+                            {% set jourFin = 30 %}
+                        {% endif %}
+
+                        {% set jourFin = min(30, jourFin) %}
+
+                        {# {% set nbJoursActifs = (jourFin - jourDebut) + 1 %} #} temps plein
+                        {% set nbJoursActifs = (jourFin - jourDebut)  %}
+                        {% set tauxProrata = nbJoursActifs / nbJoursMois %}
+
+
+                        {# =================== TYPES PRINCIPAUX =================== #}
+                        {% for ts in facture.contrat.typesSurveillance %}
+
+                            {% set nbJour = ts.nbAgentsJour ?? 0 %}
+                            {% set nbNuit = ts.nbAgentsNuit ?? 0 %}
+                            {% set nbTotal = nbJour + nbNuit %}
+
+                            {% set tarif = ts.tarifMensuel %}
+                            {% set tarifJournalier = ts.tarifHoraire %}
+                            
+                            {% if tarifJournalier and tauxProrata != 1 %}
+                                {% set montantHT = (tarif * nbTotal * nbJoursActifs) / 30 %}
+                            {% else %}
+                                {% set montantHT = tarif * nbTotal * tauxProrata %}
+                            {% endif %}
+                            
+                            {% set montantRemise = hasRemise ? montantHT * facture.remisePourcentage / 100 : 0 %}
+                            {% set montantApresRemise = montantHT - montantRemise %}
+                            {% set montantTVA = hasTVA ? montantApresRemise * facture.tauxTVA / 100 : 0 %}
+                            {% set montantTTC = montantApresRemise + montantTVA %}
+
+                            {% set totalRemise = totalRemise + montantRemise %}
+                            {% set totalTVA = totalTVA + montantTVA %}
+                            {% set totalTTC = totalTTC + montantTTC %}
+                            {% set totalHTApresRemise = totalHTApresRemise + montantApresRemise %}
+
+                            <tr>
+                                <td>{{ ts.typeSurveillance.nom }}</td>
+                                <td style="text-align:center;">{{ nbTotal }}</td>
+                                <td style="text-align:center;">{{ nbJour }}</td>
+                                <td style="text-align:center;">{{ nbNuit }}</td>
+                                <td style="text-align:right;">{{ tarif|number_format(0,'.',' ') }}</td>
+
+                                {% if hasRemise %}
+                                    <td style="text-align:right;">-{{ montantRemise|number_format(0,'.',' ') }}</td>
+                                {% endif %}
+
+                                {% if hasTVA %}
+                                    <td style="text-align:right;">{{ montantTVA|number_format(0,'.',' ') }}</td>
+                                {% endif %}
+
+                                <td style="text-align:right;">{{ montantTTC|number_format(0,'.',' ') }}</td>
+                            </tr>
+                        {% endfor %}
+
+                        {# =================== CONTRATS COMPLÉMENTAIRES =================== #}
+                        {% for cc in facture.contrat.contratComplementaires %}
+
+                            {% if cc.dateDebut <= facture.periodeFin 
+                                and (cc.dateFin is null or cc.dateFin >= facture.periodeDebut) %}
+
+                                {# 🔁 Calcul prorata complémentaire #}
+
+                                {% set dateDebutActive = cc.dateDebut > facture.periodeDebut 
+                                    ? cc.dateDebut 
+                                    : facture.periodeDebut %}
+
+                                {% set dateFinActive = cc.dateFin and cc.dateFin < facture.periodeFin
+                                    ? cc.dateFin
+                                    : facture.periodeFin %}
+
+                                {% set nbJoursMois = facture.periodeFin|date('d') %}
+                                {# {% set nbJoursActifs = (dateFinActive.timestamp - dateDebutActive.timestamp) / 86400 + 1 %} #}
+
+                                {% set nbJoursActifs = (dateFinActive.timestamp - dateDebutActive.timestamp) / 86400 %}
+                                {% set tauxProrataCC = nbJoursActifs / nbJoursMois %}
+
+                                <tr style="background:#e3f0ff; font-weight:bold; text-align:center; color:#0d47a1;">
+                                    <td colspan="6">
+                                        Contrat Complémentaire #{{ cc.id }} —
+                                        {{ cc.dateDebut|date('d/m/Y') }}
+                                        {% if cc.dateFin %} → {{ cc.dateFin|date('d/m/Y') }}{% endif %}
+                                        — Motif : {{ cc.motif }}
+                                    </td>
+                                </tr>
+
+                                {% for cts in cc.complementTypeSurveillances %}
+
+                                    {% set nb = cts.nbAgent ?? 1 %}
+                                    {% set tarif = cts.tarif %}
+                                    {% set tarifJournalier = (tarif / 30) %}
+                                    {% if tarifJournalier and tauxProrataCC != 1 %}
+                                        {% set montantHT = (tarifJournalier * nbJoursActifs) * nb %}
+                                    {% else %}
+                                        {% set montantHT = tarif * nb * tauxProrataCC %} 
+                                    {% endif %}
+
+                                    {% set montantRemise = hasRemise ? montantHT * facture.remisePourcentage / 100 : 0 %}
+                                    {% set montantApresRemise = montantHT - montantRemise %}
+                                    {% set montantTVA = hasTVA ? montantApresRemise * facture.tauxTVA / 100 : 0 %}
+                                    {% set montantTTC = montantApresRemise + montantTVA %}
+
+                                    {% set totalRemise = totalRemise + montantRemise %}
+                                    {% set totalTVA = totalTVA + montantTVA %}
+                                    {% set totalTTC = totalTTC + montantTTC %}
+                                    {% set totalHTApresRemise = totalHTApresRemise + montantApresRemise %}
+
+                                    <tr>
+                                        <td>{{ cts.typeSurveillance.nom }}</td>
+                                        <td style="text-align:center;">{{ nb }}</td>
+                                        <td style="text-align:center;">—</td>
+                                        <td style="text-align:center;">—</td>
+                                        <td style="text-align:right;">
+                                            {{ (tarif)|number_format(0,'.',' ') }}
+                                        </td>
+
+                                        {% if hasRemise %}
+                                            <td style="text-align:right;">
+                                                -{{ montantRemise|number_format(0,'.',' ') }}
+                                            </td>
+                                        {% endif %}
+
+                                        {% if hasTVA %}
+                                            <td style="text-align:right;">
+                                                {{ montantTVA|number_format(0,'.',' ') }}
+                                            </td>
+                                        {% endif %}
+
+                                        <td style="text-align:right;">
+                                            {{ montantTTC|number_format(0,'.',' ') }}
+                                        </td>
+                                    </tr>
+
+                                {% endfor %}
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                        {# =================== TOTALS =================== #}
+
+                        {% set cols = 5 + (hasRemise ? 1 : 0) + (hasTVA ? 1 : 0) + 1 %}
+                        {% set rightCols = (hasRemise ? 1 : 0) + (hasTVA ? 1 : 0) + 1 %}
+                        {% set leftCols = cols - rightCols %}
+
+                        <tr class="total-row">
+                            <td colspan="{{ leftCols }}" style="text-align:right;">TOTAL :</td>
+
+                            {% if hasRemise %}
+                                <td style="text-align:right;">-{{ totalRemise|number_format(0,'.',' ') }}</td>
+                            {% endif %}
+
+                            {% if hasTVA %}
+                                <td style="text-align:right;">{{ totalTVA|number_format(0,'.',' ') }}</td>
+                            {% endif %}
+
+                            <td style="text-align:right;">{{ totalTTC|number_format(0,'.',' ') }}</td>
+                        </tr>
+
+                        <tr class="total-row">
+                            <td colspan="{{ leftCols }}" style="text-align:right;">Montant payé</td>
+                            <td colspan="{{ rightCols }}" style="text-align:right;">
+                                {{ facture.montantPaye|number_format(0,'.',' ') }}
+                            </td>
+                        </tr>
+
+                        <tr class="total-row">
+                            <td colspan="{{ leftCols }}" style="text-align:right;">Reste à payer</td>
+                            <td colspan="{{ rightCols }}" style="text-align:right; color:#d00;">
+                                {{ (facture.montantTotal - facture.montantPaye)|number_format(0,'.',' ') }}
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+            {% else %}
+                {% include "logescom/comptable/facture/facture_pdf_horaire.html.twig" %}
+            {% endif %}
+
+            <!-- =================== MONTANT EN LETTRES =================== -->
+            <div class="montant-lettres">
+                <strong>Arrêté la présente facture à la somme de :</strong><br>
+                <u><strong>{{ facture.montantTotal|en_lettres }} francs guinéens</strong></u>.
+            </div>
+
+
+            <!-- ===================== INFORMATIONS BANQUES ===================== -->
+            {% if banques is not empty %}
+                <h2>Informations de paiement</h2>
+                <table class="bordered">
+                    <thead>
+                        <tr><th>Banque</th><th>Compte</th><th>Type</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for b in banques %}
+                        <tr>
+                            <td>{{ b.nom }}</td>
+                            <td>{{ b.numero ?: '—' }}</td>
+                            <td>{{ b.type|capitalize }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            <!-- ===================== FOOTER ===================== -->
+            <div class="footer">
+                Facture imprimée par {{ app.user.prenom }} {{ app.user.nom }} — {{ "now"|date("d/m/Y H:i") }}<br>
+                Document généré automatiquement.
+            </div>
+
+        {% endfor %}
+
+    {% endif %}
+
+{% endfor %}
+
+</body>
+</html>

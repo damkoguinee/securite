@@ -1,0 +1,70 @@
+{% extends 'base_comptable.html.twig' %}
+{% block title %}État des caisses{% endblock %}
+
+{% block presentation %}
+
+<div class="row my-2">
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+    <div class="col-sm-12 col-md-10">
+        {{ include("_common/_messages_flash.html.twig") }}            
+        {% set colspan = devises|length %}
+
+        <table class="table table-bordered table-striped table-hover align-middle">
+            <thead class="sticky-top bg-light text-center">
+                <tr>
+                    <th colspan="{{ colspan + 1 }}" class="text-center fw-bold bg-info text-white bg-opacity-75">
+                        <div class="row align-items-center">
+                            <div class="col-9">
+                                <div class="d-flex justify-content-center align-items-center">
+                                    <p class="px-1">
+                                        Situation des caisses à la date du {{ "now"|date("d/m/Y à H:i") }}
+                                    </p>
+                                </div>
+                            </div>  
+                            <div class="bg-light text-white" id="result_search_personnel"></div>
+                        </div>
+                    </th>
+                </tr>
+                <tr>
+                    <th class="fw-bold bg-info text-white bg-opacity-75">Désignation</th>
+                    {% for devise in devises %}                            
+                        <th class="fw-bold bg-info text-white bg-opacity-75">{{ devise.nom|upper }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+
+            <tbody>
+                {% set cumulCaisses = 0 %}
+                {% for caisse, solde_caisse in solde_caisses %}
+                    <tr>
+                        <td class="fw-bold text-capitalize">{{ caisse }}</td>
+                        {% for solde in solde_caisse %}
+                            <td class="text-end fw-bold">
+                                {{ solde.nomDevise == 'gnf'
+                                    ? solde.solde|number_format(0,',',' ')
+                                    : solde.solde|number_format(2,',',' ')
+                                }}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+
+            <tfoot>
+                <tr class="bg-info text-white bg-opacity-75">
+                    <th class="fw-bold">Totaux</th>
+                    {% for cumul in solde_caisses_devises %}
+                        <th class="text-end fw-bold">
+                            {{ cumul.nom == 'gnf'
+                                ? cumul.solde|number_format(0,',',' ')
+                                : cumul.solde|number_format(2,',',' ')
+                            }}
+                        </th>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

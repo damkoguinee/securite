@@ -1,0 +1,73 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Types de Bien{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/admin/_nav_admin.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <div class="card border-0 shadow-lg mt-3 mx-2 rounded-3">
+            <div class="card-header bg-gradient bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="m-0">
+                    <i class="fa fa-shield-alt me-2"></i> Types de Bien
+                </h5>
+                <a href="{{ path('app_logescom_admin_config_type_bien_new') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fa fa-plus-circle me-1"></i> Nouveau type
+                </a>
+            </div>
+
+            <div class="card-body bg-light">
+                {% if config_type_biens is empty %}
+                    <div class="alert alert-warning text-center mb-0">
+                        <i class="fa fa-info-circle"></i> Aucun type de bien n’a encore été configuré.
+                    </div>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle shadow-sm">
+                            <thead class="table-dark text-center align-middle">
+                                <tr>
+                                    <th style="width: 5%">#</th>
+                                    <th style="width: 20%">Nom</th>
+                                    <th style="width: 10%">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config_type_bien in config_type_biens %}
+                                    <tr>
+                                        <td class="text-center fw-bold">{{ loop.index }}</td>
+                                        <td class="fw-semibold text-dark">{{ config_type_bien.nom|capitalize }}</td>
+                                        
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <a class="btn btn-outline-success mx-1" 
+                                                   href="{{ path('app_logescom_admin_config_type_bien_show', {'id': config_type_bien.id}) }}"
+                                                   title="Voir les détails">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                                <a class="btn btn-outline-warning" 
+                                                   href="{{ path('app_logescom_admin_config_type_bien_edit', {'id': config_type_bien.id}) }}"
+                                                   title="Modifier">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="card-footer bg-white text-center">
+                <a href="{{ path('app_logescom_admin_config_type_bien_new') }}" class="btn btn-primary">
+                    <i class="fa fa-plus-circle me-1"></i> Ajouter un type de bien
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

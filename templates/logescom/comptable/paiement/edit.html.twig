@@ -1,0 +1,76 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}✏️ Modifier un paiement{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    <div class="row">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        <div class="col-sm-12 col-md-10">
+            {{ include("_common/_messages_flash.html.twig") }}
+
+            <div class="card shadow-lg border-0 mb-4 rounded-3">
+
+                <!-- 🔹 En-tête -->
+                <div class="card-header bg-dark text-white py-3 px-4">
+                    <h5 class="mb-0">
+                        <i class="fa fa-edit me-2 text-warning"></i>
+                        Modifier le paiement n° {{ paiement.reference }}
+                    </h5>
+                </div>
+
+                <!-- 🔵 Infos essentielles -->
+                <div class="card-body bg-white border-bottom py-0 my-0">
+                    <div class="row text-muted">
+
+                        <div class="col-md-2 mb-1">
+                            <strong class="text-dark">Référence :</strong><br>
+                            {{ paiement.reference }}
+                        </div>
+
+                        <div class="col-md-2 mb-1">
+                            <strong class="text-dark">Total payé :</strong><br>
+                            <span class="text-primary fw-bold">
+                                {{ paiement.montant|number_format(0,'.',' ') }} GNF
+                            </span>
+                        </div>
+
+                        <div class="col-md-3 mb-1">
+                            <strong class="text-dark">Factures liées :</strong><br>
+                            {% for f in paiement.facture %}
+                                <span class="badge bg-secondary">{{ f.reference }}</span><br>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-3 mb-1">
+                            <strong class="text-dark">Date opération :</strong><br>
+                            {{ paiement.dateOperation|date('d/m/Y H:i') }}
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 📋 Formulaire -->
+                <div class="card-body bg-light p-4">
+
+                    {{ include('logescom/comptable/paiement/_form.html.twig', {'button_label': 'Modifier'}) }}
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a class="btn btn-outline-secondary rounded-pill"
+                           href="{{ path('app_logescom_comptable_paiement_index', { site : site.id }) }}">
+                            <i class="fa fa-arrow-left me-1"></i> Retour
+                        </a>
+
+                        {% if is_granted('ROLE_SUPPRESSION') %}
+                            {{ include('logescom/comptable/paiement/_delete_form.html.twig') }}
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

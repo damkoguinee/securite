@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+{% block title %}error 500{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger mb-3">
+                <div class="card-header bg-danger text-white">
+                    <h1 class="card-title">Erreur {{ status_code }}</h1>
+                </div>
+                <div class="card-body">
+                    {{ include("_common/_messages_flash.html.twig") }}
+
+                    {% if status_code == 500 %}
+                        <h1>Erreur 500 - Erreur interne du serveur</h1>
+                        <p>Une erreur interne du serveur s'est produite. Veuillez réessayer plus tard.</p>
+                    {% else %}
+                        <p class="card-text">{{ message }}</p>
+                    {% endif %}
+                    
+                    {% if referer %}
+                        <a href="{{ referer }}" class="btn btn-primary mt-3">Retour</a>
+                    {% else %}
+                        <a href="{{ path('app_logescom_home') }}" class="btn btn-primary mt-3">Retour à l'accueil</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

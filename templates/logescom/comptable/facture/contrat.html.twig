@@ -1,0 +1,194 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Liste des contrats de surveillance{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <div class="card shadow-lg border-0 mb-4">
+            
+            <!-- 🔹 HEADER IDENTIQUE AUX BIENS -->
+            <div class="card-header bg-dark text-white">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+
+                    <h5 class="mb-0">
+                        <i class="fa fa-shield-alt me-2"></i> Contrats de surveillance
+                    </h5>
+
+                    <form method="get" class="d-flex align-items-center gap-1 flex-nowrap">
+                        {% set zoneSelected = app.request.get('zone') %}
+                        <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">— Toutes les zones —</option>
+                            {% for zone in zones %}
+                                <option value="{{ zone.id }}" {{ zoneSelected == zone.id ? 'selected' }}>
+                                    {{ zone.nom|upper }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <input type="text"
+                            name="search"
+                            class="form-control form-control-sm"
+                            placeholder="Nom client, site, type, mode..."
+                            value="{{ search ?? '' }}"
+                            style="min-width: 200px">
+
+                        <button class="btn btn-light btn-sm" type="submit">
+                            <i class="fa fa-search text-danger"></i>
+                        </button>
+                    </form>
+
+                    <div class="flex-grow-1 mx-3" style="max-width: 320px;">
+                        <input type="text"
+                            id="search_client"
+                            class="form-control form-control-sm shadow-sm"
+                            placeholder="🔍 Rechercher un contrat (client, site, type...)">
+                        <div id="result-search" class="text-start bg-white small mt-1"></div>
+                    </div>
+
+                    <a class="btn btn-primary btn-sm"
+                    href="{{ path('app_logescom_commercial_contrat_surveillance_new', {'site': site.id}) }}">
+                        <i class="fa fa-plus-circle me-1"></i> Nouveau contrat
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body bg-light">
+                <!-- TABLE -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle shadow-sm rounded">
+                        <thead class="table-dark text-center align-middle">
+                            <tr>
+                                <th>#</th>
+                                <th>Types de surveillance</th>
+                                <th>Site</th>
+                                <th>Client</th>
+                                <th>Téléphone</th>
+                                <th>Date début</th>
+                                <th>Tarifs (GNF)</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for group in contratsGroup %}
+
+                                <!-- 🔹 LIGNE DE GROUPAGE CLIENT -->
+                                <tr class="table-warning">
+                                    <td colspan="9" class="fw-bold">
+                                        <i class="fa fa-user-circle me-2"></i>
+                                        {{ group.client ? group.client.nomComplet : 'Client non défini' }}
+                                    </td>
+                                </tr>
+
+                                {% for contrat in group.contrats %}
+                                    <tr class="text-center">
+
+                                        <td>{{ loop.index  }}</td>
+
+                                        <!-- TYPES -->
+                                        <td>
+                                            {% if contrat.typesSurveillance is not empty %}
+                                                {% for ts in contrat.typesSurveillance %}
+                                                    <span class="badge bg-primary mb-1">{{ ts.typeSurveillance.nom }}</span><br>
+                                                {% endfor %}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+
+                                        <td>{{ contrat.bien.nom|capitalize }}</td>
+                                        <td>{{ contrat.bien.client.nomComplet|capitalize }}</td>
+                                        <td>{{ contrat.bien.client.telephone ?: '—' }}</td>
+
+                                        <td>{{ contrat.dateDebut|date('d/m/Y') }}</td>
+
+                                        <!-- TARIFS -->
+                                        <td class="text-end">
+                                            {% if contrat.typesSurveillance is not empty %}
+                                                {% for ts in contrat.typesSurveillance %}
+                                                    {% if contrat.modeFacturation == 'horaire' %}
+                                                        <span>{{ ts.tarifHoraire|number_format(0, '.', ' ') }} /h</span><br>
+                                                    {% elseif contrat.modeFacturation == 'mensuel' %}
+                                                        <span>{{ ts.tarifMensuel|number_format(0, '.', ' ') }} /mois</span><br>
+                                                    {% elseif contrat.modeFacturation == 'forfait' %}
+                                                        <span>{{ ts.tarifForfait|number_format(0, '.', ' ') }}</span><br>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+
+                                        <!-- STATUT -->
+                                        <td>
+                                            <span class="badge bg-{{ contrat.statut == 'actif' ? 'success' : (contrat.statut == 'suspendu' ? 'warning' : 'secondary') }}">
+                                                {{ contrat.statut|capitalize }}
+                                            </span>
+                                        </td>
+
+                                        <!-- ACTIONS -->
+                                        <td>
+                                            <a class="btn btn-sm btn-outline-success" 
+                                            href="{{ path('app_logescom_comptable_contrat_historique_paiement', {'client': contrat.bien.client.id, 'site': site.id}) }}"
+                                            title="Voir le contrat">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted py-4">
+                                            <i class="fas fa-info-circle me-1"></i> Aucun contrat trouvé.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PAGINATION -->
+                {% if nbrePages > 1 %}
+                    <nav class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {{ pageEnCours == 1 ? 'disabled' : '' }}">
+                                <a class="page-link"
+                                href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': pageEnCours - 1, 'site': site.id})) }}">
+                                    &laquo;
+                                </a>
+                            </li>
+
+                            {% set start = max(1, pageEnCours - 2) %}
+                            {% set end = min(nbrePages, pageEnCours + 2) %}
+
+                            {% for i in start..end %}
+                                <li class="page-item {{ i == pageEnCours ? 'active' : '' }}">
+                                    <a class="page-link"
+                                    href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': i, 'site': site.id})) }}">
+                                        {{ i }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+
+                            <li class="page-item {{ pageEnCours == nbrePages ? 'disabled' : '' }}">
+                                <a class="page-link"
+                                href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': pageEnCours + 1, 'site': site.id})) }}">
+                                    &raquo;
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

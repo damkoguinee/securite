@@ -1,0 +1,36 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}ajout versement{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+        
+        <div class="col-sm-12 col-md-10 m-0 p-0">
+            {% include "_common/_messages_flash.html.twig" %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Enregistrer un nouveau versement</h5>
+                </div>
+                <div class="card-body">
+    
+                    {% if app.request.query.has('id_client_search') %}
+                        {% set collaborateur = app.request.query.get('id_client_search') %}
+                    {% else %}
+                        {% set collaborateur = "" %}
+                    {% endif %}
+                    {% set client_find = client_find is not empty ? (client_find.prenom|ucwords ~ " " ~ client_find.nom|strtoupper ~ " " ~ client_find.telephone ) : " Récherchez un client "  %}
+                    {% include "_common/_solde_collaborateur.html.twig" %}        
+                    <input type="text" name="search" class="form-control  fw-bold" id="search_client" placeholder="{{client_find}}">
+                    <div class="bg-white text-danger  fw-bold py-2" id="result-search"></div>
+
+                    {{ include('logescom/comptable/entrees/versement/_form.html.twig') }}
+
+                    <a class="btn btn-light my-4" href="{{ path('app_logescom_comptable_entrees_versement_index', {site : site.id}) }}">Retour</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

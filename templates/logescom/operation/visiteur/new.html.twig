@@ -1,0 +1,78 @@
+{% extends 'base_gandaal.html.twig' %}
+
+{% block title %}Ajout visiteur{% endblock %}
+
+{% block ul_menu %}
+    {% include "gandaal/_common/_nav_acces.html.twig" %}
+{% endblock %}
+
+{% block produits %}
+<div class="row m-auto" style="min-height: 100vh; background-image: url('{{ asset(chemin_images_config) }}fond.jpg'); background-size: cover; background-position: center;">
+    <div class="col-sm-12 col-md-10 col-lg-10 m-auto py-5">
+        {{ include("gandaal/_common/_messages_flash.html.twig") }}
+
+        <div class="card shadow-lg border-0 rounded-4 bg-light mb-4">
+            <div class="card-body p-5 text-center">
+                <h3 class="text-primary mb-4">
+                    <i class="fas fa-user-plus me-2"></i> Nouveau visiteur
+                </h3>
+
+                {{ include('gandaal/administration/securite/visiteur/_form.html.twig') }}
+            </div>
+        </div>
+
+        {# ---------------- Tableau des visiteurs ---------------- #}
+        <div class="card shadow-lg border-0 rounded-4 bg-white">
+            <div class="card-body">
+                <h4 class="text-primary mb-4">
+                    <i class="fas fa-users me-2"></i> Liste des visiteurs
+                </h4>
+
+                {% if visiteurs is not empty %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Nom</th>
+                                    <th scope="col">Prénom</th>
+                                    <th scope="col">Téléphone</th>
+                                    <th scope="col">Statut</th>
+                                    <th scope="col">Service</th>
+                                    <th scope="col">Motif</th>
+                                    <th scope="col">Date d'enregistrement</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visiteur in visiteurs %}
+                                    <tr>
+                                        <th scope="row">{{ loop.index }}</th>
+                                        <td>{{ visiteur.nom }}</td>
+                                        <td>{{ visiteur.prenom }}</td>
+                                        <td>{{ visiteur.telephone }}</td>
+                                        <td>
+                                            <span class="badge bg-info text-dark text-uppercase">
+                                                {{ visiteur.statut }}
+                                            </span>
+                                        </td>
+                                        <td>{{ visiteur.service }}</td>
+                                        <td>{{ visiteur.motif }}</td>
+                                        <td>{{ visiteur.dateSaisie|date('d/m/Y H:i') }}</td>
+                                        <td>
+                                            <a href="{{ path('app_gandaal_administration_securite_visiteur_edit', {id: visiteur.id, etablissement: etablissement.id}) }}" class="btn btn-sm btn-warning me-1"><i class="fas fa-edit me-1"></i> Modifier</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Aucun visiteur enregistré pour le moment.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

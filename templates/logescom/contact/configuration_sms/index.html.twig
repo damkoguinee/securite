@@ -1,0 +1,120 @@
+{% extends 'base_admin.html.twig' %}
+{% block title %}configurations des sms{% endblock %}
+
+{% block presentation %}
+    <div class="row m-0 p-0">
+        {% include "_common/_nav_direction.html.twig" %}  
+        <div class="col-sm-12 col-md-10 m-auto p-0">
+            {{ include("_common/_messages_flash.html.twig") }}
+
+            <table class="table table-bordered table-striped table-hover align-middle">
+                <thead class="sticky-top bg-light text-center">
+                    
+                    <tr>
+                        <th class='bg-info text-white'>Id</th>
+                        <th class='bg-info text-white'>Nom</th>
+                        <th class='bg-info text-white'>Etat</th>
+                        <th class='bg-info text-white'>Fréquence</th>
+                        <th class='bg-info text-white'>Message</th>
+                        <th class='bg-info text-white'>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for configuration_sm in configuration_sms %}
+                    <tr>
+                        <td class='text-center'>{{ loop.index }}</td>
+                        <td>{{ configuration_sm.nom }}</td>
+                        <td>{{ configuration_sm.etat }}</td>
+                        <td>{{ configuration_sm.frequence }}</td>
+                        <td>{{ configuration_sm.message }}</td>
+                        <td class='text-center'>
+                            <a class='btn btn-warning' href="{{ path('app_logescom_contact_configuration_sms_edit', {'id': configuration_sm.id}) }}"><i class="fa fa-edit"></i></a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6">no records found</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            
+
+            <table class="table table-bordered table-striped table-hover align-middle">
+                <thead class="sticky-top bg-light text-center">
+                    <tr>
+                        <th colspan="5" class="text-center bg-info text-white">
+                            Liste des forfaits achetés
+                            <a class="btn btn-warning" href="#tarif">Achèter un forfait</a>
+                        </th>
+                    </tr>
+
+                    <tr>
+                        <th class='bg-info text-white'>Forfait</th>
+                        <th class='bg-info text-white'>Nombre SMS</th>
+                        <th class='bg-info text-white'>Prix Achat(GNF)</th>
+                        <th class='bg-info text-white'>Expire le </th>
+                        <th class='bg-info text-white'></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for achat in achat_forfaits %}
+                    {# {{dump(achat.dateSouscription, achat.forfait.validite)}} #}
+                        <tr>
+                            <td>{{ achat.forfait.nom|capitalize ~ ' (' ~ achat.forfait.remarque|capitalize ~ ')' }}</td>
+                            <td class='text-center'>{{ achat.smsEnvoyes|length }}/{{ achat.forfait.sms|number_format(0, ',', ' ') }} SMS</td>
+                            <td class='text-end'>{{ (achat.prix)|number_format(0, ',', ' ') }}</td>
+                            <td class='text-center'>{{ achat.forfait.validite ? (achat.dateSouscription|date_modify('+' ~ achat.forfait.validite ~ ' days')|date('d/m/Y') ) : achat.dateSouscription|date('d/m/Y')  }}</td>
+                            <td class='text-center'>
+                                <a class="btn btn-success " href="{{path('app_logescom_contact_configuration_sms_show_achat_forfait', {id : achat.id})}}">
+                                    <i class="fa fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+
+            <h3 class="mt-4 text-center text-primary">Tarifs SMS</h3>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm text-center" id='tarif'>
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Forfait proposé</th>
+                            <th>SMS inclus</th>
+                            <th>Prix (GNF)</th>
+                            <th>Durée</th>
+                            <th>Achèter</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for forfait in forfaits %}
+                            {% set prixClient = (forfait.prixFournisseur * (1 + forfait.marge / 100)) %}
+                            <tr>
+                                <td>{{ forfait.nom|capitalize ~ ' (' ~ forfait.remarque|capitalize ~ ')' }}</td>
+                                <td>{{ forfait.sms|number_format(0, ',', ' ') }}</td>
+                                <td>{{ prixClient|number_format(0, ',', ' ') }}</td>
+                                <td>{{ forfait.validite ? (forfait.validite ~ " Jours") : 'illimité'}}</td>
+                                <td>
+                                    <a class="btn btn-warning btn-sm mx-1" href="{{ path('app_paiement_orange_money', {'origine': 'sms', 'plan': forfait.id}) }}">
+                                        <img src="{{ asset('images/config/orangeMoney.jpg') }}" alt="Orange Money" style="width: 45px;">
+                                    </a>
+                                    {% if prixClient > 100000 %}
+                                        <a class="btn btn-primary btn-sm mx-1" href="{{ path('app_paiement_stripe', {'origine': 'sms', 'plan': forfait.id}) }}">
+                                            <img src="{{ asset('images/config/carteBancaire.jpg') }}" alt="Carte Bancaire" style="width: 60px;">
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        
+
+
+        </div>
+    </div>
+{% endblock %}

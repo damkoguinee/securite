@@ -1,0 +1,291 @@
+{% extends 'base_site.html.twig' %}
+
+{% block title %}Détail du contrat de surveillance{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    <div class="col-sm-12 col-md-10 mx-auto p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <div class="card shadow-sm mb-4 border-0">
+
+            <!-- HEADER -->
+            <div class="card-header bg-dark text-white text-center">
+                <h5 class="mb-0">
+                    <i class="fa fa-shield-alt me-2"></i> Détail du contrat de surveillance
+                    <!-- 🔵 Bouton NOUVEAU CONTRAT COMPLÉMENTAIRE -->
+                        <a href="{{ path('app_logescom_commercial_contrat_complementaire_new', {
+                                site: site.id,
+                                contrat: contrat_surveillance.id
+                            }) }}" class="btn btn-info text-white">
+                            <i class="fa fa-plus-circle me-1"></i>
+                            Contrat complémentaire
+                        </a>
+                </h5>
+            </div>
+            <div class="card-body bg-light">
+
+                <!-- TABLE PRINCIPALE -->
+                <table class="table table-bordered table-hover align-middle mb-4">
+                    <tbody>
+                        <tr>
+                            <th class="w-25"><i class="fa fa-hashtag me-1"></i>ID</th>
+                            <td>{{ contrat_surveillance.id }}</td>
+                        </tr>
+
+                        <tr>
+                            <th><i class="fa fa-map-marker-alt me-1"></i> Site concerné</th>
+                            <td>
+                                {{ contrat_surveillance.bien.nom|capitalize }} 
+                                — {{ contrat_surveillance.bien.client.nomComplet|capitalize }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><i class="fa fa-calendar-day me-1"></i> Date de début</th>
+                            <td>{{ contrat_surveillance.dateDebut|date('d/m/Y') }}</td>
+                        </tr>
+
+                        <tr>
+                            <th><i class="fa fa-calendar-check me-1"></i> Date de fin</th>
+                            <td>{{ contrat_surveillance.dateFin ? contrat_surveillance.dateFin|date('d/m/Y') : '—' }}</td>
+                        </tr>
+
+                        <tr>
+                            <th><i class="fa fa-file-invoice-dollar me-1"></i> Mode de facturation</th>
+                            <td>{{ contrat_surveillance.modeFacturation|capitalize }}</td>
+                        </tr>
+
+                        <tr>
+                            <th><i class="fa fa-percentage me-1"></i> TVA</th>
+                            <td>
+                                {{ contrat_surveillance.tva is not null ? contrat_surveillance.tva ~ ' %' : '—' }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><i class="fa fa-tags me-1"></i> Remise</th>
+                            <td>
+                                {{ contrat_surveillance.remise is not null ? contrat_surveillance.remise ~ ' %' : '—' }}
+                            </td>
+                        </tr>
+
+
+                        <tr>
+                            <th><i class="fa fa-toggle-on me-1"></i> Statut</th>
+                            <td>
+                                <span class="badge bg-{{ contrat_surveillance.statut == 'actif' ? 'success' : (contrat_surveillance.statut == 'suspendu' ? 'warning' : 'secondary') }}">
+                                    {{ contrat_surveillance.statut|capitalize }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><i class="fa fa-comment-dots me-1"></i> Commentaire global</th>
+                            <td>{{ contrat_surveillance.commentaire ?: 'Aucun commentaire' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- LISTE DES TYPES DE SURVEILLANCE -->
+                <h5 class="text-primary fw-bold mt-4">
+                    <i class="fa fa-list-check me-1"></i> Types de surveillance associés
+                </h5>
+
+                {% if contrat_surveillance.typesSurveillance is empty %}
+                    <div class="alert alert-info mt-2">
+                        Aucun type de surveillance enregistré pour ce contrat.
+                    </div>
+                {% else %}
+                    {% for ts in contrat_surveillance.typesSurveillance %}
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header bg-secondary text-white">
+                                <strong>{{ ts.typeSurveillance.nom }}</strong>
+                            </div>
+
+                            <div class="card-body bg-white">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th class="w-25">Tarif HT</th>
+                                            <td>
+                                                {% if contrat_surveillance.modeFacturation == 'horaire' %}
+                                                    {{ ts.tarifHoraire|number_format(0, '.', ' ') }} / heure
+                                                {% elseif contrat_surveillance.modeFacturation == 'mensuel' or 'mensuel_agent' %}
+                                                    {{ ts.tarifMensuel|number_format(0, '.', ' ') }} / mois
+                                                {% elseif contrat_surveillance.modeFacturation == 'forfait' %}
+                                                    {{ ts.tarifForfait|number_format(0, '.', ' ') }}
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Agents Jour</th>
+                                            <td>{{ ts.nbAgentsJour ?: 0 }}</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Agents Nuit</th>
+                                            <td>{{ ts.nbAgentsNuit ?: 0 }}</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Heures / agent</th>
+                                            <td>{{ ts.heureParAgent ?: '—' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- =============================== -->
+                <!--   📌 CONTRATS COMPLÉMENTAIRES   -->
+                <!-- =============================== -->
+                <h5 class="text-primary fw-bold mt-4">
+                    <i class="fa fa-file-circle-plus me-1"></i> Contrats complémentaires rattachés
+                </h5>
+
+                {% if contrat_surveillance.contratComplementaires is empty %}
+                    <div class="alert alert-info mt-2">
+                        Aucun contrat complémentaire n’a été enregistré pour ce contrat.
+                    </div>
+                {% else %}
+                    {% for cc in contrat_surveillance.contratComplementaires %}
+                        <div class="card mb-3 shadow-sm border-0">
+                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                <strong>
+                                    <i class="fa fa-file-contract me-1"></i>
+                                    Contrat complémentaire #{{ cc.id }}
+                                </strong>
+
+                                <a class="btn btn-sm btn-light disabled">
+                                    <i class="fa fa-calendar"></i>
+                                    {{ cc.dateDebut|date('d/m/Y') }}
+                                    {% if cc.dateFin %} → {{ cc.dateFin|date('d/m/Y') }} {% endif %}
+                                </a>
+
+                                <!-- 🔧 ACTIONS SUR LE CONTRAT COMPLÉMENTAIRE -->
+                                <div class="d-flex justify-content-end gap-2 mt-3">
+
+                                    <!-- 🟡 Modifier -->
+                                    <a href="{{ path('app_logescom_commercial_contrat_complementaire_edit', {
+                                        id: cc.id,
+                                        site: site.id,
+                                    }) }}" 
+                                    class="btn btn-warning btn-sm">
+                                        <i class="fa fa-edit me-1"></i> Modifier
+                                    </a>
+
+                                    <!-- 🔴 Supprimer -->
+                                    <form method="post"
+                                        action="{{ path('app_logescom_commercial_contrat_complementaire_delete', {
+                                            id: cc.id,
+                                            site: site.id,
+                                        }) }}"
+                                        onsubmit="return confirm('Voulez-vous vraiment supprimer ce contrat complémentaire ?');">
+
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ cc.id) }}">
+                                        <button class="btn btn-danger btn-sm">
+                                            <i class="fa fa-trash me-1"></i> Supprimer
+                                        </button>
+                                    </form>
+
+                                </div>
+                            </div>
+
+                            <div class="card-body bg-white">
+
+                                <p class="mb-2">
+                                    <strong><i class="fa fa-comment-dots me-1"></i> Motif :</strong>
+                                    {{ cc.motif }}
+                                </p>
+
+                                <p class="mb-3">
+                                    <strong><i class="fa fa-user-edit me-1"></i> Saisi par :</strong>
+                                    {{ cc.saisiePar.nomComplet|default('—') }}<br>
+                                    <strong><i class="fa fa-clock me-1"></i> Le :</strong>
+                                    {{ cc.dateSaisie|date('d/m/Y à H:i') }}
+                                </p>
+
+                                <!-- Liste des types de surveillance complémentaires -->
+                                {% if cc.complementTypeSurveillances is not empty %}
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Type de surveillance</th>
+                                                <th>Tarif appliqué HT</th>
+                                                <th>Agents</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for cts in cc.complementTypeSurveillances %}
+                                            <tr>
+                                                <td>{{ cts.typeSurveillance.nom }}</td>
+                                                <td>{{ cts.tarif ? cts.tarif|number_format(0, '.', ' ') }}</td>
+                                                <td>{{ cts.nbAgent ?: '—' }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% else %}
+                                    <div class="alert alert-secondary">
+                                        Aucun type de surveillance ajouté pour ce contrat complémentaire.
+                                    </div>
+                                {% endif %}
+
+                                
+
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+
+                <!-- ACTIONS -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+
+                    <a href="
+                        {% if app.request.headers.get('referer') %}
+                            {{ app.request.headers.get('referer') }}
+                        {% else %}
+                            {{ path('app_logescom_commercial_contrat_surveillance_index', {'site': site.id}) }}
+                        {% endif %}
+                    " class="btn btn-outline-secondary">
+                        <i class="fa fa-arrow-left me-1"></i> Retour
+                    </a>
+
+                    <div class="d-flex gap-2">
+
+                        <!-- 🔵 Bouton NOUVEAU CONTRAT COMPLÉMENTAIRE -->
+                        <a href="{{ path('app_logescom_commercial_contrat_complementaire_new', {
+                                site: site.id,
+                                contrat: contrat_surveillance.id
+                            }) }}" class="btn btn-info text-white">
+                            <i class="fa fa-plus-circle me-1"></i>
+                            Contrat complémentaire
+                        </a>
+
+                        <!-- 🟡 Modifier -->
+                        <a href="{{ path('app_logescom_commercial_contrat_surveillance_edit', {
+                                id: contrat_surveillance.id,
+                                site: site.id
+                            }) }}"
+                        class="btn btn-warning">
+                            <i class="fa fa-edit me-1"></i> Modifier
+                        </a>
+
+                        <!-- 🔴 Supprimer -->
+                        {{ include('logescom/commercial/contrat_surveillance/_delete_form.html.twig') }}
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{{ form_errors(form) }}
+{{ form_start(form) }}
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center">
+            {{ form_label(form.categorieDepense, '🧾 Catégorie de dépense', {'label_attr': {'class': 'fw-semibold mb-1'}}) }}
+            <a href="{{ path('app_logescom_comptable_sorties_categorie_depense_new', { site: site.id }) }}"
+               class="btn btn-sm btn-warning shadow-sm ms-2" title="Ajouter une catégorie">
+                <i class="fas fa-plus"></i>
+            </a>
+        </div>
+        {{ form_widget(form.categorieDepense, {'attr': {'class': 'form-select shadow-sm'}}) }}
+    </div>
+
+    <div class="col-md-4">
+        {{ form_row(form.montant, {
+            label: '💰 Montant *',
+            attr: {'placeholder': 'Entrez le montant...'}
+        }) }}
+    </div>
+    <div class="col-md-2">
+        {{ form_row(form.devise, {
+            label: '💱 Devise',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+</div>
+
+<div class="row mb-3">
+    
+
+    <div class="col-md-3">
+        {{ form_row(form.modePaie, {
+            label: '🏦 Mode de paiement',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+
+    <div class="col-md-3">
+        {{ form_row(form.caisse, {
+            label: '💼 Caisse',
+            attr: {'class': 'form-select shadow-sm'}
+        }) }}
+    </div>
+
+    <div class="col-md-6">
+        {{ form_row(form.commentaire, {
+            label: '📝 Description / Motif',
+            attr: {'placeholder': 'Ajoutez un commentaire...', 'rows': 2}
+        }) }}
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        {{ form_row(form.dateOperation, {
+            label: '📅 Date de la dépense'
+        }) }}
+    </div>
+
+    <div class="col-md-4">
+        {{ form_row(form.document, {
+            label: '📎 Pièce justificative'
+        }) }}
+    </div>
+</div>
+
+<hr class="my-4">
+
+<div class="text-end">
+    <button class="btn btn-primary px-4 shadow-sm">
+        <i class="fas fa-check-circle me-1"></i> {{ button_label|default('Enregistrer') }}
+    </button>
+</div>
+
+{{ form_end(form) }}

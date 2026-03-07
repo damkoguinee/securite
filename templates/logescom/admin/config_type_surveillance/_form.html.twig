@@ -1,0 +1,46 @@
+{{ form_start(form, { 'attr': { 'class': 'p-2' } }) }}
+{{ form_errors(form) }}
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.nom, 'Nom du type de surveillance *', {'label_attr': {'class': 'fw-semibold'}}) }}
+        {{ form_widget(form.nom, {'attr': {'class': 'form-control', 'placeholder': 'Ex : Gardiennage de jour'}}) }}
+        {{ form_errors(form.nom) }}
+    </div>
+
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.description, 'Description', {'label_attr': {'class': 'fw-semibold'}}) }}
+        {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 3, 'placeholder': 'Détail du service ou conditions particulières'}}) }}
+        {{ form_errors(form.description) }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.tarifHoraire, 'Tarif horaire', {'label_attr': {'class': 'fw-semibold'}}) }}
+        <div class="input-group">
+            <span class="input-group-text bg-secondary text-white"><i class="fa fa-clock"></i></span>
+            {{ form_widget(form.tarifHoraire, {'attr': {'class': 'form-control text-end', 'placeholder': 'Ex : 25000.00'}}) }}
+            <span class="input-group-text bg-light fw-bold"></span>
+        </div>
+        {{ form_errors(form.tarifHoraire) }}
+    </div>
+
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.tarifMensuel, 'Tarif mensuel', {'label_attr': {'class': 'fw-semibold'}}) }}
+        <div class="input-group">
+            <span class="input-group-text bg-secondary text-white"><i class="fa fa-calendar"></i></span>
+            {{ form_widget(form.tarifMensuel, {'attr': {'class': 'form-control text-end', 'placeholder': 'Ex : 1500000.00'}}) }}
+            <span class="input-group-text bg-light fw-bold"></span>
+        </div>
+        {{ form_errors(form.tarifMensuel) }}
+    </div>
+</div>
+
+<div class="text-center mt-4">
+    <button class="btn btn-primary px-4">
+        <i class="fa fa-save me-1"></i> {{ button_label|default('Enregistrer') }}
+    </button>
+</div>
+
+{{ form_end(form) }}

@@ -1,0 +1,63 @@
+{{ form_start(form) }}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-dark text-white py-2 px-3">
+        <h6 class="mb-0">
+            <i class="fa fa-user-check me-2 text-warning"></i> 
+            Formulaire de présence
+        </h6>
+    </div>
+
+    <div class="card-body bg-light">
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                    <i class="fa fa-calendar-day text-secondary me-1"></i> Date & Heure du pointage
+                </label>
+                {{ form_widget(form.datePointage, {'attr': {'class': 'form-control shadow-sm'}}) }}
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                    <i class="fa fa-exchange-alt text-secondary me-1"></i> Type de pointage
+                </label>
+                {{ form_widget(form.typePointage, {'attr': {'class': 'form-select shadow-sm'}}) }}
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                    <i class="fa fa-cog text-secondary me-1"></i> Mode d’enregistrement
+                </label>
+                {{ form_widget(form.mode, {'attr': {'class': 'form-select shadow-sm'}}) }}
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                    <i class="fa fa-traffic-light text-secondary me-1"></i> Statut
+                </label>
+                {{ form_widget(form.statut, {'attr': {'class': 'form-select shadow-sm'}}) }}
+            </div>
+
+            <div class="col-md-12">
+                <label class="form-label fw-semibold">
+                    <i class="fa fa-building text-secondary me-1"></i> Affectation concernée
+                </label>
+                {{ form_widget(form.affectationAgent, {'attr': {'class': 'form-select shadow-sm'}}) }}
+            </div>
+
+            <div class="col-md-12">
+                <label class="form-label fw-semibold">
+                    <i class="fa fa-comment-dots text-secondary me-1"></i> Commentaire
+                </label>
+                {{ form_widget(form.commentaire, {'attr': {'class': 'form-control shadow-sm', 'rows': '3'}}) }}
+            </div>
+        </div>
+
+        <div class="mt-4 text-end">
+            <button class="btn btn-success rounded-pill px-4">
+                <i class="fa fa-save me-2"></i> {{ button_label|default('Enregistrer') }}
+            </button>
+        </div>
+    </div>
+</div>
+{{ form_end(form) }}

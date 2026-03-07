@@ -1,0 +1,13 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Edit AbsencesPersonnels{% endblock %}
+
+{% block body %}
+    <h1>Edit AbsencesPersonnels</h1>
+
+    {{ include('comptable/absence_personnel/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('app_logescom_rh_absence_personnel_index' , {site : site.id}) }}">back to list</a>
+
+    {{ include('comptable/absence_personnel/_delete_form.html.twig') }}
+{% endblock %}

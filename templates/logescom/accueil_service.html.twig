@@ -1,0 +1,126 @@
+{% extends 'base_admin.html.twig' %}
+
+{% block title %}Tableau de bord - Logescom{% endblock %}
+
+{% block presentation %}
+<style>
+    .hero {
+        position: relative;
+        min-height: 85vh;
+        background:
+            linear-gradient(135deg, rgba(25, 55, 80, 0.92), rgba(12, 100, 105, 0.9)),
+            url('{{ asset('images/config/immo.png') }}') center/cover no-repeat;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .container-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 2rem;
+        width: 95%;
+        max-width: 1300px;
+    }
+
+    .card-custom {
+        background: #fff;
+        border-radius: 16px;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+        color: #1f2937;
+        transition: all 0.3s ease;
+        border-top: 4px solid transparent;
+    }
+
+    .card-custom:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #0d6efd;
+        transition: transform 0.3s ease, color 0.3s ease;
+    }
+
+    .card-custom:hover .card-icon {
+        transform: scale(1.15);
+        color: #084298;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+    }
+
+    .card-subtitle {
+        font-size: 0.95rem;
+        color: #4b5563;
+        opacity: 0.9;
+    }
+
+    @media (max-width: 768px) {
+        .container-cards {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+    }
+</style>
+
+<div class="hero" role="main" aria-label="Tableau de bord Logescom">
+    <div class="container-cards">
+
+        <!-- 🧍‍♂️ MODULE RH -->
+        <a href="{{ path('app_logescom_rh_personel_index', {site : site.id, type: 'agent'}) }}" class="card-custom" aria-label="Ressources Humaines">
+            <i class="fas fa-users card-icon"></i>
+            <h2 class="card-title">Ressources Humaines</h2>
+            <p class="card-subtitle">Gestion des personnels, contrats de travail et salaires.</p>
+        </a>
+
+        <!-- 🏢 MODULE COMMERCIAL -->
+        <a href="{{ path('app_logescom_commercial_bien_index', {'site' : site.id}) }}" class="card-custom" aria-label="Module Commercial">
+            <i class="fas fa-handshake card-icon"></i>
+            <h2 class="card-title">Commercial</h2>
+            <p class="card-subtitle">Gestion des clients, sites et contrats de surveillance.</p>
+        </a>
+
+        <!-- 🕓 MODULE OPÉRATIONS -->
+        <a href="{{ path('app_logescom_operation_affectation_agent_index', {site : site.id}) }}" class="card-custom" aria-label="Opérations terrain">
+            <i class="fas fa-shield-alt card-icon"></i>
+            <h2 class="card-title">Opérations</h2>
+            <p class="card-subtitle">Planning, affectations et suivi des agents sur site.</p>
+        </a>
+
+        <!-- 💰 MODULE FINANCE -->
+        <a href="{{ path('app_logescom_comptable_facture_impaye', {site : site.id}) }}" class="card-custom" aria-label="Finance">
+            <i class="fas fa-coins card-icon"></i>
+            <h2 class="card-title">Finance</h2>
+            <p class="card-subtitle">Facturation, paiements, dépenses et trésorerie.</p>
+        </a>
+
+        <!-- 👁️‍🗨️ MODULE CONTRÔLE DE PRÉSENCE -->
+        <a href="{{ path('app_logescom_operation_control_acces_new', { site: site.id }) }}" class="card-custom" aria-label="Contrôle de présence">
+            <i class="fas fa-qrcode card-icon text-success"></i>
+            <h2 class="card-title">Contrôle de présence</h2>
+            <p class="card-subtitle">Scan des agents, suivi des présences et pointages GPS.</p>
+        </a>
+
+        <!-- ⚙️ MODULE ADMINISTRATION -->
+        <a href="{{ path('app_logescom_admin_config_type_surveillance_index') }}" class="card-custom" aria-label="Administration">
+            <i class="fas fa-cogs card-icon"></i>
+            <h2 class="card-title">Administration</h2>
+            <p class="card-subtitle">Utilisateurs, rôles et configuration du système.</p>
+        </a>
+
+    </div>
+</div>
+{% endblock %}

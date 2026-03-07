@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit CategorieDepense{% endblock %}
+
+{% block body %}
+    <h1>Edit CategorieDepense</h1>
+
+    {{ include('logescom/comptable/sorties/categorie_depense/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('app_logescom_comptable_categorie_depense_index') }}">back to list</a>
+
+    {{ include('logescom/comptable/sorties/categorie_depense/_delete_form.html.twig') }}
+{% endblock %}

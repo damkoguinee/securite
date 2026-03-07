@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}liste des paiements en pdf{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
+    <style>
+        @page {
+            margin: 5px 20px;
+        }
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Helvetica', 'Arial', sans-serif;
+        color: #333;
+    }
+    .header, .footer {
+        width: 100%;
+        text-align: center;
+        background-color: #f4f4f4;
+        padding: 1px;
+    }
+    .header {
+        margin-bottom: 20px;
+    }
+    .footer {
+        position: fixed;
+        bottom: 0;
+        font-size: 12px;
+    }
+    .table-container {
+        margin:0px;
+    }
+    .entete table {
+        width: 100%;
+        margin-bottom: 20px;
+        border-collapse: collapse;
+    }
+    .entete img {
+        margin: 10px;
+    }
+    .entete td {
+        border: none;
+    }
+    .entete div {
+        text-align: center;
+        font-size: 14px;
+    }
+    .entete .header-title {
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+    }
+    .entete .sub-title {
+        font-size: 14px;
+        margin-top: 5px;
+        text-align: center;
+    }
+    .no-break {
+        page-break-inside: avoid;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 4px;
+        text-align: left;
+        font-size:13px;
+    }
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        font-size:12px;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .text-end {
+        text-align: right;
+    }
+    /* Custom nowrap for amounts */
+    .nowrap {
+        white-space: nowrap;
+    }
+
+    .signature {
+        margin-top: 20px;
+        text-align: center;
+        font-style:italic;
+    }
+    .signature div {
+        margin-bottom: 85px;
+    }
+    </style>
+</head>
+<body>
+    <table class="header-table">
+        <tr>
+            <td style="width: 20%;">
+                <img src="data:image/jpeg;base64,{{ logoPath }}" alt="Logo" style="height: 80px;">
+            </td>
+            <td style="width: 50%; text-align: center;">
+                <h3 style="margin: 0; color: #185c8d;">{{ site.entreprise.nom|upper }}</h3>
+                <p style="margin: 0; font-size: 12px;">
+                    {{ site.adresse.nom|capitalize ~ " " ~ site.complementAdresse|capitalize }}<br>
+                    Tél : {{ site.telephone }} - {{ site.email }}
+                </p>
+            </td>
+            
+        </tr>
+    </table>
+
+    <div class="table-container">
+
+        <table class="table table-bordered table-striped table-hover align-middle">
+            <thead class="sticky-top bg-light text-center">
+                <tr>
+                    <th colspan="7" class="text-center bg-primary text-white fw-bold">
+                        Liste des paiements du {{ date1|date('d/m/Y') }} au {{ date2|date('d/m/Y à h:i:s') }} 
+                    </th>
+                </tr>
+                <tr>
+                    <th class="bg-primary text-white">N°</th>
+                    <th class="bg-primary text-white">Date</th>
+                    <th class="bg-primary text-white">Description</th>
+                    <th class="bg-primary text-white">Montant</th>
+                    <th class="bg-primary text-white">Devise</th>
+                    <th class="bg-primary text-white">Mode de paie</th>
+                    <th class="bg-primary text-white">Caisse</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set cumulMontantGlobal = 0 %}
+                {% for categorie, paiements in paiementsGroupeesParCategorie %}
+                    {% set cumulMontantCategorie = 0 %}
+                    <tr>
+                        <th colspan="7" class="table-secondary text-start">
+                            {{ categorie|ucfirst }}
+                        </th>
+                    </tr>
+                    {% for key, paiement in paiements %}
+                        {% set montant = paiement.montant|abs %}
+                        {% set cumulMontantCategorie = cumulMontantCategorie + montant %}
+                        {% set cumulMontantGlobal = cumulMontantGlobal + montant %}
+                        <tr>
+                            <td class="text-center">{{ (key + 1) }}</td>
+                            <td class="text-center">{{ paiement.dateOperation ? paiement.dateOperation|date('d/m/Y') : '' }}</td>
+                            <td>{{ paiement.commentaire|capitalize }}</td>
+                            <td class="text-end nowrap">
+                                {{ paiement.devise.nom == 'gnf' 
+                                    ? montant|number_format(0, ',', ' ') 
+                                    : montant|number_format(2, ',', ' ') }}
+                            </td>
+                            <td class="text-center">{{ paiement.devise.nom|upper }}</td>
+                            <td class="text-center">{{ paiement.modePaie.designation|capitalize }}</td>
+                            <td class="text-center">{{ paiement.caisse.nom }}</td>
+                        </tr>
+                    {% endfor %}
+                    <tr>
+                        <td colspan="7" class="text-end fw-bold table-light">
+                            Total pour {{ categorie|ucfirst }} : 
+                            {{ paiements[0].devise.nom == 'gnf' 
+                                ? cumulMontantCategorie|number_format(0, ',', ' ') 
+                                : cumulMontantCategorie|number_format(2, ',', ' ') }}
+                            {{ paiements[0].devise.nom|upper }}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Aucune paiement trouvée</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="bg-primary text-white bg-opacity-75">
+                    <th colspan="7" class="text-start fw-bold">
+                        <div class="d-flex justify-content-between">
+                            {% for cumul in cumulDepenses %}
+                                <div>
+                                    Cumul global {{ cumul.nom|upper }} :
+                                    {{ cumul.nom == 'gnf' 
+                                        ? (cumul.montantTotal)|number_format(0, ',', ' ') 
+                                        : (cumul.montantTotal)|number_format(2, ',', ' ') }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </th>
+                </tr>
+            </tfoot>
+            
+        </table>
+        
+    </div>
+
+    
+    <div class="footer">
+        <p>Document imprimé par {{ app.user.prenom | capitalize }} {{ app.user.nom | upper }} le {{ "now" | date("d/m/Y à H:i") }}</p>
+    </div>
+</body>
+</html>

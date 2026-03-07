@@ -1,0 +1,190 @@
+{% extends 'base_site.html.twig' %}
+{% set queryParams = app.request.query.all %}
+{% set queryString = queryParams|filter((v, k) => k != "page" and k != "ajustement" and k != "id_stock") | url_encode %}
+
+{% block title %}Liste des Clients{% endblock %}
+
+{% block presentation %}
+
+<div class="row m-0 p-0">
+    <div class="col-sm-12 col-md-10 mx-auto p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        <!-- 🧭 En-tête élégante -->
+        <div class="d-flex justify-content-between align-items-center bg-dark text-white rounded-top-3 px-3 py-2 shadow-sm">
+            <h4 class="m-0">
+                <i class="fa fa-users me-2"></i> Gestion des Clients
+            </h4>
+            <a href="{{ path('app_logescom_commercial_client_new', {'site': site.id}) }}" class="btn btn-outline-light btn-sm">
+                <i class="fa fa-user-plus me-1"></i> Nouveau client
+            </a>
+        </div>
+
+        <!-- 🧾 Carte principale -->
+        <div class="card border-0 shadow-sm rounded-bottom-3">
+            <div class="card-body bg-light">
+
+                <!-- 🔍 Barre de recherche -->
+                <div class="row align-items-center mb-3">
+                    <div class="col-md-5">
+                        <input type="text" name="search" id="search_client"
+                               class="form-control form-control-sm shadow-sm"
+                               placeholder="🔍 Rechercher un client (Nom, téléphone, société...)">
+                        <div class="col-md-7 text-start" id="result-search"></div>
+                    </div>
+                    {# <div class="col-md-5">
+
+                        <form method="get" class="d-flex align-items-center gap-1 flex-nowrap">
+
+                            {% set zoneSelected = app.request.get('zone') %}
+                            <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">— Toutes les zones —</option>
+                                {% for zone in zones %}
+                                    <option value="{{ zone.id }}" {{ zoneSelected == zone.id ? 'selected' }}>
+                                        {{ zone.nom|upper }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </div> #}
+
+                </div>
+
+                <!-- 📋 Tableau clients -->
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered align-middle shadow-sm">
+                        <thead class="table-dark text-center">
+                            <tr>
+                                <th>#</th>
+                                <th>Réf</th>
+                                <th>Client</th>
+                                <th>Téléphone</th>
+                                <th>Email</th>
+                                <th>Adresse</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for client in clients.data %}
+                                <tr>
+                                    <td class="text-center fw-bold">{{ loop.index }}</td>
+                                    <td class="text-center fw-bold">{{ client.reference|upper }}</td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">
+                                            {{ client.nomComplet }}
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <i class="fa fa-phone text-muted me-1"></i>
+                                        {{ client.telephone ?: '-' }}
+                                    </td>
+                                    <td>
+                                        {% if client.email %}
+                                            <i class="fa fa-envelope text-muted me-1"></i> {{ client.email }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if client.adresse %}
+                                            {{ client.adresse.nom|capitalize }}
+                                            <small class="text-muted">
+                                                ({{ client.complementAdresse }})
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">Non renseignée</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ path('app_logescom_commercial_client_show', {'id': client.id, 'site': site.id}) }}"
+                                               class="btn btn-outline-success" title="Voir le client">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                            <a href="{{ path('app_logescom_commercial_client_edit', {'id': client.id, 'site': site.id}) }}"
+                                               class="btn btn-outline-warning" title="Modifier">
+                                                <i class="fa fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-3">
+                                        <i class="fa fa-info-circle me-2"></i>Aucun client enregistré pour ce site
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 📄 Pagination -->
+                {% if clients.nbrePages > 1 %}
+                    <nav class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            {# ← Bouton précédent #}
+                            <li class="page-item {{ clients.pageEnCours == 1 ? 'disabled' : '' }}">
+                                <a class="page-link" 
+                                href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': clients.pageEnCours - 1, 'site': site.id})) }}">
+                                    &laquo;
+                                </a>
+                            </li>
+
+                            {# On ne montre pas toutes les pages si elles sont nombreuses #}
+                            {% set startPage = max(1, clients.pageEnCours - 2) %}
+                            {% set endPage = min(clients.nbrePages, clients.pageEnCours + 2) %}
+
+                            {# Si la première page n’est pas affichée, on la montre et on met … après #}
+                            {% if startPage > 1 %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                    href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': 1, 'site': site.id})) }}">
+                                        1
+                                    </a>
+                                </li>
+                                {% if startPage > 2 %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                            {% endif %}
+
+                            {# Boucle des pages visibles autour de la page en cours #}
+                            {% for i in startPage..endPage %}
+                                <li class="page-item {{ i == clients.pageEnCours ? 'active' : '' }}">
+                                    <a class="page-link"
+                                    href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': i, 'site': site.id})) }}">
+                                        {{ i }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+
+                            {# Si la dernière page n’est pas affichée, on met … avant et la dernière #}
+                            {% if endPage < clients.nbrePages %}
+                                {% if endPage < clients.nbrePages - 1 %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                    href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': clients.nbrePages, 'site': site.id})) }}">
+                                        {{ clients.nbrePages }}
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {# → Bouton suivant #}
+                            <li class="page-item {{ clients.pageEnCours == clients.nbrePages ? 'disabled' : '' }}">
+                                <a class="page-link" 
+                                href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'pageEnCours': clients.pageEnCours + 1, 'site': site.id})) }}">
+                                    &raquo;
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,327 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Détail du contrat de surveillance{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    <div class="col-sm-12 col-md-12">
+        {% include "_common/_messages_flash.html.twig" %}
+        <div class="row">
+            <div class="col-md-6">
+
+                <!-- ========================== -->
+                <!--       🔵 INFO CLIENT       -->
+                <!-- ========================== -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fa fa-user me-2"></i> Informations du client
+                    </div>
+
+                    <div class="card-body bg-light">
+                        <table class="table table-bordered table-hover mb-0">
+                            <tr>
+                                <th class="w-25 bg-secondary text-white">Nom complet</th>
+                                <td>{{ client.nomComplet|default('—') }}</td>
+                            </tr>
+
+                            <tr>
+                                <th class="bg-secondary text-white">Référence</th>
+                                <td>{{ client.reference|upper }}</td>
+                            </tr>
+
+                            <tr>
+                                <th class="bg-secondary text-white">Téléphone</th>
+                                <td>{{ client.telephone ?: '—' }}</td>
+                            </tr>
+
+                            <tr>
+                                <th class="bg-secondary text-white">Email</th>
+                                <td>{{ client.email ?: '—' }}</td>
+                            </tr>
+
+                            <tr>
+                                <th class="bg-secondary text-white">Adresse</th>
+                                <td>{{ client.adresse.nom ?: '—' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+
+                <!-- ========================== -->
+                <!--        🏠 BIENS DU CLIENT  -->
+                <!-- ========================== -->
+
+                {% if client.biens is empty %}
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i> Ce client n’a aucun bien enregistré.
+                    </div>
+                {% else %}
+
+                    {% for contrat in contratClients %}
+                        <div class="card shadow mb-4 border-0">
+
+                            <div class="card-header bg-dark text-white">
+                                <i class="fa fa-map-marker-alt me-2"></i>
+                                Bien : <strong>{{ contrat.bien.nom }}</strong>
+                            </div>
+
+                            <div class="card-body bg-white">
+
+                                <!-- Info du bien -->
+                                <table class="table table-bordered table-sm mb-3">
+                                    <tr>
+                                        <th class="bg-secondary text-white w-25">Type</th>
+                                        <td>{{ contrat.bien.typeBien ? contrat.bien.typeBien.nom : '—' }}</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th class="bg-secondary text-white">Localisation</th>
+                                        <td>{{ contrat.bien.zoneRattachement.nom ?: '—' }}</td>
+                                    </tr>
+                                </table>
+
+
+                                <!-- ========================== -->
+                                <!--      📄 CONTRATS DU BIEN   -->
+                                <!-- ========================== -->
+
+                                <h6 class="mt-3 mb-2 text-primary fw-bold">
+                                    <i class="fa fa-file-contract me-1"></i> Contrats associés
+                                </h6>
+
+                                {% if contrat.bien.contratSurveillances is empty %}
+                                    <div class="alert alert-secondary">
+                                        Aucun contrat enregistré pour ce contrat.bien.
+                                    </div>
+
+                                {% else %}
+
+                                    {% for contrat in contrat.bien.contratSurveillances %}
+                                        <div class="card border mb-3 shadow-sm">
+
+                                            <div class="card-header bg-info text-white d-flex justify-content-between">
+                                                <strong>Contrat #{{ contrat.id }}</strong>
+
+                                                <span class="badge bg-{{ contrat.statut == 'actif' ? 'success' : (contrat.statut == 'suspendu' ? 'warning' : 'secondary') }}">
+                                                    {{ contrat.statut|capitalize }}
+                                                </span>
+                                            </div>
+
+                                            <div class="card-body bg-light">
+
+                                                <!-- Infos contrat -->
+                                                <table class="table table-bordered table-sm mb-3">
+                                                    <tr>
+                                                        <th class="w-25">Date début</th>
+                                                        <td>{{ contrat.dateDebut|date('d/m/Y') }}</td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <th>Date fin</th>
+                                                        <td>{{ contrat.dateFin ? contrat.dateFin|date('d/m/Y') : '—' }}</td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <th>Mode facturation</th>
+                                                        <td>{{ contrat.modeFacturation }}</td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <th>TVA</th>
+                                                        <td>{{ contrat.tva ? contrat.tva ~ "%" : "—" }}</td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <th>Remise</th>
+                                                        <td>{{ contrat.remise ? contrat.remise ~ "%" : "—" }}</td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <th>Commentaire</th>
+                                                        <td>{{ contrat.commentaire ?: '—' }}</td>
+                                                    </tr>
+                                                </table>
+
+
+                                                <!-- Types de surveillance -->
+                                                <h6 class="fw-bold text-primary">
+                                                    <i class="fa fa-shield-alt me-1"></i> Types de surveillance
+                                                </h6>
+
+                                                {% if contrat.typesSurveillance is empty %}
+                                                    <div class="alert alert-light">
+                                                        Aucun type de surveillance pour ce contrat.
+                                                    </div>
+                                                {% else %}
+                                                    <table class="table table-sm table-bordered">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Type</th>
+                                                                <th>Tarif</th>
+                                                                <th>Jour</th>
+                                                                <th>Nuit</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for ts in contrat.typesSurveillance %}
+                                                                <tr>
+                                                                    <td>{{ ts.typeSurveillance.nom }}</td>
+                                                                    <td>
+                                                                        {% if contrat.modeFacturation == 'horaire' %}
+                                                                            {{ ts.tarifHoraire|number_format(0, '.', ' ') }} /H
+                                                                        {% else %}
+                                                                            {{ ts.tarifMensuel|number_format(0, '.', ' ') }} /mois
+                                                                        {% endif %}
+                                                                    </td>
+                                                                    <td>{{ ts.nbAgentsJour ?: 0 }}</td>
+                                                                    <td>{{ ts.nbAgentsNuit ?: 0 }}</td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                {% endif %}
+
+
+                                                <!-- Contrats complémentaires -->
+                                                <h6 class="fw-bold text-primary mt-3">
+                                                    <i class="fa fa-file-circle-plus me-1"></i> Contrats complémentaires
+                                                </h6>
+
+                                                {% if contrat.contratComplementaires is empty %}
+                                                    <div class="alert alert-light">
+                                                        Aucun contrat complémentaire.
+                                                    </div>
+                                                {% else %}
+                                                    {% for cc in contrat.contratComplementaires %}
+                                                        <div class="border rounded p-2 mb-2 bg-white">
+                                                            <strong>#{{ cc.id }}</strong> — 
+                                                            {{ cc.dateDebut|date('d/m/Y') }}
+                                                            {% if cc.dateFin %} → {{ cc.dateFin|date('d/m/Y') }}{% endif %}
+                                                            <br>
+                                                            <em>Motif :</em> {{ cc.motif }}
+                                                        </div>
+                                                    {% endfor %}
+                                                {% endif %}
+
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+
+                            </div>
+                        </div>
+
+                    {% endfor %}
+                {% endif %}
+
+            </div>
+
+
+            <div class="col-md-6">
+                {% set moisNoms = [
+                    "Janvier","Février","Mars","Avril","Mai","Juin",
+                    "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+                ] %}
+
+                {% for annee, contrats in paiementsParAnnee %}
+                    <h4 class="mt-4 text-primary border-bottom pb-2">
+                        <i class="fa fa-calendar text-info"></i> Paiements - {{ annee }}
+                    </h4>
+                    {% for contratId, paiementsParMois in contrats %}
+
+                        <h5 class="mt-3 text-secondary">
+                            <i class="fa fa-file-contract text-warning"></i>
+                            Contrat #{{ contratClients[contratId].bien.nom|capitalize }}
+                        </h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-hover text-center align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Mois</th>
+                                        <th>Montant</th>
+                                        <th>Date Paiement</th>
+                                        <th>Facture</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    {% set debutContrat = contratClients[contratId].dateDebut %}
+                                    {% set debutAnnee = debutContrat|date("Y") %}
+                                    {% set debutMois = debutContrat|date("n") %}
+
+                                    {% for mois in 1..12 %}
+
+                                        {# ✔ N'afficher les mois QUE si :
+                                            - année > année de début
+                                            - OU année == année début et mois >= mois début
+                                        #}
+                                        {% if annee > debutAnnee or (annee == debutAnnee and mois >= debutMois) %}
+
+                                            {% set paiementsMois = paiementsParMois[mois] ?? [] %}
+
+                                            {% if paiementsMois is empty %}
+                                                <tr>
+                                                    <td>{{ moisNoms[mois - 1] }}</td>
+                                                    <td colspan="4" class="text-muted">Aucun paiement</td>
+                                                </tr>
+
+                                            {% else %}
+
+                                                {% for detail in paiementsMois %}
+                                                    <tr>
+                                                        <td>{{ moisNoms[mois - 1] }}</td>
+
+                                                        <td class="text-end fw-bold">
+                                                            {{ detail.montant|number_format(0, ',', ' ') }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ detail.paiement.dateOperation|date('d/m/Y') }}
+                                                        </td>
+
+                                                        <td>{{ detail.facture.reference }}</td>
+
+                                                        <td class="d-flex justify-content-center gap-1">
+                                                            <a class="btn btn-sm btn-outline-success"
+                                                            href="{{ path('app_logescom_comptable_paiement_show', {
+                                                                id: detail.paiement.id,
+                                                                site: site.id
+                                                            }) }}">
+                                                                <i class="fa fa-eye"></i>
+                                                            </a>
+
+                                                            <a class="btn btn-sm btn-outline-success"
+                                                            href="{{ path('app_logescom_comptable_paiement_recu_pdf', {
+                                                                id: detail.paiement.id,
+                                                                site: site.id
+                                                            }) }}">
+                                                                <i class="fa fa-file-pdf"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+
+                                            {% endif %}
+
+                                        {% endif %}
+
+                                    {% endfor %}
+
+                                </tbody>
+
+
+
+                            </table>
+                        </div>
+
+                    {% endfor %}
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

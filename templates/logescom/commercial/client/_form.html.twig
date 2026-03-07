@@ -1,0 +1,201 @@
+{{ form_errors(form) }}
+{{ form_start(form) }}
+
+{% set quartier = quartier is not empty 
+    ? (quartier.nom|ucwords ~ " " ~ quartier.divisionLocale.nom|upper) 
+    : "Recherchez une adresse" 
+%}
+
+<!-- ========================================================= -->
+<!-- 🏠 SECTION ADRESSE -->
+<!-- ========================================================= -->
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-header bg-primary text-white fw-bold">
+        <i class="fa fa-map-marker-alt me-2"></i> Adresse du client
+    </div>
+
+    <div class="card-body bg-light">
+        <div class="row g-3">
+
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Adresse <span class="text-danger">*</span></label>
+                <input type="text" id="search_adresse" name="search"
+                       placeholder="{{ quartier }}"
+                       class="form-control fw-bold">
+                <div id="result-search"
+                     class="bg-white text-danger fw-bold px-2 py-1 mt-1 rounded small">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                {{ form_row(form.complementAdresse) }}
+            </div>
+
+            <div class="col-md-2">
+                {{ form_row(form.modeFacturation) }}
+            </div>
+            <div class="col-md-3">
+                {{ form_row(form.site) }}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================= -->
+<!-- 👤 SECTION INFORMATIONS PERSONNELLES -->
+<!-- ========================================================= -->
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-header bg-secondary text-white fw-bold">
+        <i class="fa fa-id-card me-2"></i> Informations personnelles
+    </div>
+
+    <div class="card-body bg-light">
+
+        <div class="row g-3">
+            <div class="col-md-2">{{ form_row(form.societe) }}</div>
+            <div class="col-md-2">{{ form_row(form.reference) }}</div>
+            <div class="col-md-2">{{ form_row(form.nom) }}</div>
+            <div class="col-md-3">{{ form_row(form.prenom) }}</div>
+            <div class="col-md-3">{{ form_row(form.telephone) }}</div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-md-3">{{ form_row(form.email) }}</div>
+            <div class="col-md-2">{{ form_row(form.sexe) }}</div>
+            <div class="col-md-2">{{ form_row(form.dateNaissance) }}</div>
+            <div class="col-md-3">{{ form_row(form.username) }}</div>
+            <div class="col-md-2">{{ form_row(form.password) }}</div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================================= -->
+<!-- 👪 SECTION FILIATION -->
+<!-- ========================================================= -->
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-header bg-info text-white fw-bold">
+        <i class="fa fa-users me-2"></i> Filiation familiale
+    </div>
+
+    <div class="card-body bg-light">
+        <div class="row g-3">
+            <div class="col-md-4">{{ form_row(form.nomPere) }}</div>
+            <div class="col-md-4">{{ form_row(form.nomMere) }}</div>
+            <div class="col-md-4">{{ form_row(form.telephoneParent) }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================= -->
+<!-- 📎 SECTION DOCUMENTS -->
+<!-- ========================================================= -->
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-header bg-dark text-white fw-bold">
+        <i class="fa fa-file-alt me-2"></i> Documents & Médias
+    </div>
+
+    <div class="card-body bg-light">
+
+        <div class="row g-3">
+
+            <div class="col-md-4">
+                {{ form_row(form.photo) }}
+            </div>
+
+            <div class="col-md-8">
+
+                <label class="form-label fw-bold mb-2">Documents joints</label>
+
+                <div class="document-collection"
+                     data-prototype="
+                        <div class='document-item d-flex align-items-center gap-2 p-2 mb-2 bg-light border rounded'>
+                            <div class='flex-fill'>
+                                {{ form_widget(form.documentUsers.vars.prototype.titre)|e('html_attr') }}
+                            </div>
+                            <div class='flex-fill'>
+                                {{ form_widget(form.documentUsers.vars.prototype.fichier)|e('html_attr') }}
+                            </div>
+                            <button type='button' class='btn btn-danger btn-sm remove-doc'>🗑</button>
+                        </div>
+                     ">
+
+                    {% for doc in form.documentUsers %}
+                        <div class="document-item d-flex align-items-center gap-2 p-2 mb-2 bg-light border rounded">
+                            <div class="flex-fill">{{ form_widget(doc.titre) }}</div>
+                            <div class="flex-fill">{{ form_widget(doc.fichier) }}</div>
+                            <button type="button" class="btn btn-danger btn-sm remove-doc">🗑</button>
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+                <button type="button" class="btn btn-success btn-sm mt-2 add-doc">
+                    ➕ Ajouter un document
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================================= -->
+<!-- ✅ VALIDATION -->
+<!-- ========================================================= -->
+<div class="text-end mt-3">
+    <button class="btn btn-success px-4 py-2">
+        <i class="fa fa-save me-2"></i> {{ button_label|default('Enregistrer') }}
+    </button>
+</div>
+
+
+
+
+<!-- ========================================================= -->
+<!-- 📌 JAVASCRIPT DOCUMENTS DYNAMIQUES -->
+<!-- ========================================================= -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const holder = document.querySelector('.document-collection');
+    const addBtn = document.querySelector('.add-doc');
+
+    holder.dataset.index = holder.querySelectorAll('.document-item').length;
+
+    addBtn.addEventListener('click', () => {
+        let index = holder.dataset.index;
+        let proto = holder.dataset.prototype.replace(/__name__/g, index);
+
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = proto.trim();
+        const item = wrapper.firstElementChild;
+
+        item.querySelector('.remove-doc').addEventListener('click', () => {
+            item.remove();
+        });
+
+        holder.appendChild(item);
+
+        holder.dataset.index++;
+    });
+
+    document.querySelectorAll('.remove-doc').forEach(btn => {
+        btn.addEventListener('click', function () {
+            this.closest('.document-item').remove();
+        });
+    });
+
+});
+</script>
+
+{{ form_end(form) }}
+
+{% block autres %}
+
+<script>
+    const newQuartierUrl = "{{ path('app_logescom_commercial_client_adresse_ajax', { site: site.id }) }}";
+</script>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends 'base_rh.html.twig' %}
+
+{% block title %}Fiche du personnel – {{ personel.nomCompletUser }}{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+
+            <!-- 🧾 En-tête -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fa fa-user-tie me-2"></i> Fiche du personnel
+                    </h5>
+                    {% if personel.photo %}
+                        <img src="{{ asset(chemin_images_personnels ~ personel.photo) }}" 
+                             alt="Photo de {{ personel.nomCompletUser }}" 
+                             class="rounded-circle border border-light"
+                             style="height: 70px; width: 70px; object-fit: cover;">
+                    {% endif %}
+                </div>
+
+                <div class="card-body bg-light">
+                    <!-- 🔹 Informations principales -->
+                    <div class="border-bottom mb-3 pb-2 d-flex justify-content-between align-items-center">
+                        <h6 class="text-primary mb-0"><i class="fa fa-id-badge me-1"></i> Informations personnelles</h6>
+                        <span class="badge bg-{{ personel.statut == 'actif' ? 'success' : 'secondary' }}">
+                            {{ personel.statut|capitalize }}
+                        </span>
+                    </div>
+
+                    <table class="table table-sm table-borderless mb-4">
+                        <tr>
+                            <th class="w-25 text-muted">Nom complet</th>
+                            <td class="fw-semibold">{{ personel.nomCompletUser }}</td>
+                        </tr>
+                        <tr>
+                            <th class="w-25 text-muted">Zones de rattachement</th>
+                            <td class="fw-semibold">
+                                {% if personel.zoneRattachement|length > 0 %}
+                                    {% for zone in personel.zoneRattachement %}
+                                        <span class="badge bg-primary">{{ zone.nom }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="w-25 text-muted">Dernière Affectation</th>
+                            <td>
+                                {% if personel.affectationAgentPersonnels is not empty %}
+                                    {% set derniereAffectation = personel.affectationAgentPersonnels|last %}
+
+                                    {% if derniereAffectation %}
+                                        <i class="fa fa-map-marker-alt me-1"></i>
+                                        {{ derniereAffectation.contrat.bien.nom ?? 'Affectation en cours' }}
+                                        
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th class="text-muted">Fonction</th>
+                            <td>{{ personel.fonction|capitalize }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Téléphone</th>
+                            <td><i class="fa fa-phone-alt me-1 text-muted"></i>{{ personel.telephone ?: 'Non renseigné' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Email</th>
+                            <td><i class="fa fa-envelope me-1 text-muted"></i>{{ personel.email ?: 'Non renseigné' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Référence</th>
+                            <td>{{ personel.reference ?: '—' }}</td>
+                        </tr>
+                    </table>
+
+
+
+                    <!-- 🔹 Adresse du personnel -->
+                    <div class="border-bottom mb-3 pb-2">
+                        <h6 class="text-primary mb-0">
+                            <i class="fa fa-map-marker-alt me-1"></i> Adresse du personnel
+                        </h6>
+                    </div>
+
+                    <table class="table table-sm table-borderless mb-4">
+
+                        <tr>
+                            <th class="w-25 text-muted">Adresse</th>
+                            <td>
+                                {% if personel.adresse %}
+                                    {{ personel.adresse.nom|default('—') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="text-muted">Region</th>
+                            <td>
+                                {% if personel.adresse and personel.adresse.divisionLocale %}
+                                    {{ personel.adresse.divisionLocale.region.nom|capitalize }}
+
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+
+
+                    <!-- 💼 Détails professionnels -->
+                    <h6 class="text-primary mt-4 mb-3 border-bottom pb-2">
+                        <i class="fa fa-briefcase me-1"></i> Détails professionnels
+                    </h6>
+                    <table class="table table-sm table-borderless mb-4">
+                        <tr>
+                            <th class="w-25 text-muted">Nom d’utilisateur</th>
+                            <td>{{ personel.username ?: '—' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Niveau d’accès</th>
+                            <td>{{ personel.roles ? personel|autorisations : '—' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Date d’embauche</th>
+                            <td>{{ personel.dateEmbauche ? personel.dateEmbauche|date('d/m/Y') : 'Non renseignée' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Taux horaire</th>
+                            <td>{{ personel.tauxHoraire ? personel.tauxHoraire|number_format(0, '.', ' ') ~ ' GNF' : '—' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Salaire de base</th>
+                            <td>{{ personel.salaireBase ? personel.salaireBase|number_format(0, '.', ' ') ~ ' GNF' : '—' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Rattachement</th>
+                            <td>
+                                {% if personel.site is not empty %}
+                                    <ul class="mb-0">
+                                        {% for s in personel.site %}
+                                            <li><i class="fa fa-map-marker-alt me-1 text-muted"></i>{{ s.nom }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <span class="text-muted">Aucun site rattaché</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- 📎 Documents -->
+                    <h6 class="text-primary mt-4 mb-3 border-bottom pb-2">
+                        <i class="fa fa-file-alt me-1"></i> Documents officiels
+                    </h6>
+
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body">
+
+                            {% if personel.documentUsers|length > 0 %}
+                                <ul class="list-group">
+                                    {% for doc in personel.documentUsers %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            
+                                            <div>
+                                                <strong>{{ doc.titre|capitalize }}</strong>
+                                                {% if doc.fichier %}
+                                                    <br>
+                                                    <small class="text-muted">{{ doc.fichier }}</small>
+                                                {% endif %}
+                                            </div>
+
+                                            {% if doc.fichier %}
+                                                <a href="{{ asset(chemin_images_personnels ~ doc.fichier) }}"
+                                                target="_blank"
+                                                class="btn btn-sm btn-outline-primary">
+                                                    <i class="fa fa-eye"></i> Voir
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted fst-italic">Aucun fichier</span>
+                                            {% endif %}
+
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted mb-0">Aucun document joint.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+
+
+                    <!-- ✒ Signature -->
+                    <h6 class="text-primary mt-4 mb-3 border-bottom pb-2">
+                        <i class="fa fa-signature me-1"></i> Signature
+                    </h6>
+
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+
+                            {% if personel.signature %}
+                                {% if personel.signature matches '/\.(jpg|jpeg|png)$/i' %}
+                                    <img src="{{ asset(chemin_images_personnels ~ personel.signature) }}"
+                                        alt="Signature"
+                                        class="border rounded shadow-sm p-2 bg-white"
+                                        style="max-height: 80px;">
+                                {% else %}
+                                    <a href="{{ asset(chemin_images_personnels ~ personel.signature) }}"
+                                    target="_blank"
+                                    class="btn btn-sm btn-outline-primary">
+                                        <i class="fa fa-file"></i> Télécharger la signature
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <p class="text-muted mb-0">Aucune signature enregistrée.</p>
+                            {% endif %}
+
+                        </div>
+                    </div>
+
+
+                    <!-- 🔘 Boutons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ path('app_logescom_rh_personel_index', {site : site.id}) }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fa fa-arrow-left me-1"></i> Retour
+                        </a>
+
+                        <div class="d-flex gap-2">
+                            <a href="{{ path('app_logescom_rh_personel_edit', {'id': personel.id, site : site.id}) }}" 
+                               class="btn btn-warning">
+                                <i class="fa fa-edit me-1"></i> Modifier
+                            </a>
+                            {{ include('logescom/rh/personel/_delete_form.html.twig') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

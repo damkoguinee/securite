@@ -1,0 +1,132 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}🔁 Permutation d’agents{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-lg border-0 mb-4">
+
+        {# ===================== HEADER ===================== #}
+        <div class="card-header bg-warning text-dark py-3 px-4">
+            <h5 class="mb-0">
+                <i class="fa fa-right-left me-2"></i>
+                Permutation d’agents
+            </h5>
+        </div>
+
+        <div class="card-body bg-light p-4">
+
+            {# ===================== CONTEXTE SOURCE ===================== #}
+            <div class="alert alert-secondary mb-4">
+                <div class="fw-semibold mb-1">
+                    <i class="fa fa-user me-1"></i>
+                    Agent source
+                </div>
+                <div>
+                    {{ affectation_source.personnel.nomCompletUser }}
+                    — <span class="text-muted">
+                        {{ affectation_source.contrat.bien.nom }}
+                    </span>
+                </div>
+                <div class="small text-muted">
+                    Date de référence :
+                    {{ affectation_source.dateOperation|date('d/m/Y') }}
+                </div>
+            </div>
+
+            {# ===================== EXPLICATION ===================== #}
+            <div class="alert alert-warning small mb-4">
+                <i class="fa fa-circle-info me-1"></i>
+                <strong>Permutation</strong> :
+                les agents échangent leurs créneaux respectifs sur la période choisie.
+                <br>
+                <span class="text-muted">
+                    Aucun créneau n’est supprimé, l’historique est conservé.
+                </span>
+            </div>
+
+            {# ===================== FORM ===================== #}
+            {{ form_start(form) }}
+
+            <div class="row">
+                {# ===================== RECHERCHE AGENT ===================== #}
+                <div class="col-md-4">
+                    <label class="fw-semibold mb-1">
+                        🔍 Rechercher un agent
+                    </label>
+
+                    <div class="position-relative">
+                        <input type="text"
+                            id="search_client"
+                            class="form-control form-control-sm rounded-pill ps-4 shadow-sm"
+                            placeholder="Nom, téléphone…">
+
+                        <div id="result-search"
+                            class="list-group position-absolute w-100 shadow-sm bg-info"
+                            style="z-index: 1050;">
+                        </div>
+                    </div>
+
+                    <small class="text-muted">
+                        Tapez pour filtrer la liste des agents
+                    </small>
+                </div>
+
+                {# ===================== SELECT NOUVEL AGENT ===================== #}
+                <div class="col-md-4">
+                    {{ form_row(form.personnel, {
+                        label: '👮‍♂️ Nouvel agent',
+                        attr: {
+                            class: 'form-select shadow-sm'
+                        }
+                    }) }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 ">
+                    {{ form_row(form.dateDebutPermutation, {
+                        label: '📅 Début de la permutation'
+                    }) }}
+                </div>
+
+                <div class="col-md-3 ">
+                    {{ form_row(form.dateFinPermutation, {
+                        label: '📅 Fin de la permutation'
+                    }) }}
+                </div>
+                <div class="col-md-6 ">
+                    {{ form_row(form.commentaire, {
+                        label: '💬 Commentaire (optionnel)'
+                    }) }}
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            {# ===================== ACTIONS ===================== #}
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{{ path(
+                    'app_logescom_operation_affectation_agent_index',
+                    { site: site.id }
+                ) }}"
+                   class="btn btn-outline-secondary">
+                    <i class="fa fa-arrow-left me-1"></i>
+                    Annuler
+                </a>
+
+                <button class="btn btn-warning px-4">
+                    <i class="fa fa-right-left me-1"></i>
+                    Confirmer la permutation
+                </button>
+            </div>
+
+            {{ form_end(form) }}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

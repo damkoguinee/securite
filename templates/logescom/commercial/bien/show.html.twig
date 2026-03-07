@@ -1,0 +1,252 @@
+{% extends 'base_site.html.twig' %}
+
+{% block title %}Détail du site – {{ bien.nom|capitalize }}{% endblock %}
+
+{% block presentation %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-sm-12 col-10">
+            {% include "_common/_messages_flash.html.twig" %}
+
+            <!-- 🏠 Détail du site -->
+            <div class="card border-0 shadow-lg rounded-3 mb-4">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fa fa-building me-2"></i>Détail du site</h5>
+                    <span class="badge bg-{{ bien.statut == 'actif' ? 'success' : 'secondary' }}">
+                        {{ bien.statut|capitalize }}
+                    </span>
+                </div>
+
+                <div class="card-body bg-light">
+
+                    <!-- ============================ -->
+                    <!-- 🧾 Informations principales -->
+                    <!-- ============================ -->
+                    <div class="mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fa fa-info-circle me-2"></i> Informations principales
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tr><th class="text-muted">Zone du site</th><td>{{ bien.zoneRattachement is not null ? bien.zoneRattachement.nom|upper : '' }}</td></tr>
+                                    <tr><th class="text-muted">Nom du site</th><td>{{ bien.nom|capitalize }}</td></tr>
+                                    <tr><th class="text-muted">Type de bien</th><td>{{ bien.typeBien.nom|capitalize }}</td></tr>
+                                    <tr><th class="text-muted">Description</th><td>{{ bien.description|default('-') }}</td></tr>
+                                    <tr><th class="text-muted">Créé le</th><td>{{ bien.createdAt ? bien.createdAt|date('d/m/Y H:i') : 'N/A' }}</td></tr>
+                                </table>
+                            </div>
+
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless mb-0">
+
+                                    <tr><th class="text-muted">Latitude</th><td>{{ bien.latitude|default('—') }}</td></tr>
+                                    <tr><th class="text-muted">Longitude</th><td>{{ bien.longitude|default('—') }}</td></tr>
+                                    <tr><th class="text-muted">Site</th><td>{{ bien.site.nom|default('N/A') }}</td></tr>
+
+                                    {# 🔍 Zone (si existe) #}
+                                    {# <tr>
+                                        <th class="text-muted">Zone</th>
+                                        <td>
+                                            {% if bien.adresse and bien.adresse.zone %}
+                                                {{ bien.adresse.zone.nom|capitalize }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                    </tr> #}
+
+                                    {# 🔍 Division locale #}
+                                    <tr>
+                                        <th class="text-muted">Division locale</th>
+                                        <td>
+                                            {% if bien.adresse and bien.adresse.divisionLocale %}
+                                                {{ bien.adresse.divisionLocale.nom|capitalize }}
+                                                {% if bien.adresse.divisionLocale.type %}
+                                                    <span class="text-muted">({{ bien.adresse.divisionLocale.type }})</span>
+                                                {% endif %}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    {# 🔍 Division parente (région administrative) #}
+                                    <tr>
+                                        <th class="text-muted">Région administrative</th>
+                                        <td>
+                                            {% set parent = bien.adresse.divisionLocale.parent ?? null %}
+                                            {% if parent %}
+                                                {{ parent.nom|capitalize }}
+                                                {% if parent.type %}
+                                                    <span class="text-muted">({{ parent.type }})</span>
+                                                {% endif %}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th class="text-muted">Adresse</th>
+                                        <td>{{ bien.adresse.nom|default('N/A') }}</td>
+                                    </tr>
+
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ============================ -->
+                    <!-- 👤 Informations propriétaires -->
+                    <!-- ============================ -->
+                    <div class="mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fa fa-user-tie me-2"></i> Informations client & gestion
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled lh-sm mb-0">
+                                    <li><strong>Propriétaire :</strong> {{ bien.client.nomComplet|default('N/A') }}</li>
+                                    <li><strong>Téléphone :</strong> {{ bien.client.telephone|default('-') }}</li>
+                                    <li><strong>Email :</strong> {{ bien.client.email ?: 'Non renseigné' }}</li>
+                                </ul>
+                            </div>
+                            {# <div class="col-md-6">
+                                <ul class="list-unstyled lh-sm mb-0">
+                                    <li><strong>Gestionnaire :</strong> {{ bien.adresse.gestionnaire ? bien.adresse.gestionnaire.nomComplet : 'Non assigné' }}</li>
+                                    <li><strong>Contact gestionnaire :</strong> {{ bien.adresse.gestionnaire ? bien.adresse.gestionnaire.telephone : '-' }}</li>
+                                </ul>
+                            </div> #}
+                        </div>
+                    </div>
+
+                    <!-- ============================ -->
+                    <!-- 🔐 Contrats de surveillance -->
+                    <!-- ============================ -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                            <h6 class="text-primary mb-0">
+                                <i class="fa fa-shield-alt me-2"></i> Contrats de surveillance
+                            </h6>
+                            <a href="{{path("app_logescom_commercial_contrat_surveillance_new", {site : site.id, bien : bien.id})}}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fa fa-plus-circle me-1"></i> Ajouter un contrat
+                            </a>
+                        </div>
+
+                        {% if bien.contratSurveillances|length > 0 %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm align-middle shadow-sm">
+                                    <thead class="table-light text-center">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Type de surveillance</th>
+                                            <th>Date début</th>
+                                            <th>Date fin</th>
+                                            <th>Mode facturation</th>
+                                            <th>Statut</th>
+                                            <th>Tarif</th>
+                                            <th>Nb agents</th>
+                                            <th>Heures/agent</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for contrat in bien.contratSurveillances %}
+                                            {% for ts in contrat.typesSurveillance %}
+                                                <tr class="text-center">
+
+                                                    {# Ligne index global (contrat + types) #}
+                                                    <td>{{ loop.parent.loop.index }}.{{ loop.index }}</td>
+
+                                                    {# Type de surveillance #}
+                                                    <td>{{ ts.typeSurveillance.nom|default('—') }}</td>
+
+                                                    {# Dates #}
+                                                    <td>{{ contrat.dateDebut ? contrat.dateDebut|date('d/m/Y') : '—' }}</td>
+                                                    <td>{{ contrat.dateFin ? contrat.dateFin|date('d/m/Y') : '—' }}</td>
+
+                                                    {# Mode de facturation #}
+                                                    <td>{{ contrat.modeFacturation|capitalize }}</td>
+
+                                                    {# Statut #}
+                                                    <td>
+                                                        <span class="badge bg-{{ contrat.statut == 'actif' ? 'success' : 'secondary' }}">
+                                                            {{ contrat.statut|capitalize }}
+                                                        </span>
+                                                    </td>
+
+                                                    {# Tarification selon le mode #}
+                                                    <td class="text-end">
+                                                        {% if contrat.modeFacturation == 'horaire' %}
+                                                            {{ ts.tarifHoraire|number_format(0, ',', ' ') }} / heure
+
+                                                        {% elseif contrat.modeFacturation == 'mensuel' %}
+                                                            {{ ts.tarifMensuel|number_format(0, ',', ' ') }} / mois
+
+                                                        {% elseif contrat.modeFacturation == 'forfait' %}
+                                                            {{ ts.tarifForfait|number_format(0, ',', ' ') }}
+
+                                                        {% else %}
+                                                            —
+                                                        {% endif %}
+                                                    </td>
+
+                                                    {# Agents #}
+                                                    <td>
+                                                        J: {{ ts.nbAgentsJour|default(0) }} /
+                                                        N: {{ ts.nbAgentsNuit|default(0) }}
+                                                    </td>
+
+                                                    {# Heures par agent #}
+                                                    <td>{{ ts.heureParAgent|default('—') }}</td>
+
+                                                    {# Bouton voir #}
+                                                    <td>
+                                                        <a href="{{ path('app_logescom_commercial_contrat_surveillance_show', {
+                                                            id: contrat.id,
+                                                            site: site.id
+                                                        }) }}"
+                                                        class="btn btn-sm btn-outline-success" title="Voir">
+                                                            <i class="fa fa-eye"></i>
+                                                        </a>
+                                                    </td>
+
+                                                </tr>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </tbody>
+
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-secondary text-center py-3">
+                                <i class="fas fa-info-circle me-1"></i> Aucun contrat de surveillance enregistré pour ce site.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ============================ -->
+                    <!-- 🔙 Boutons d’action -->
+                    <!-- ============================ -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a class="btn btn-outline-secondary" href="{{ path('app_logescom_commercial_bien_index', {'site': site.id}) }}">
+                            <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+                        </a>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-outline-warning" 
+                               href="{{ path('app_logescom_commercial_bien_edit', {'id': bien.id, 'site': site.id}) }}">
+                                <i class="fa fa-edit me-1"></i> Modifier
+                            </a>
+                            {{ include('logescom/commercial/bien/_delete_form.html.twig') }}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

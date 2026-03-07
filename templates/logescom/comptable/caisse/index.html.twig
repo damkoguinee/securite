@@ -1,0 +1,323 @@
+{% extends 'base_comptable.html.twig' %}
+{% block title %}📊 Relevé des caisses{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    {% include "logescom/comptable/caisse/_nav_caisse.html.twig" %}
+
+    <div class="col-sm-12 col-md-10 m-0 p-0">
+        {% include "_common/_messages_flash.html.twig" %}
+
+        {% if app.request.query.has('date1') %}
+            {% set date1 = app.request.query.get('date1') %}
+            {% set date2 = app.request.query.get('date2') %}
+        {% else %}
+            {% set date1 = "now"|date("Y-01-01") %}
+            {% set date2 = "now"|date("Y-m-d") %}
+        {% endif %}
+
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header bg-info text-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center">
+                <h5 class="mb-2 mb-md-0">
+                    <i class="fa fa-cash-register text-warning me-2"></i>
+                    Relevé des caisses — du {{ date1|date("d/m/Y") }} au {{ date2|date("d/m/Y") }}
+                </h5>
+
+                <form class="form-filters d-flex flex-wrap align-items-center justify-content-end gap-2">
+                    <input type="date" name="date1" value="{{ date1 }}" class="form-control form-control-sm shadow-sm rounded-pill" onchange="this.form.submit()">
+                    <input type="date" name="date2" value="{{ date2 }}" class="form-control form-control-sm shadow-sm rounded-pill" onchange="this.form.submit()">
+
+                    <select name="search_devise" class="form-select form-select-sm shadow-sm rounded-pill" onchange="this.form.submit()">
+                        {% if search_devise is not empty %}
+                            <option value="{{ search_devise.id }}">{{ search_devise.nom|upper }}</option>
+                        {% endif %}
+                        {% for devise in devises %}
+                            <option value="{{ devise.id }}">{{ devise.nom|upper }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="search_caisse" class="form-select form-select-sm shadow-sm rounded-pill" onchange="this.form.submit()">
+                        {% for caisse in liste_caisse %}
+                            <option value="{{ caisse.id }}" {% if caisse.id == app.request.get('search_caisse') %}selected{% endif %}>
+                                {{ caisse.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    {% if is_granted('ROLE_RESPONSABLE') %}
+                        <a href="{{ path('app_logescom_excel_excel_mouvement_caisse') }}" class="btn btn-sm btn-outline-success rounded-pill shadow-sm" title="Exporter Excel">
+                            <i class="fa fa-file-excel"></i>
+                        </a>
+                        <a target="_blank"
+                        href="{{ path('app_logescom_comptable_caisse_releve_pdf', {
+                                site: site.id,
+                                date1: date1,
+                                date2: date2,
+                                search_devise: search_devise.id,
+                                search_caisse: search_caisse.id
+                        }) }}"
+                        class="btn btn-sm btn-outline-danger rounded-pill shadow-sm" title="Imprimer PDF">
+                            <i class="fa fa-file-pdf"></i>
+                        </a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="card-body px-0">
+                <div class="table-responsive">
+                    <table class="table  table-bordered table-hover align-middle mb-0">
+                        <thead class="table-info text-center align-middle sticky-top shadow-sm">
+                            <tr class="bg-secondary text-white">
+                                <th colspan="9" class='bg-info text-white'>
+                                    <div class="d-flex justify-content-between fw-semibold">
+                                        <span>
+                                            💼 Solde Général :
+                                            {{ search_devise.id == 1
+                                                ? solde_general|number_format(0,',',' ')
+                                                : solde_general|number_format(2,',',' ') }}
+                                            {{ search_devise.nom|upper }}
+                                        </span>
+                                        <span>
+                                            🏦 Solde Sélection :
+                                            {{ search_devise.id == 1
+                                                ? solde_selection|number_format(0,',',' ')
+                                                : solde_selection|number_format(2,',',' ') }}
+                                            {{ search_devise.nom|upper }}
+                                        </span>
+                                    </div>
+                                </th>
+                            </tr>
+                            <tr class="bg-info">
+                                <th class='bg-info text-white'>N°</th>
+                                <th class='bg-info text-white'>Date de saisie</th>
+                                <th class='bg-info text-white'>Référence</th>
+                                <th class='bg-info text-white'>Description</th>
+                                <th class='bg-info text-white'>Date Op</th>
+                                <th class='bg-info text-white'>Saisie Par</th>
+                                <th class="bg-success">Débit</th>
+                                <th class="bg-danger">Crédit</th>
+                                <th class='bg-info text-white'>Solde</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% set cumulDebiter = 0 %}
+                            {% set cumulCrediter = 0 %}
+                            {% set cumul = 0 %}
+
+                            <tr class="fw-semibold text-end bg-light">
+                                <td colspan="8" class="text-start ps-3">Solde initial au {{ date1|date("d/m/Y") }}</td>
+                                <td>{{ search_devise.id == 1 ? solde_initial|number_format(0,',',' ') : solde_initial|number_format(2,',',' ') }}</td>
+                            </tr>
+
+                            {% for key, operation in operations.data %}
+                                {% if key == 0 %}
+                                    {% set cumul = cumul + operation.montant + solde_initial %}
+                                {% else %}
+                                    {% set cumul = cumul + operation.montant %}
+                                {% endif %}
+
+                                <tr>
+                                    <td class="text-center">{{ key + 1 }}</td>
+                                    <td class="text-center">{{ operation.dateSaisie|date("d/m/Y à H:i") }}</td>
+
+                                    {# ====== Type de mouvement ====== #}
+                                    {% if operation.typeMouvement == "facturation" %}
+                                        <td>{{ operation.reference|upper }}</td>
+                                        <td>
+                                            Facturation N° {{ operation.reference|upper }}
+                                            {% if operation.collaborateur %}
+                                                <br>
+                                                {% set collab = operation.collaborateur %}
+                                                {% if collab.typeUser == 'client' %}
+                                                    {{ collab.societe is not empty 
+                                                        ? collab.societe|upper 
+                                                        : (collab.prenom|capitalize ~ ' ' ~ collab.nom|upper) }}
+                                                {% elseif collab.typeUser == 'personnel' %}
+                                                    {{ collab.prenom|capitalize ~ ' ' ~ collab.nom|upper }}
+                                                {% endif %}
+                                            {% endif %}
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_vente_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+
+                                    {% elseif operation.typeMouvement == "salaire" %}
+                                        <td>{{ operation.id }}</td>
+                                        <td>
+                                            Paiement salaire {{ operation.periode|date('m/Y') }}
+                                            <br>
+                                            {{ operation.personnel ? operation.personnel.prenom|ucwords ~ " " ~ operation.personnel.nom|upper : '' }}
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_comptable_salaires_personnel_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+                                    {% elseif operation.typeMouvement == "depense" %}
+                                        <td>{{ operation.id }}</td>
+                                        <td>
+                                            Dépense — {{ operation.commentaire|capitalize }}
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_comptable_sorties_depense_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+                                    {% elseif operation.typeMouvement == "decaissement" %}
+                                        <td>{{ operation.reference }}</td>
+                                        <td>
+                                            Décaissement — {{ operation.commentaire|capitalize }}
+                                            {% if operation.collaborateur %}
+                                                <br>
+                                                {% set collab = operation.collaborateur %}
+                                                {{ collab.societe ?: collab.prenom|capitalize ~ ' ' ~ collab.nom|upper }}
+                                            {% endif %}
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_comptable_sorties_decaissement_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+                                    {% elseif operation.typeMouvement == "avance salaire" %}
+                                        <td>{{ operation.id }}</td>
+                                        <td>
+                                            Avance salaire {{ operation.periode|date('m/Y') }}
+                                            <br>
+                                            {{ operation.personnel ? operation.personnel.prenom|ucwords ~ " " ~ operation.personnel.nom|upper : '' }}
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_comptable_avance_salaire_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+                                    {% elseif operation.typeMouvement == "versement" %}
+                                        <td>{{ operation.reference }}</td>
+                                        <td>
+                                            Versement — {{ operation.commentaire|capitalize }}
+                                            {% if operation.collaborateur %}
+                                                <br>
+                                                {% set collab = operation.collaborateur %}
+                                                {% if collab.typeUser == 'client' %}
+                                                    {{ collab.societe is not empty 
+                                                        ? collab.societe|upper 
+                                                        : (collab.prenom|capitalize ~ ' ' ~ collab.nom|upper) }}
+                                                {% elseif collab.typeUser == 'personnel' %}
+                                                    {{ collab.prenom|capitalize ~ ' ' ~ collab.nom|upper }}
+                                                {% endif %}
+                                            {% endif %}
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_comptable_entrees_versement_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+
+                                    {% elseif operation.typeMouvement == "transfert" %}
+                                        <td>{{ operation.reference }}</td>
+                                        <td>
+                                            Transfert de fonds — {{ operation.commentaire|capitalize }}
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_comptable_caisse_transfert_fond_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+                                    {% elseif operation.typeMouvement == "echange" %}
+                                        <td>{{ operation.id }}</td>
+                                        <td>
+                                            Échange devise — {{ operation.commentaire|capitalize }}
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_caisse_echange_devise_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+                                    {% elseif operation.typeMouvement == "cloture" %}
+                                        <td>{{ operation.id }}</td>
+                                        <td>
+                                            Clôture de caisse
+                                            <a class="btn btn-light btn-sm text-start"
+                                            href="{{ path('app_logescom_bilan_cloture_show', { id: operation.id, site: site.id }) }}">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+
+                                    {% else %}
+                                        <td>—</td>
+                                        <td>
+                                            Autre opération — {{ operation.typeMouvement }}
+                                            <a class="btn btn-light btn-sm text-start" href="#">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    {% endif %}
+
+                                    <td class="text-center">{{ operation.dateOperation|date("d/m/Y à H:i") }}</td>
+                                    <td>{{ operation.saisiePar ? operation.saisiePar.prenom|capitalize ~ " " ~ operation.saisiePar.nom|upper : '' }}</td>
+
+                                    {% if operation.montant > 0 %}
+                                        {% set cumulCrediter = cumulCrediter + operation.montant %}
+                                        <td>—</td>
+                                        <td class="text-end text-success fw-bold text-nowrap">
+                                            {{ search_devise.id == 1 ? operation.montant|number_format(0,',',' ') : operation.montant|number_format(2,',',' ') }}
+                                        </td>
+                                    {% else %}
+                                        {% set cumulDebiter = cumulDebiter + operation.montant %}
+                                        <td class="text-end text-danger fw-bold text-nowrap">
+                                            {{ search_devise.id == 1 ? (-operation.montant)|number_format(0,',',' ') : (-operation.montant)|number_format(2,',',' ') }}
+                                        </td>
+                                        <td>—</td>
+                                    {% endif %}
+
+                                    <td class="text-end fw-semibold text-nowrap">
+                                        {{ search_devise.id == 1 ? cumul|number_format(0,',',' ') : cumul|number_format(2,',',' ') }}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        <i class="fa fa-info-circle me-1"></i> Aucune opération trouvée.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+
+                        </tbody>
+
+                        <tfoot>
+                            <tr class="bg-dark text-white fw-bold text-end">
+                                <td colspan="6" class="text-start ps-3">Totaux</td>
+                                <td class="text-nowrap">{{ search_devise.id == 1 ? (-cumulDebiter)|number_format(0,',',' ') : (-cumulDebiter)|number_format(2,',',' ') }}</td>
+                                <td class="text-nowrap">{{ search_devise.id == 1 ? (cumulCrediter)|number_format(0,',',' ') : (cumulCrediter)|number_format(2,',',' ') }}</td>
+                                <td class="text-nowrap">—</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table td, .table th { vertical-align: middle !important; font-size: 0.92rem; }
+.table-hover tbody tr:hover { background-color: #f5f9ff !important; }
+.table th { white-space: nowrap; }
+.btn-light.btn-sm i { color: #0d6efd; }
+
+.form-filters {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .5rem;
+}
+.form-filters .form-control,
+.form-filters .form-select {
+  width: auto;
+  min-width: 130px;
+}
+</style>
+{% endblock %}

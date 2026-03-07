@@ -1,0 +1,22 @@
+{# logescom/comptable/paiement/_delete_form.html.twig #}
+
+{% set iconOnly = iconOnly is defined ? iconOnly : false %}
+
+<form method="post"
+      action="{{ path('app_logescom_comptable_paiement_confirm_delete', {'id': paiement.id}) }}"
+      onsubmit="return confirm('Voulez-vous vraiment supprimer ce paiement ?');"
+      class="d-inline">
+
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ paiement.id) }}">
+
+    {% if iconOnly %}
+        <!-- Bouton icône seule -->
+        <button class="btn btn-outline-danger btn-sm" title="Supprimer">
+            <i class="fa fa-trash"></i>
+        </button>
+    {% else %}
+        <!-- Bouton complet -->
+        
+        <button class="btn btn-danger">Supprimer</button>
+    {% endif %}
+</form>

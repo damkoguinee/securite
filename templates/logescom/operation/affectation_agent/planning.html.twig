@@ -1,0 +1,166 @@
+{% extends 'base_calendar.html.twig' %}
+{% block title %}📅 Planning des agents{% endblock %}
+
+{% block presentation %}
+<div class="row m-0 p-0">
+    <style>
+        #calendar {
+            height: 90vh;
+        }
+        #filterForm {
+            max-width: 700px;
+            margin: 10px auto;
+        }
+        select.form-select {
+            min-width: 200px;
+        }
+    </style>
+
+    <!-- 🔙 Bouton retour + filtres -->
+    <div class="col-12 d-flex justify-content-between align-items-center flex-wrap my-3">
+        <div class="mt-2">
+            <a href="{{path('app_logescom_operation_affectation_agent_index', {'site': site.id}) }}" 
+               class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left"></i> Retour
+            </a>
+        </div>
+
+        <!-- 🔍 Filtres agent + contrat -->
+        <form id="filterForm" method="get" class="d-flex align-items-center justify-content-center flex-wrap gap-3 my-2">
+
+            <!-- Sélecteur Agent -->
+            <div class="flex-grow-1" style="min-width: 220px;">
+                <select id="selectPersonnel" name="searchpersonnel" 
+                        class="form-select shadow-sm" onChange="this.form.submit()">
+                    <option value="" {% if not personnelActive %}selected{% endif %}>Tous les agents</option>
+                    {% for pers in personnels %}
+                        <option value="{{ pers.id }}" 
+                                {% if personnelActive and pers.id == personnelActive.id %}selected{% endif %}>
+                            {{ pers.nomCompletUser }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Sélecteur Contrat -->
+            <div class="flex-grow-1" style="min-width: 280px;">
+                <select id="selectContrat" name="searchcontrat" 
+                        class="form-select shadow-sm" onChange="this.form.submit()">
+                    <option value="" {% if not contratActive %}selected{% endif %}>Tous les contrats</option>
+                    {% for contrat in contrats %}
+                        <option value="{{ contrat.id }}" 
+                                {% if contratActive and contrat.id == contratActive.id %}selected{% endif %}>
+                            {{ contrat.bien.nom|capitalize }} — {{ contrat.bien.client.nomCompletUser }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+
+    </div>
+
+    <!-- 📆 Le calendrier -->
+    <div class="col-sm-12 col-md-10 col-lg-10 m-auto" id="calendar"></div>
+
+    <!-- 🪟 Modal Détails -->
+    <div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="eventTitle">Détail de l’affectation</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>👤 Agent :</strong> <span id="eventPersonnel"></span></p>
+                    <p><strong>🏢 Site / Contrat :</strong> <span id="eventSite"></span></p>
+                    <p><strong>📅 Date :</strong> <span id="eventDate"></span></p>
+                    <p><strong>🕒 Heure début :</strong> <span id="eventHeureDebut"></span></p>
+                    <p><strong>🕕 Heure fin :</strong> <span id="eventHeureFin"></span></p>
+                    <p><strong>👔 Poste :</strong> <span id="eventPoste"></span></p>
+                    <p><strong>💬 Commentaire :</strong> <span id="eventCommentaire"></span></p>
+                    <p><strong>📋 Présence :</strong> <span id="eventPresence"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <a href="#" id="editBtn" class="btn btn-primary">Modifier</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 📜 Script FullCalendar -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'fr',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listWeek'
+            },
+            buttonText: {
+                today: "Aujourd'hui",
+                month: "Mois",
+                week: "Semaine",
+                list: "Liste"
+            },
+            allDaySlot: false,
+            timeZone: "local",
+            height: 'auto',
+
+            // 🔗 Chargement AJAX
+            events: {
+                url: '{{ path("app_logescom_operation_affectation_agent_planning_api", {
+                    site: site.id, 
+                    personnel: personnel.id
+                }) }}',
+                method: 'GET',
+                extraParams: function () {
+                    return {
+                        searchpersonnel: '{{ personnelActive ? personnelActive.id : "" }}',
+                        searchcontrat: '{{ contratActive ? contratActive.id : "" }}'
+                    };
+                },
+                failure: function () {
+                    alert('Erreur lors du chargement du planning des agents.');
+                }
+            },
+
+            // 🖱️ Clic sur un événement
+            eventClick: function(info) {
+                const props = info.event.extendedProps;
+                document.getElementById('eventPersonnel').textContent = props.personnel || '—';
+                document.getElementById('eventSite').textContent = props.siteNom || '—';
+                document.getElementById('eventDate').textContent = info.event.start.toLocaleDateString('fr-FR');
+                document.getElementById('eventHeureDebut').textContent = info.event.start.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+                document.getElementById('eventHeureFin').textContent = info.event.end ? info.event.end.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : '—';
+                document.getElementById('eventPoste').textContent = props.poste || '—';
+                document.getElementById('eventCommentaire').textContent = props.commentaire || '—';
+                document.getElementById('eventPresence').textContent = props.presence || '—';
+
+                // 🔗 Lien édition
+                document.getElementById('editBtn').href = '{{ path("app_logescom_operation_affectation_agent_edit", {"id": "EVENT_ID", "site": "SITE_ID"}) }}'
+                    .replace('EVENT_ID', info.event.id)
+                    .replace('SITE_ID', props.site);
+
+                new bootstrap.Modal(document.getElementById('eventModal')).show();
+                info.jsEvent.preventDefault();
+            },
+
+            // 🗓️ Clic sur une date → nouvelle affectation
+            dateClick: function(info) {
+                const url = '{{ path("app_logescom_operation_affectation_agent_new", {"site" : site.id}) }}'
+                    + '?jour=' + encodeURIComponent(info.dateStr);
+                window.location.href = url;
+            }
+        });
+
+        calendar.render();
+        window.calendar = calendar;
+    });
+</script>
+{% endblock %}

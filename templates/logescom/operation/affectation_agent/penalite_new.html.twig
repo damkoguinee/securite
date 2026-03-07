@@ -1,0 +1,139 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}🛑 Nouvelle pénalité — {{ affectation.personnel.nomCompletUser }}{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="row justify-content-center">
+        <div class="col-sm-12 col-md-10">
+
+            <div class="card shadow-lg border-0 mb-4 rounded-3">
+
+                <!-- 🔵 HEADER -->
+                <div class="card-header bg-dark text-white py-3 px-4 d-flex justify-content-between">
+                    <h5 class="mb-0">
+                        <i class="fa fa-exclamation-triangle text-warning me-2"></i>
+                        Pénalités — <span class="text-info">{{ affectation.personnel.nomCompletUser }}</span>
+                    </h5>
+                </div>
+
+                <!-- 🔹 Infos Affectation -->
+                <div class="bg-white px-4 py-3 border-bottom">
+                    <div class="row text-muted small">
+                        <div class="col-md-3">
+                            <strong class="text-dark">Date :</strong><br>
+                            {{ affectation.dateOperation|date('d/m/Y') }}
+                        </div>
+
+                        <div class="col-md-2">
+                            <strong class="text-dark">Poste :</strong><br>
+                            {{ affectation.poste }}
+                        </div>
+
+                        <div class="col-md-3">
+                            <strong class="text-dark">Heures :</strong><br>
+                            {{ affectation.heureDebut|date('H:i') }} → {{ affectation.heureFin|date('H:i') }}
+                        </div>
+
+                        <div class="col-md-4">
+                            <strong class="text-dark">Contrat :</strong><br>
+                            {{ affectation.contrat.bien.nom }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🔥 FORMULAIRE -->
+                <div class="card-body bg-light p-4">
+
+                    <form method="post" class="shadow-sm bg-white rounded p-3">
+
+                        <div class="d-flex flex-wrap gap-4">
+
+                            <!-- 🟥 COLONNE GAUCHE : Pénalités -->
+                            <div class="flex-grow-1" style="min-width:280px;">
+                                <h6 class="fw-bold mb-2">Types de pénalités *</h6>
+
+                                <div class="border rounded p-3"
+                                     style="max-height: 240px; overflow-y:auto; background:#fcfcfc;">
+                                    {% for p in penalites %}
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   name="penalites[]"
+                                                   id="pen_{{ p.id }}"
+                                                   value="{{ p.id }}">
+                                            <label class="form-check-label fw-semibold" for="pen_{{ p.id }}">
+                                                {{ p.nom }}
+                                                <span class="text-muted small">
+                                                    — {{ p.montantDefaut|number_format(0,'.',' ') }} GNF
+                                                </span>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- 🟦 COLONNE DROITE : Montant + Commentaire -->
+                            <div class="flex-grow-1" style="min-width:280px;">
+
+                                <!-- MONTANT -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Montant </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fa fa-coins"></i>
+                                        </span>
+                                        <input type="text"
+                                               name="montant"
+                                               class="form-control text-end"
+                                               placeholder="Ex : 50 000"
+                                               onkeyup="formatMontant(this)"
+                                        >
+                                        <span class="input-group-text bg-light fw-bold">GNF</span>
+                                    </div>
+                                </div>
+
+                                <!-- COMMENTAIRE -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Commentaire</label>
+                                    <textarea name="commentaire"
+                                              rows="4"
+                                              class="form-control"
+                                              placeholder="Raison de la pénalité, observations…"></textarea>
+                                </div>
+
+                                <!-- BOUTON -->
+                                <div class="mt-4 text-end">
+                                    <button class="btn btn-primary px-4">
+                                        <i class="fa fa-check-circle me-1"></i>
+                                        Enregistrer
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+            <a href="{{ path('app_logescom_operation_affectation_agent_show', {id: affectation.id, site: site.id}) }}"
+               class="btn btn-outline-secondary rounded-pill mt-2">
+                <i class="fa fa-arrow-left me-1"></i> Retour
+            </a>
+
+        </div>
+    </div>
+</div>
+
+<script>
+function formatMontant(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+</script>
+
+{% endblock %}

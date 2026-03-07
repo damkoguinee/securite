@@ -1,0 +1,80 @@
+{{ form_errors(form) }}
+{{ form_start(form) }}
+
+<input type="hidden" name="collaborateur" value="{{ collaborateur }}">
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body bg-light p-4 rounded-3">
+
+        <div class="row g-3 mb-2">
+            <div class="col-md-4">
+                {{ form_row(form.montant, {
+                    label: '💰 Montant',
+                    attr: { class: 'form-control shadow-sm', placeholder: 'Entrez le montant' }
+                }) }}
+            </div>
+
+            <div class="col-md-2">
+                {{ form_row(form.taux, {
+                    label: '🔁 Taux',
+                    attr: { class: 'form-control shadow-sm text-end', placeholder: '0.00' }
+                }) }}
+            </div>
+
+            <div class="col-md-2">
+                {{ form_row(form.devise, {
+                    label: '💵 Devise',
+                    attr: { class: 'form-select shadow-sm' }
+                }) }}
+            </div>
+
+            <div class="col-md-4">
+                {{ form_row(form.modePaie, {
+                    label: '🏦 Mode de paiement',
+                    attr: { class: 'form-select shadow-sm' }
+                }) }}
+            </div>
+        </div>
+
+        <div class="row g-3 mb-2">
+            <div class="col-md-4">
+                {{ form_row(form.bordereau, {
+                    label: '📄 Numéro de paiement',
+                    attr: { class: 'form-control shadow-sm', placeholder: 'Ex: Réf. du paiement' }
+                }) }}
+            </div>
+
+            <div class="col-md-4">
+                {{ form_row(form.caisse, {
+                    label: '💼 Caisse concernée',
+                    attr: { class: 'form-select shadow-sm' }
+                }) }}
+            </div>
+
+            <div class="col-md-4">
+                {{ form_row(form.dateOperation, {
+                    label: '📅 Date du versement',
+                    attr: { class: 'form-control shadow-sm' }
+                }) }}
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-12">
+                {{ form_row(form.commentaire, {
+                    label: '📝 Motif / Observation',
+                    attr: { class: 'form-control shadow-sm', placeholder: 'Ex: Règlement partiel, acompte, etc.' }
+                }) }}
+            </div>
+        </div>
+
+        <div class="text-end">
+            <button class="btn btn-primary shadow-sm rounded-pill px-4" type="submit">
+                <i class="fas fa-check-circle me-2"></i> {{ button_label|default('Valider le versement') }}
+            </button>
+        </div>
+
+    </div>
+</div>
+
+{{ form_end(form) }}

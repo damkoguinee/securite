@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Visiteur{% endblock %}
+
+{% block body %}
+    <h1>Visiteur</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ visiteur.id }}</td>
+            </tr>
+            <tr>
+                <th>Nom</th>
+                <td>{{ visiteur.nom }}</td>
+            </tr>
+            <tr>
+                <th>Prenom</th>
+                <td>{{ visiteur.prenom }}</td>
+            </tr>
+            <tr>
+                <th>Telephone</th>
+                <td>{{ visiteur.telephone }}</td>
+            </tr>
+            <tr>
+                <th>Statut</th>
+                <td>{{ visiteur.statut }}</td>
+            </tr>
+            <tr>
+                <th>Service</th>
+                <td>{{ visiteur.service }}</td>
+            </tr>
+            <tr>
+                <th>Motif</th>
+                <td>{{ visiteur.motif }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_gandaal_administration_securite_visiteur_index') }}">back to list</a>
+
+    <a href="{{ path('app_gandaal_administration_securite_visiteur_edit', {'id': visiteur.id}) }}">edit</a>
+
+    {{ include('gandaal/administration/securite/visiteur/_delete_form.html.twig') }}
+{% endblock %}

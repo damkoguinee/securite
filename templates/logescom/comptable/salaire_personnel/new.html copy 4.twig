@@ -1,0 +1,475 @@
+{% extends 'base_comptable.html.twig' %}
+
+{% block title %}Ajout des salaires{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-2">
+    {% include "_common/_messages_flash.html.twig" %}
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        {# ================= HEADER ================= #}
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap">
+
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ path('app_logescom_comptable_salaire_personnel_index', { site: site.id }) }}"
+                   class="btn btn-outline-warning btn-sm">
+                    <i class="fa fa-arrow-left"></i>
+                </a>
+
+                <h5 class="mb-0">
+                    <i class="fa fa-money-bill-wave me-2 text-warning"></i>
+                    Paiement des salaires
+                </h5>
+            </div>
+
+            {# 🔍 Filtres #}
+            <form method="get" class="d-flex gap-2 align-items-center">
+                <input type="text" name="search"
+                       class="form-control form-control-sm"
+                       placeholder="Matricule, nom, téléphone…"
+                       value="{{ search ?? '' }}">
+
+                <select name="zone" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">— Zones —</option>
+                    {% for zone in zones %}
+                        <option value="{{ zone.id }}" {{ app.request.get('zone') == zone.id ? 'selected' }}>
+                            {{ zone.nom|upper }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <select name="fonction" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">— Fonctions —</option>
+                    <option value="agent" {{ app.request.get('fonction') == 'agent' ? 'selected' }}>Agent</option>
+                    <option value="agent releve" {{ app.request.get('fonction') == 'agent releve' ? 'selected' }}>
+                        Agent Relève
+                    </option>
+                </select>
+
+                <input type="date"
+                       name="periode"
+                       class="form-control form-control-sm"
+                       value="{{ app.request.get('periode') ?? 'now'|date('Y-m-d') }}"
+                       onchange="this.form.submit()">
+
+                       
+            </form>
+        </div>
+
+        {# ================= BODY ================= #}
+        <div class="card-body bg-light">
+
+            {# ============================================================
+               ✅ FORM GLOBAL (POST)
+               -> On NE l’englobe PAS autour de la table (sinon nested forms)
+               -> On rattache les checkbox avec form="formGlobal"
+               ============================================================ #}
+            <form method="post" id="formGlobal" class="card shadow-sm border-0 mb-3 p-3 bg-white">
+
+                <div class="row align-items-end g-2">
+
+                    <div class="col-md-3">
+                        <label class="fw-semibold">Mode de paiement</label>
+                        <select name="modePaie" class="form-select form-select-sm" required>
+                            <option value="">— Choisir —</option>
+                            {% for mode in modePaies %}
+                                <option value="{{ mode.id }}">{{ mode.designation }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="fw-semibold">Caisse</label>
+                        <select name="compte" class="form-select form-select-sm" required>
+                            <option value="">— Choisir —</option>
+                            {% for compte in comptes %}
+                                <option value="{{ compte.id }}">{{ compte.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="fw-semibold">Total sélection</label>
+                        <input type="text"
+                               id="totalGlobal"
+                               class="form-control form-control-sm fw-bold text-success"
+                               readonly
+                               value="0">
+                    </div>
+
+                    <div class="col-md-3 text-end">
+                        <button type="submit"
+                                name="paiement_global"
+                                value="1"
+                                class="btn btn-success w-100 btn-sm"
+                                id="btnPayGlobal"
+                                disabled>
+                            <i class="fa fa-coins me-1"></i>
+                            Payer la sélection
+                        </button>
+                    </div>
+
+                </div>
+
+                <input type="hidden" name="periode"
+                       value="{{ app.request.get('periode') ?? 'now'|date('Y-m-d') }}">
+            </form>
+
+            {# ================= TABLE ================= #}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle text-center">
+
+                    <thead class="table-dark">
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="checkAll">
+                            </th>
+                            <th>#</th>
+                            <th>Employé</th>
+                            <th>Fonction</th>
+                            <th>Jours</th>
+                            <th>Brut</th>
+                            <th>Absences</th>
+                            <th>Prime</th>
+                            <th>Avance</th>
+                            <th>Pénalité</th>
+                            <th>Repos Trav.</th>
+                            <th>24h Agent</th>
+                            <th class="text-success">Net</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% set cumulBrut = 0 %}
+                        {% set cumulAbsences = 0 %}
+                        {% set cumulPenalites = 0 %}
+                        {% set cumulReposTravaille = 0 %}
+                        {% set cumulJourneeEntiere = 0 %}
+                        {% set cumulJours = 0 %}
+                        {% set cumulHeures = 0 %}
+                        {% set cumulPrimes = 0 %}
+                        {% set cumulAvances = 0 %}
+                        {% set cumulNet = 0 %}
+
+                        {% for key, info in paiementsInfos %}
+
+                            {% set salaireNet =
+                                info.salaireBase
+                                + info.montant_prime
+                                + info.repos_travaille
+                                + info.journee_entiere
+                                - info.montant_avance
+                                - (info.absences * info.personnel.tauxHoraire)
+                                - info.montant_penalite
+                            %}
+
+                            {% set cumulNet = cumulNet + salaireNet %}
+                            {% set cumulBrut = cumulBrut + info.salaireBase %}
+                            {% set cumulReposTravaille = cumulReposTravaille + info.repos_travaille %}
+                            {% set cumulJourneeEntiere = cumulJourneeEntiere + info.journee_entiere %}
+                            {% set cumulAbsences = cumulAbsences + (info.absences * info.personnel.tauxHoraire) %}
+                            {% set cumulPrimes = cumulPrimes + info.montant_prime %}
+                            {% set cumulAvances = cumulAvances + info.montant_avance %}
+                            {% set cumulPenalites = cumulPenalites + info.montant_penalite %}
+                            {% set cumulJours = cumulJours + info.jour_travaille %}
+                            {% set cumulHeures = cumulHeures + info.absences %}
+
+                            <tr>
+                                <td>
+                                    {# ✅ checkbox rattachée au FORM GLOBAL #}
+                                    <input type="checkbox"
+                                           class="check-salaire"
+                                           name="personnels[]"
+                                           value="{{ info.personnel.id }}"
+                                           data-salaire="{{ salaireNet }}"
+                                           form="formGlobal">
+                                </td>
+
+                                <td>{{ key + 1 }}</td>
+
+                                <td class="text-start fw-semibold">
+                                    {{ info.personnel.nomCompletUser }}
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ info.personnel.bienAffecte ? info.personnel.bienAffecte.nom : '' }}
+                                    </small>
+                                </td>
+
+                                <td>{{ info.personnel.fonction|capitalize }}</td>
+                                <td>{{ info.jour_travaille }}</td>
+                                <td>{{ info.salaireBase|number_format(0,' ',' ') }}</td>
+                                <td class="text-danger">{{ (info.absences * info.personnel.tauxHoraire)|number_format(0,' ',' ') }}</td>
+                                <td class="text-success">{{ info.montant_prime|number_format(0,' ',' ') }}</td>
+                                <td class="text-danger">{{ info.montant_avance|number_format(0,' ',' ') }}</td>
+                                {# <td class="text-danger">{{ info.montant_penalite|number_format(0,' ',' ') }}</td>
+                                <td class="text-warning">{{ info.repos_travaille|number_format(0,' ',' ') }}</td>
+                                <td class="text-warning">{{ info.journee_entiere|number_format(0,' ',' ') }}</td> #}
+
+                                <td>
+                                    <input type="number"
+                                        class="form-control form-control-sm input-penalite text-danger"
+                                        value="{{ info.montant_penalite }}"
+                                        min="0"
+                                        data-id="{{ info.personnel.id }}">
+                                </td>
+
+                                <td>
+                                    <input type="number"
+                                        class="form-control form-control-sm input-repos text-warning"
+                                        value="{{ info.repos_travaille }}"
+                                        min="0"
+                                        data-id="{{ info.personnel.id }}">
+                                </td>
+
+                                <td>
+                                    <input type="number"
+                                        class="form-control form-control-sm input-journee text-warning"
+                                        value="{{ info.journee_entiere }}"
+                                        min="0"
+                                        data-id="{{ info.personnel.id }}">
+                                </td>
+
+                                {# <td class="fw-bold text-success">
+                                    {{ salaireNet|number_format(0,' ',' ') }}
+                                </td> #}
+
+                                <td class="fw-bold text-success net-salaire"
+                                    data-id="{{ info.personnel.id }}"
+                                    data-base="{{ info.salaireBase }}"
+                                    data-prime="{{ info.montant_prime }}"
+                                    data-avance="{{ info.montant_avance }}"
+                                    data-absence="{{ info.absences * info.personnel.tauxHoraire }}"
+                                    data-penalite="{{ info.montant_penalite }}"
+                                    data-repos="{{ info.repos_travaille }}"
+                                    data-journee="{{ info.journee_entiere }}">
+                                    
+                                    {{ salaireNet|number_format(0,' ',' ') }}
+                                </td>
+
+                                <td>
+                                    <button class="btn btn-success btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#payModal_{{ info.personnel.id }}">
+                                        <i class="fa fa-check-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            {# ===== MODAL INDIVIDUEL (form séparé, OK) ===== #}
+                            <div class="modal fade" id="payModal_{{ info.personnel.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+
+                                        <div class="modal-header bg-success text-white">
+                                            <h5 class="modal-title">
+                                                Paiement salaire — {{ info.personnel.nomCompletUser }}
+                                            </h5>
+                                            <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <form method="post">
+                                            <div class="modal-body">
+
+                                                <div class="alert alert-light">
+                                                    Net à payer :
+                                                    <span class="fw-bold text-success float-end modal-net"
+                                                        id="modal-net-{{ info.personnel.id }}">
+                                                        {{ salaireNet|number_format(0,' ',' ') }} GNF
+                                                    </span>
+                                                </div>
+
+                                                <select name="modePaie" class="form-select mb-2" required>
+                                                    {% for mode in modePaies %}
+                                                        <option value="{{ mode.id }}">{{ mode.designation }}</option>
+                                                    {% endfor %}
+                                                </select>
+
+                                                <select name="compte" class="form-select mb-2" required>
+                                                    {% for compte in comptes %}
+                                                        <option value="{{ compte.id }}">{{ compte.nom }}</option>
+                                                    {% endfor %}
+                                                </select>
+
+                                                <textarea name="commentaire"
+                                                          class="form-control"
+                                                          placeholder="Commentaire"></textarea>
+
+                                                <input type="hidden" name="personnel" value="{{ info.personnel.id }}">
+                                                <input type="hidden" name="paiement_individuel" value="1">
+
+                                                <input type="hidden" name="periode"
+                                                       value="{{ app.request.get('periode') ?? 'now'|date('Y-m-d') }}">
+
+                                                {# Champs envoyés au controller #}
+                                                <input type="hidden"
+                                                    name="penalite"
+                                                    id="modal-penalite-{{ info.personnel.id }}"
+                                                    value="{{ info.montant_penalite }}">
+
+                                                <input type="hidden"
+                                                    name="repos"
+                                                    id="modal-repos-{{ info.personnel.id }}"
+                                                    value="{{ info.repos_travaille }}">
+
+                                                <input type="hidden"
+                                                    name="journee"
+                                                    id="modal-journee-{{ info.personnel.id }}"
+                                                    value="{{ info.journee_entiere }}">
+
+                                            </div>
+
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                        data-bs-dismiss="modal">Annuler</button>
+                                                <button type="submit" class="btn btn-success">
+                                                    Confirmer
+                                                </button>
+                                            </div>
+                                        </form>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                        {% else %}
+                            <tr>
+                                <td colspan="13" class="text-muted">
+                                    Aucun employé trouvé pour cette période.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+
+                    <tfoot class="table-secondary fw-bold text-end">
+                        <tr>
+                            <td colspan="4" class="text-center">Totaux</td>
+                            <td>{{ cumulJours }}</td>
+                            <td  class="text-nowrap">{{ cumulBrut|number_format(0,' ',' ') }}</td>
+                            <td class="text-nowrap">{{ cumulAbsences|number_format(0,' ',' ') }}</td>
+                            <td class="text-nowrap">{{ cumulPrimes|number_format(0,' ',' ') }}</td>
+                            <td class="text-nowrap">{{ cumulAvances|number_format(0,' ',' ') }}</td>
+                            <td class="text-nowrap">{{ cumulPenalites|number_format(0,' ',' ') }}</td>
+                            <td class="text-nowrap">{{ cumulReposTravaille|number_format(0,' ',' ') }}</td>
+                            <td class="text-nowrap">{{ cumulJourneeEntiere|number_format(0,' ',' ') }}</td>
+                            <td class="text-nowrap text-success">{{ cumulNet|number_format(0,' ',' ') }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ===== JS ===== #}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const checkAll   = document.getElementById('checkAll');
+    const checks     = document.querySelectorAll('.check-salaire');
+    const totalInput = document.getElementById('totalGlobal');
+    const btnPay     = document.getElementById('btnPayGlobal');
+
+    // ==========================
+    // RECALCUL NET SALAIRE
+    // ==========================
+    function calculerNet(row) {
+
+        const netCell = row.querySelector('.net-salaire');
+        const id = netCell.dataset.id;
+
+        let base     = parseFloat(netCell.dataset.base || 0);
+        let prime    = parseFloat(netCell.dataset.prime || 0);
+        let avance   = parseFloat(netCell.dataset.avance || 0);
+        let absence  = parseFloat(netCell.dataset.absence || 0);
+
+        let penalite = parseFloat(row.querySelector('.input-penalite')?.value || 0);
+        let repos    = parseFloat(row.querySelector('.input-repos')?.value || 0);
+        let journee  = parseFloat(row.querySelector('.input-journee')?.value || 0);
+
+        let net = base + prime + repos + journee - avance - absence - penalite;
+
+        // TABLE
+        netCell.innerText = net.toLocaleString();
+
+        // CHECKBOX
+        let checkbox = row.querySelector('.check-salaire');
+        if (checkbox) {
+            checkbox.dataset.salaire = net;
+        }
+
+        // MODAL NET
+        let modalNet = document.getElementById('modal-net-' + id);
+        if (modalNet) {
+            modalNet.innerText = net.toLocaleString() + ' GNF';
+        }
+
+        // 🔥 UPDATE HIDDEN FIELDS IN MODAL
+        let hiddenPenalite = document.getElementById('modal-penalite-' + id);
+        let hiddenRepos    = document.getElementById('modal-repos-' + id);
+        let hiddenJournee  = document.getElementById('modal-journee-' + id);
+
+        if (hiddenPenalite) hiddenPenalite.value = penalite;
+        if (hiddenRepos)    hiddenRepos.value    = repos;
+        if (hiddenJournee)  hiddenJournee.value  = journee;
+
+        updateTotal();
+    }
+
+    // ==========================
+    // TOTAL GLOBAL
+    // ==========================
+    function updateTotal() {
+
+        let total = 0;
+        let count = 0;
+
+        checks.forEach(cb => {
+            if (cb.checked) {
+                total += parseFloat(cb.dataset.salaire || 0);
+                count++;
+            }
+        });
+
+        totalInput.value = total.toLocaleString();
+        btnPay.disabled = (count === 0);
+    }
+
+    // ==========================
+    // ECOUTE INPUTS
+    // ==========================
+    document
+        .querySelectorAll('.input-penalite, .input-repos, .input-journee')
+        .forEach(input => {
+            input.addEventListener('input', function() {
+                const row = this.closest('tr');
+                calculerNet(row);
+            });
+        });
+
+    // ==========================
+    // CHECK ALL
+    // ==========================
+    if (checkAll) {
+        checkAll.addEventListener('change', () => {
+            checks.forEach(cb => cb.checked = checkAll.checked);
+            updateTotal();
+        });
+    }
+
+    // ==========================
+    // CHECK INDIVIDUEL
+    // ==========================
+    checks.forEach(cb => {
+        cb.addEventListener('change', updateTotal);
+    });
+
+    // INITIALISATION
+    updateTotal();
+
+});
+</script>
+{% endblock %}

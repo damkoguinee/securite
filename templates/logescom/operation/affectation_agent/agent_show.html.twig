@@ -1,0 +1,158 @@
+{% extends 'base_operation.html.twig' %}
+
+{% block title %}Fiche du personnel – {{ personel.nomCompletUser }}{% endblock %}
+
+{% block presentation %}
+<div class="container-fluid px-3">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+
+            <!-- 🧾 En-tête du personnel -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fa fa-user-tie me-2 text-warning"></i> Fiche du personnel
+                    </h5>
+                    {% if personel.photo %}
+                        <img src="{{ asset(chemin_images_personnels ~ personel.photo) }}" 
+                             alt="Photo de {{ personel.nomCompletUser }}" 
+                             class="rounded-circle border border-light"
+                             style="height: 70px; width: 70px; object-fit: cover;">
+                    {% endif %}
+                </div>
+
+                <div class="card-body bg-light">
+                    <!-- 🔹 Informations principales -->
+                    <div class="border-bottom mb-3 pb-2 d-flex justify-content-between align-items-center">
+                        <h6 class="text-primary mb-0">
+                            <i class="fa fa-id-badge me-1"></i> Informations personnelles
+                        </h6>
+                        <span class="badge bg-{{ personel.statut == 'actif' ? 'success' : 'secondary' }}">
+                            {{ personel.statut|capitalize }}
+                        </span>
+                    </div>
+
+                    <table class="table table-sm table-borderless mb-4">
+                        <tr>
+                            <th class="w-25 text-muted">Nom complet</th>
+                            <td class="fw-semibold">{{ personel.nomCompletUser }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Fonction</th>
+                            <td>{{ personel.fonction|capitalize }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Téléphone</th>
+                            <td><i class="fa fa-phone-alt me-1 text-muted"></i>{{ personel.telephone ?: 'Non renseigné' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Email</th>
+                            <td><i class="fa fa-envelope me-1 text-muted"></i>{{ personel.email ?: 'Non renseigné' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Référence</th>
+                            <td>{{ personel.reference ?: '—' }}</td>
+                        </tr>
+
+                        <tr>
+                            <th class="w-25 text-muted">Zones de rattachement</th>
+                            <td class="fw-semibold">
+                                {% if personel.zoneRattachement|length > 0 %}
+                                    {% for zone in personel.zoneRattachement %}
+                                        <span class="badge bg-primary">{{ zone.nom }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- 🔘 Boutons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ path('app_logescom_operation_affectation_agent_liste', {site : site.id}) }}" 
+                           class="btn btn-outline-secondary rounded-pill px-3">
+                            <i class="fa fa-arrow-left me-1"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 📋 Affectations du personnel -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    <i class="fa fa-calendar-days me-2"></i> Planning de {{ personel.prenom|capitalize }}
+                </div>
+
+                <div class="card-body bg-white p-0">
+                    {% if personel.affectationAgentPersonnels|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered mb-0 align-middle">
+                                <thead class="table-dark text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Date</th>
+                                        <th>Site</th>
+                                        <th>Poste</th>
+                                        <th>Heure Début</th>
+                                        <th>Heure Fin</th>
+                                        <th>Présence</th>
+                                        <th>Commentaire</th>
+                                        <th>Saisie par</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for key, affectation_agent in personel.affectationAgentPersonnels %}
+                                        <tr class="text-center">
+                                            <td>{{ key + 1 }}</td>
+                                            <td>{{ affectation_agent.dateOperation ? affectation_agent.dateOperation|date('d/m/Y') : '—' }}</td>
+                                            <td class="text-start">
+                                                <i class="fa fa-building text-warning me-1"></i>
+                                                {{ affectation_agent.contrat.bien.nom|capitalize }}
+                                            </td>
+                                            <td>{{ affectation_agent.poste ?: '—' }}</td>
+                                            <td>{{ affectation_agent.heureDebut ? affectation_agent.heureDebut|date('H:i') : '—' }}</td>
+                                            <td>{{ affectation_agent.heureFin ? affectation_agent.heureFin|date('H:i') : '—' }}</td>
+                                            <td>
+                                                {% if affectation_agent.presenceConfirme %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fa fa-check-circle me-1"></i>Confirmé
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">
+                                                        <i class="fa fa-hourglass-half me-1"></i> Non confirmé
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-start">
+                                                {{ affectation_agent.commentaire ?: '—' }}
+                                            </td>
+                                            <td class="text-start">
+                                                {% if affectation_agent.saisirPar %}
+                                                    <i class="fa fa-user text-primary me-1"></i>
+                                                    {{ affectation_agent.saisirPar.prenom|capitalize }} {{ affectation_agent.saisirPar.nom|upper }}
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        {{ affectation_agent.dateSaisie ? affectation_agent.dateSaisie|date('d/m/Y H:i') : '' }}
+                                                    </small>
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary text-center m-3">
+                            <i class="fa fa-info-circle me-1"></i> Aucune affectation enregistrée pour cet agent.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
