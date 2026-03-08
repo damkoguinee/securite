@@ -36,7 +36,12 @@
         {% include "logescom/comptable/facture/facture_multiple.html.twig" %}
     {% else %}
 
-        {% for facture in factures %}
+        {% for f in factures %}
+
+            {% set facture = f.entity %}
+            {% set calc = f.pdf.calcul %}
+            {% set prorata = f.pdf.prorata %}
+
             {# 🔹 Saut de page AVANT chaque facture, sauf la toute première #}
             {% if not (loop.first and loop.parent.loop.first) %}
                 <div style="page-break-before: always;"></div>
@@ -135,193 +140,137 @@
                     </thead>
 
                     <tbody>
-                        {# 🔁 Calcul prorata complémentaire #}
-
-                        {% set dateDebutActive = facture.contrat.dateDebut > facture.periodeDebut 
-                            ? facture.contrat.dateDebut 
-                            : facture.periodeDebut %}
-
-                        {% set dateFinActive = facture.contrat.dateFin and facture.contrat.dateFin < facture.periodeFin
-                            ? facture.contrat.dateFin
-                            : facture.periodeFin %}
-
-                        {% set nbJoursMois = 30 %}
-
-                        {% set jourDebut = min(30, (dateDebutActive|date('d') + 0)) %}
-                        {% set jourFin = dateFinActive|date('d') + 0 %}
-
-                        {# si c'est le dernier jour réel du mois #}
-                        {% if dateFinActive|date('d') == dateFinActive|date('t') %}
-                            {% set jourFin = 30 %}
-                        {% endif %}
-
-                        {% set jourFin = min(30, jourFin) %}
-
-                        {# {% set nbJoursActifs = (jourFin - jourDebut) + 1 %} #} temps plein
-                        {% set nbJoursActifs = (jourFin - jourDebut)  %}
-                        {% set tauxProrata = nbJoursActifs / nbJoursMois %}
-
-
+                        
+                        {% set tauxProrata = prorata.taux %}
+                        
                         {# =================== TYPES PRINCIPAUX =================== #}
-                        {% for ts in facture.contrat.typesSurveillance %}
+                        {% for ligne in calc.lignes %}
 
-                            {% set nbJour = ts.nbAgentsJour ?? 0 %}
-                            {% set nbNuit = ts.nbAgentsNuit ?? 0 %}
-                            {% set nbTotal = nbJour + nbNuit %}
+                            {% if ligne.categorie == 'principal' %}
+                                <tr>
+                                    <td>{{ ligne.type }}</td>
+                                    <td style="text-align:center;">{{ ligne.agentsTotal }}</td>
+                                    <td style="text-align:center;">{{ ligne.agentsJour }}</td>
+                                    <td style="text-align:center;">{{ ligne.agentsNuit }}</td>
+                                    <td style="text-align:right;">{{ ligne.tarif|number_format(0,'.',' ') }}</td>
 
-                            {% set tarif = ts.tarifMensuel %}
-                            {% set tarifJournalier = ts.tarifHoraire %}
-                            
-                            {% if tarifJournalier and tauxProrata != 1 %}
-                                {% set montantHT = (tarif * nbTotal * nbJoursActifs) / 30 %}
-                            {% else %}
-                                {% set montantHT = tarif * nbTotal * tauxProrata %}
+                                    {% if calc.remisePourcentage > 0 %}
+                                        <td style="text-align:right;">-{{ ligne.remise|number_format(0,'.',' ') }}</td>
+                                    {% endif %}
+
+                                    {% if calc.tauxTVA > 0 %}
+                                        <td style="text-align:right;">{{ ligne.tva|number_format(0,'.',' ') }}</td>
+                                    {% endif %}
+
+                                    <td style="text-align:right;">{{ ligne.ttc|number_format(0,'.',' ') }}</td>
+                                </tr>
                             {% endif %}
-                            
-                            {% set montantRemise = hasRemise ? montantHT * facture.remisePourcentage / 100 : 0 %}
-                            {% set montantApresRemise = montantHT - montantRemise %}
-                            {% set montantTVA = hasTVA ? montantApresRemise * facture.tauxTVA / 100 : 0 %}
-                            {% set montantTTC = montantApresRemise + montantTVA %}
-
-                            {% set totalRemise = totalRemise + montantRemise %}
-                            {% set totalTVA = totalTVA + montantTVA %}
-                            {% set totalTTC = totalTTC + montantTTC %}
-                            {% set totalHTApresRemise = totalHTApresRemise + montantApresRemise %}
-
-                            <tr>
-                                <td>{{ ts.typeSurveillance.nom }}</td>
-                                <td style="text-align:center;">{{ nbTotal }}</td>
-                                <td style="text-align:center;">{{ nbJour }}</td>
-                                <td style="text-align:center;">{{ nbNuit }}</td>
-                                <td style="text-align:right;">{{ tarif|number_format(0,'.',' ') }}</td>
-
-                                {% if hasRemise %}
-                                    <td style="text-align:right;">-{{ montantRemise|number_format(0,'.',' ') }}</td>
-                                {% endif %}
-
-                                {% if hasTVA %}
-                                    <td style="text-align:right;">{{ montantTVA|number_format(0,'.',' ') }}</td>
-                                {% endif %}
-
-                                <td style="text-align:right;">{{ montantTTC|number_format(0,'.',' ') }}</td>
-                            </tr>
                         {% endfor %}
 
                         {# =================== CONTRATS COMPLÉMENTAIRES =================== #}
-                        {% for cc in facture.contrat.contratComplementaires %}
+                        {% set currentCC = null %}
 
-                            {% if cc.dateDebut <= facture.periodeFin 
-                                and (cc.dateFin is null or cc.dateFin >= facture.periodeDebut) %}
+                        {% for ligne in calc.lignes %}
 
-                                {# 🔁 Calcul prorata complémentaire #}
+                            {% if ligne.categorie == 'complementaire' %}
 
-                                {% set dateDebutActive = cc.dateDebut > facture.periodeDebut 
-                                    ? cc.dateDebut 
-                                    : facture.periodeDebut %}
+                                {# Affichage du titre du contrat complémentaire une seule fois #}
+                                {% if currentCC != ligne.contratComplementaireId %}
+                                    {% set currentCC = ligne.contratComplementaireId %}
 
-                                {% set dateFinActive = cc.dateFin and cc.dateFin < facture.periodeFin
-                                    ? cc.dateFin
-                                    : facture.periodeFin %}
-
-                                {% set nbJoursMois = facture.periodeFin|date('d') %}
-                                {# {% set nbJoursActifs = (dateFinActive.timestamp - dateDebutActive.timestamp) / 86400 + 1 %} #}
-
-                                {% set nbJoursActifs = (dateFinActive.timestamp - dateDebutActive.timestamp) / 86400 %}
-                                {% set tauxProrataCC = nbJoursActifs / nbJoursMois %}
-
-                                <tr style="background:#e3f0ff; font-weight:bold; text-align:center; color:#0d47a1;">
-                                    <td colspan="6">
-                                        Contrat Complémentaire #{{ cc.id }} —
-                                        {{ cc.dateDebut|date('d/m/Y') }}
-                                        {% if cc.dateFin %} → {{ cc.dateFin|date('d/m/Y') }}{% endif %}
-                                        — Motif : {{ cc.motif }}
-                                    </td>
-                                </tr>
-
-                                {% for cts in cc.complementTypeSurveillances %}
-
-                                    {% set nb = cts.nbAgent ?? 1 %}
-                                    {% set tarif = cts.tarif %}
-                                    {% set tarifJournalier = (tarif / 30) %}
-                                    {% if tarifJournalier and tauxProrataCC != 1 %}
-                                        {% set montantHT = (tarifJournalier * nbJoursActifs) * nb %}
-                                    {% else %}
-                                        {% set montantHT = tarif * nb * tauxProrataCC %} 
-                                    {% endif %}
-
-                                    {% set montantRemise = hasRemise ? montantHT * facture.remisePourcentage / 100 : 0 %}
-                                    {% set montantApresRemise = montantHT - montantRemise %}
-                                    {% set montantTVA = hasTVA ? montantApresRemise * facture.tauxTVA / 100 : 0 %}
-                                    {% set montantTTC = montantApresRemise + montantTVA %}
-
-                                    {% set totalRemise = totalRemise + montantRemise %}
-                                    {% set totalTVA = totalTVA + montantTVA %}
-                                    {% set totalTTC = totalTTC + montantTTC %}
-                                    {% set totalHTApresRemise = totalHTApresRemise + montantApresRemise %}
-
-                                    <tr>
-                                        <td>{{ cts.typeSurveillance.nom }}</td>
-                                        <td style="text-align:center;">{{ nb }}</td>
-                                        <td style="text-align:center;">—</td>
-                                        <td style="text-align:center;">—</td>
-                                        <td style="text-align:right;">
-                                            {{ (tarif)|number_format(0,'.',' ') }}
-                                        </td>
-
-                                        {% if hasRemise %}
-                                            <td style="text-align:right;">
-                                                -{{ montantRemise|number_format(0,'.',' ') }}
-                                            </td>
-                                        {% endif %}
-
-                                        {% if hasTVA %}
-                                            <td style="text-align:right;">
-                                                {{ montantTVA|number_format(0,'.',' ') }}
-                                            </td>
-                                        {% endif %}
-
-                                        <td style="text-align:right;">
-                                            {{ montantTTC|number_format(0,'.',' ') }}
+                                    <tr style="background:#e3f0ff; font-weight:bold; text-align:center; color:#0d47a1;">
+                                        <td colspan="6">
+                                            Contrat Complémentaire #{{ ligne.contratComplementaireId }}
+                                            — {{ ligne.dateDebut|date('d/m/Y') }}
+                                            {% if ligne.dateFin %} → {{ ligne.dateFin|date('d/m/Y') }}{% endif %}
+                                            — Motif : {{ ligne.motif }}
                                         </td>
                                     </tr>
 
-                                {% endfor %}
+                                {% endif %}
 
+                                <tr>
+                                    <td>{{ ligne.type }}</td>
+
+                                    <td style="text-align:center;">
+                                        {{ ligne.agentsTotal }}
+                                    </td>
+
+                                    <td style="text-align:center;">—</td>
+                                    <td style="text-align:center;">—</td>
+
+                                    <td style="text-align:right;">
+                                        {{ ligne.tarif|number_format(0,'.',' ') }}
+                                    </td>
+
+                                    {% if calc.remisePourcentage > 0 %}
+                                        <td style="text-align:right;">
+                                            -{{ ligne.remise|number_format(0,'.',' ') }}
+                                        </td>
+                                    {% endif %}
+
+                                    {% if calc.tauxTVA > 0 %}
+                                        <td style="text-align:right;">
+                                            {{ ligne.tva|number_format(0,'.',' ') }}
+                                        </td>
+                                    {% endif %}
+
+                                    <td style="text-align:right;">
+                                        {{ ligne.ttc|number_format(0,'.',' ') }}
+                                    </td>
+                                </tr>
                             {% endif %}
 
                         {% endfor %}
 
                         {# =================== TOTALS =================== #}
 
+                        {% set hasRemise = calc.remisePourcentage > 0 %}
+                        {% set hasTVA = calc.tauxTVA > 0 %}
+
                         {% set cols = 5 + (hasRemise ? 1 : 0) + (hasTVA ? 1 : 0) + 1 %}
                         {% set rightCols = (hasRemise ? 1 : 0) + (hasTVA ? 1 : 0) + 1 %}
                         {% set leftCols = cols - rightCols %}
 
                         <tr class="total-row">
-                            <td colspan="{{ leftCols }}" style="text-align:right;">TOTAL :</td>
+                            <td colspan="{{ leftCols }}" style="text-align:right;">
+                                TOTAL :
+                            </td>
 
                             {% if hasRemise %}
-                                <td style="text-align:right;">-{{ totalRemise|number_format(0,'.',' ') }}</td>
+                                <td style="text-align:right;">
+                                    -{{ calc.remiseMontant|number_format(0,'.',' ') }}
+                                </td>
                             {% endif %}
 
                             {% if hasTVA %}
-                                <td style="text-align:right;">{{ totalTVA|number_format(0,'.',' ') }}</td>
+                                <td style="text-align:right;">
+                                    {{ calc.tva|number_format(0,'.',' ') }}
+                                </td>
                             {% endif %}
 
-                            <td style="text-align:right;">{{ totalTTC|number_format(0,'.',' ') }}</td>
+                            <td style="text-align:right;">
+                                {{ calc.ttc|number_format(0,'.',' ') }}
+                            </td>
                         </tr>
 
                         <tr class="total-row">
-                            <td colspan="{{ leftCols }}" style="text-align:right;">Montant payé</td>
+                            <td colspan="{{ leftCols }}" style="text-align:right;">
+                                Montant payé
+                            </td>
+
                             <td colspan="{{ rightCols }}" style="text-align:right;">
                                 {{ facture.montantPaye|number_format(0,'.',' ') }}
                             </td>
                         </tr>
 
                         <tr class="total-row">
-                            <td colspan="{{ leftCols }}" style="text-align:right;">Reste à payer</td>
+                            <td colspan="{{ leftCols }}" style="text-align:right;">
+                                Reste à payer
+                            </td>
+
                             <td colspan="{{ rightCols }}" style="text-align:right; color:#d00;">
-                                {{ (facture.montantTotal - facture.montantPaye)|number_format(0,'.',' ') }}
+                                {{ (calc.ttc - facture.montantPaye)|number_format(0,'.',' ') }}
                             </td>
                         </tr>
 

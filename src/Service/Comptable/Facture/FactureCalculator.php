@@ -14,11 +14,7 @@ class FactureCalculator
         int $nbJoursActifs,
         int $nbJoursMois = 30
     ): array {
-
-        $montantHTInitial = 0;
-
-        // 1️⃣ TYPE PRINCIPAL
-        $montantHTInitial += $this->calculateMainTypes(
+        $mainTypes = $this->calculateMainTypes(
             $contrat,
             $periodeDebut,
             $periodeFin,
@@ -26,18 +22,28 @@ class FactureCalculator
             $nbJoursActifs
         );
 
-        // 2️⃣ CONTRATS COMPLEMENTAIRES
-        $montantHTInitial += $this->calculateComplementaires(
+        $complementaires = $this->calculateComplementaires(
             $contrat,
             $periodeDebut,
             $periodeFin,
             $nbJoursMois
         );
 
-        // 3️⃣ REMISE + TVA
-        return $this->calculateTaxes($contrat, $montantHTInitial);
-    }
+        $montantHTInitial = $mainTypes['totalHT'] + $complementaires['totalHT'];
 
+        $taxes = $this->calculateTaxes($contrat, $montantHTInitial);
+
+        return [
+            'lignes' => array_merge($mainTypes['lignes'], $complementaires['lignes']),
+            'htInitial' => $montantHTInitial,
+            'ht' => $taxes['ht'],
+            'tva' => $taxes['tva'],
+            'ttc' => $taxes['ttc'],
+            'remisePourcentage' => $taxes['remisePourcentage'],
+            'remiseMontant' => $taxes['remiseMontant'],
+            'tauxTVA' => $taxes['tauxTVA'],
+        ];
+    }
 
     private function calculateMainTypes(
         ContratSurveillance $contrat,
@@ -45,54 +51,44 @@ class FactureCalculator
         \DateTime $periodeFin,
         float $tauxProrata,
         int $nbJoursActifs
-    ): float {
+    ): array {
+        $totalHT = 0;
+        $lignes = [];
 
-        $montant = 0;
+        $remisePourcentage = $contrat->getRemise() ?? 0;
+        $tauxTVA = $contrat->getTva() ?? 0;
 
         foreach ($contrat->getTypesSurveillance() as $type) {
+            $nbJour = $type->getNbAgentsJour() ?? 0;
+            $nbNuit = $type->getNbAgentsNuit() ?? 0;
+            $nbTotal = $nbJour + $nbNuit;
 
+            $tarifMensuel = $type->getTarifMensuel() ?? 0;
             $tarifJournalier = $type->getTarifHoraire();
-            $tarifMensuel = $type->getTarifMensuel();
 
-            /* ====== 1️⃣ FACTURATION MENSUELLE ====== */
+            $montantHT = 0;
+
             if ($contrat->getModeFacturation() === 'mensuel') {
-
                 if ($tarifJournalier && $tauxProrata != 1) {
-                    $montant += $tarifJournalier * $nbJoursActifs;
+                    $montantHT = $tarifJournalier * $nbJoursActifs;
                 } else {
-                    $montant += $tarifMensuel ?? 0;
+                    $montantHT = $tarifMensuel;
                 }
-
-                continue;
             }
 
-            /* ====== 2️⃣ FACTURATION PAR AGENT ====== */
             if ($contrat->getModeFacturation() === 'mensuel_agent') {
-
-                $nbTotal =
-                    ($type->getNbAgentsJour() ?? 0) +
-                    ($type->getNbAgentsNuit() ?? 0);
-
-                if ($nbTotal > 0) {
-
-                    if ($tarifJournalier && $tauxProrata != 1) {
-                        $montant += round(($tarifMensuel * $nbTotal * $nbJoursActifs) / 30);
-                    } else {
-                        $montant += ($tarifMensuel * $nbTotal) * $tauxProrata;
-                    }
+                if ($tarifJournalier && $tauxProrata != 1) {
+                    $montantHT = ($tarifMensuel * $nbTotal * $nbJoursActifs) / 30;
+                } else {
+                    $montantHT = $tarifMensuel * $nbTotal * $tauxProrata;
                 }
-
-                continue;
             }
 
-            /* ====== 3️⃣ FACTURATION HORAIRE ====== */
             if ($contrat->getModeFacturation() === 'horaire') {
-
                 $tarifHoraire = $type->getTarifHoraire() ?? 0;
                 $totalHeures = 0;
 
                 foreach ($contrat->getAffectationAgents() as $aff) {
-
                     $dateOp = $aff->getDateOperation();
 
                     if ($dateOp < $periodeDebut || $dateOp > $periodeFin) {
@@ -107,31 +103,54 @@ class FactureCalculator
                     $fin = $aff->getHeureFin();
 
                     if ($debut && $fin) {
-
                         $diff = $fin->getTimestamp() - $debut->getTimestamp();
                         $totalHeures += $diff / 3600;
                     }
                 }
 
-                $montant += $totalHeures * $tarifHoraire;
+                $montantHT = $totalHeures * $tarifHoraire;
             }
+
+            $montantRemise = $remisePourcentage > 0 ? $montantHT * ($remisePourcentage / 100) : 0;
+            $montantApresRemise = $montantHT - $montantRemise;
+            $montantTVA = $tauxTVA > 0 ? $montantApresRemise * ($tauxTVA / 100) : 0;
+            $montantTTC = $montantApresRemise + $montantTVA;
+
+            $totalHT += $montantHT;
+
+            $lignes[] = [
+                'categorie' => 'principal',
+                'type' => $type->getTypeSurveillance()?->getNom(),
+                'agentsJour' => $nbJour,
+                'agentsNuit' => $nbNuit,
+                'agentsTotal' => $nbTotal,
+                'tarif' => $tarifMensuel,
+                'montantHT' => $montantHT,
+                'remise' => $montantRemise,
+                'tva' => $montantTVA,
+                'ttc' => $montantTTC,
+            ];
         }
 
-        return $montant;
+        return [
+            'lignes' => $lignes,
+            'totalHT' => $totalHT,
+        ];
     }
-
 
     private function calculateComplementaires(
         ContratSurveillance $contrat,
         \DateTime $periodeDebut,
         \DateTime $periodeFin,
         int $nbJoursMois
-    ): float {
+    ): array {
+        $totalHT = 0;
+        $lignes = [];
 
-        $montant = 0;
+        $remisePourcentage = $contrat->getRemise() ?? 0;
+        $tauxTVA = $contrat->getTva() ?? 0;
 
         foreach ($contrat->getContratComplementaires() as $cc) {
-
             if ($cc->getDateDebut() > $periodeFin) {
                 continue;
             }
@@ -140,10 +159,6 @@ class FactureCalculator
                 continue;
             }
 
-             /* ============================
-            🔁 CALCUL PRORATA DU CC
-            ============================ */
-            
             $dateDebutCC = max($cc->getDateDebut(), $periodeDebut);
             $dateFinCC = $cc->getDateFin()
                 ? min($cc->getDateFin(), $periodeFin)
@@ -157,39 +172,61 @@ class FactureCalculator
             $tauxProrataCC = $nbJoursActifsCC / $nbJoursMois;
 
             foreach ($cc->getComplementTypeSurveillances() as $cts) {
-
+                $nbAgents = $cts->getNbAgent() ?? 0;
                 $tarif = $cts->getTarif() ?? 0;
                 $tarifJournalier = $tarif / 30;
 
+                $montantHT = 0;
+
                 if ($contrat->getModeFacturation() === 'mensuel') {
-
                     if ($tarifJournalier && $tauxProrataCC != 1) {
-                        $montant += $tarifJournalier * $nbJoursActifsCC;
+                        $montantHT = $tarifJournalier * $nbJoursActifsCC;
                     } else {
-                        $montant += $tarif * $tauxProrataCC;
+                        $montantHT = $tarif * $tauxProrataCC;
                     }
-
-                    continue;
                 }
 
                 if ($contrat->getModeFacturation() === 'mensuel_agent') {
-
-                    $nbAgents = $cts->getNbAgent() ?? 0;
-
                     if ($tarifJournalier && $tauxProrataCC != 1) {
-                        $montant += ($tarifJournalier * $nbJoursActifsCC) * $nbAgents;
+                        $montantHT = ($tarifJournalier * $nbJoursActifsCC) * $nbAgents;
                     } else {
-                        $montant += ($tarif * $nbAgents) * $tauxProrataCC;
+                        $montantHT = ($tarif * $nbAgents) * $tauxProrataCC;
                     }
                 }
+
+                $montantRemise = $remisePourcentage > 0 ? $montantHT * ($remisePourcentage / 100) : 0;
+                $montantApresRemise = $montantHT - $montantRemise;
+                $montantTVA = $tauxTVA > 0 ? $montantApresRemise * ($tauxTVA / 100) : 0;
+                $montantTTC = $montantApresRemise + $montantTVA;
+
+                $totalHT += $montantHT;
+
+                $lignes[] = [
+                    'categorie' => 'complementaire',
+                    'contratComplementaireId' => $cc->getId(),
+                    'motif' => $cc->getMotif(),
+                    'dateDebut' => $cc->getDateDebut(),
+                    'dateFin' => $cc->getDateFin(),
+                    'type' => $cts->getTypeSurveillance()?->getNom(),
+                    'agentsJour' => null,
+                    'agentsNuit' => null,
+                    'agentsTotal' => $nbAgents,
+                    'tarif' => $tarif,
+                    'montantHT' => $montantHT,
+                    'remise' => $montantRemise,
+                    'tva' => $montantTVA,
+                    'ttc' => $montantTTC,
+                ];
             }
         }
 
-        return $montant;
+        return [
+            'lignes' => $lignes,
+            'totalHT' => $totalHT,
+        ];
     }
 
-
-    private function calculateTaxes($contrat, float $montantHTInitial): array
+    private function calculateTaxes(ContratSurveillance $contrat, float $montantHTInitial): array
     {
         $montantHT = $montantHTInitial;
 
@@ -197,7 +234,6 @@ class FactureCalculator
         $remiseMontant = 0;
 
         if ($remisePourcentage > 0) {
-
             $remiseMontant = $montantHT * ($remisePourcentage / 100);
             $montantHT -= $remiseMontant;
         }
@@ -212,13 +248,12 @@ class FactureCalculator
         $montantTTC = round($montantHT + $montantTVA, 2);
 
         return [
-            'htInitial' => $montantHTInitial,
             'ht' => $montantHT,
             'tva' => $montantTVA,
             'ttc' => $montantTTC,
             'remisePourcentage' => $remisePourcentage,
             'remiseMontant' => $remiseMontant,
-            'tauxTVA' => $tauxTVA
+            'tauxTVA' => $tauxTVA,
         ];
     }
 }
