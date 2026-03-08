@@ -2,32 +2,32 @@
 
 namespace App\Controller\Logescom\Comptable;
 
-use Dompdf\Dompdf;
-use Dompdf\Options;
-use App\Entity\Site;
 use App\Entity\Client;
 use App\Entity\Facture;
-use App\Entity\SmsEnvoyes;
-use App\Service\LogicielService;
-use App\Service\OrangeSmsService;
 use App\Entity\HistoriqueChangement;
+use App\Entity\Site;
+use App\Entity\SmsEnvoyes;
 use App\Repository\CaisseRepository;
 use App\Repository\ClientRepository;
-use App\Repository\FactureRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\HttpFoundation\Request;
 use App\Repository\ConfigurationSmsRepository;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
-use App\Repository\ContratSurveillanceRepository;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use App\Repository\DetailPaiementFactureRepository;
 use App\Repository\ConfigZoneRattachementRepository;
-use App\Repository\MouvementCollaborateurRepository;
+use App\Repository\ContratSurveillanceRepository;
+use App\Repository\DetailPaiementFactureRepository;
+use App\Repository\FactureRepository;
+use App\Service\Comptable\Facture\FactureFinder ;
 use App\Service\Comptable\Facture\FactureGenerator;
 use App\Service\Comptable\Facture\FactureGrouper;
+use App\Service\Comptable\Facture\FacturePdfGenerator;
+use App\Service\LogicielService;
+use App\Service\OrangeSmsService;
+use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/logescom/comptable/facture')]
 final class FactureController extends AbstractController
@@ -196,15 +196,13 @@ final class FactureController extends AbstractController
         Request $request, 
         Facture $facture, 
         EntityManagerInterface $entityManager, 
-        Site $site, 
-        LogicielService $service, 
-        OrangeSmsService $orangeService, 
-        ConfigurationSmsRepository $configSmsRep
-    ): Response
+        Site $site): Response
     {
         if ($this->isCsrfTokenValid('delete'.$facture->getId(), $request->request->get('_token'))) {
             if ($facture->getPaiements()->first()) {
-                $this->addFlash("warning", "impossible de supprimer cette facture car elle contient des paiements");
+                $this->addFlash(
+                    "warning", "impossible de supprimer cette facture car elle contient des paiements"
+                );
                 return $this->redirectToRoute('app_logescom_comptable_facture_show', [
                     'id' => $facture ->getId(),   
                     'site' => $site->getId()
@@ -214,200 +212,32 @@ final class FactureController extends AbstractController
             }
             $entityManager->remove($facture);
 
-            $deleteReason = $request->request->get('delete_reason');
-            $reference = $facture->getReference();
-            $montant = $facture->getMontantTotal();
-
-            
-            // Format période facturée
-            $periodeDebut = $facture->getPeriodeDebut()
-                ? $facture->getPeriodeDebut()->format('d/m/Y')
-                : 'N/A';
-
-            $periodeFin = $facture->getPeriodeFin()
-                ? $facture->getPeriodeFin()->format('d/m/Y')
-                : 'N/A';
-
-            $periode = "{$periodeDebut} → {$periodeFin}";
-
-            // Informations
-            $clientNom = $facture->getContrat()->getBien()->getClient()->getNomComplet();
-            $montant = number_format($facture->getMontantTotal(), 0, '.', ' ');
-
-            $information = "Référence {$reference} | Client : {$clientNom} | Montant : {$montant} GNF | Période : {$periode}";
-
-
-            $personnel = $this->getUser();
-            $historiqueSup = new HistoriqueChangement();
-            $historiqueSup->setSaisiePar($personnel)
-                    ->setDateSaisie(new \DateTime())
-                    ->setMotif($deleteReason)
-                    ->setUser($facture->getContrat()->getBien()->getClient())
-                    ->setInformation($information)
-                    ->setType('facture')
-                    ->setSite($facture->getSite());
-            $entityManager->persist($historiqueSup);
-           
-            $entityManager->flush();
-
-            # gestion envoi sms alert
-            if ($service->estConnecteInternet()) {// vérifie si il ya une connexion internet
-                # on verifie si l'envoi de notification est actif pour la facture
-                $etat_notification = $configSmsRep->findOneBy(['nom' => 'suppression_modification', 'etat' => 'actif']);
-
-                if ($etat_notification) {                
-                    if ($service->verifierForfaitDisponible()) {// verifie si il ya un forfait disponible
-                        // Forfait disponible : envoyer le SMS
-                        $telephone = $site->getEntreprise()->getTelephone();
-                        $telephone = $service->normaliserTelephone($telephone);
-                        if ($telephone and strlen($telephone) >= 9) {
-
-                            $recipientPhoneNumber = $telephone;
-                            $countrySenderNumber = 'tel:+2240000'; 
-                            
-                            
-
-                            $message  = "⚠️ Alerte Suppression facture ⚠️\n";
-                            $message .= "la facture n° " . $facture->getReference() . " de " . $facture->getContrat()->getBien()->getClient()->getNomComplet() . " d'un montant de " . number_format($facture->getMontantTotal(), 0, ',', ' ') . " a été supprimé.\n";
-                            $message .= "Date de suppression : " . date('d/m/Y à H:i') . ".\n";
-                            $message .= "Supprimé par : " . ucwords($this->getUser()->getPrenom()) . " " . strtoupper($this->getUser()->getNom()) . ".";
-                            
-                            $senderName = $site->getEntreprise()->getNom(); // Nom de l'expéditeur
-                            // Appel au service pour envoyer le SMS
-                        
-                            $response = $orangeService->sendSms(
-                                $recipientPhoneNumber,
-                                $countrySenderNumber,
-                                $message,
-                                $senderName
-                            );
-                            // Vérification si le sms est bien envoyé
-                            if (isset($response['outboundSMSMessageRequest']['resourceURL'])) {
-
-                                $sms = new SmsEnvoyes();
-                                $sms->setDestinataire($telephone)
-                                    ->setMessage($message)
-                                    ->setCommentaire($facture->getCommentaire())
-                                    ->setDateEnvoie(new \DateTime())
-                                    ->setForfait($service->verifierForfaitDisponible());
-                                $entityManager->persist($sms);
-                                $entityManager->flush();
-
-                            }
-                            
-                        }
-                    }
-                }
-            }
-
             $this->addFlash("success", "facture supprimé avec succès :)");
         }
 
-        return $this->redirectToRoute('app_logescom_comptable_facture_index', ['site' => $site->getId()], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_logescom_comptable_facture_index', [
+            'site' => $site->getId()
+        ], Response::HTTP_SEE_OTHER);
     }
 
 
     #[Route('/pdf/facture/{site}', name: 'app_logescom_comptable_facture_pdf', methods: ['GET'])]
     public function facturePdf(
         Site $site,
-        MouvementCollaborateurRepository $mouvementCollabRep,
-        CaisseRepository $caisseRepository,
         Request $request,
-        FactureRepository $factureRep,
-    ) {
-        /** LOGO ENTREPRISE */
-        $entreprise = $site->getEntreprise();
-        $logoPath = $this->getParameter('kernel.project_dir') . '/public/images/img_logos/' . $entreprise->getLogo();
-        $logoBase64 = base64_encode(file_get_contents($logoPath));
+        FactureGrouper $grouper,
+        FacturePdfGenerator $pdfGenerator,
+        FactureFinder $finder,
+        CaisseRepository $caisseRepository
+    ): Response {
 
-        /** FILIGRANE LOGESCOM (PNG transparent) */
-        $filigranePath = $this->getParameter('kernel.project_dir') . '/public/images/watermark/logescom_filigrane.png';
-        $filigraneBase64 = base64_encode(file_get_contents($filigranePath));
+        $factures = $finder->findFactures($site, $request);
 
-        if ($request->get('periode')) {
-            $periode = new \DateTime($request->get('periode'));
-             // 📌 1er jour du mois
-            $date1 = (clone $periode)->modify('first day of this month')->setTime(0, 0, 0);
-            // 📌 Dernier jour du mois
-            $date2 = (clone $periode)->modify('last day of this month')->setTime(23, 59, 59);
+        $facturesGroup = $grouper->groupFactureForPDF($factures);
 
-            $factures = $factureRep->findFacture(site: $site, startDate: $date1, endDate: $date2, zones: $request->get('zone') ?? null,);
-        }elseif ($request->get('facture')) {
-            $factures = $factureRep->findFacture(id: $request->get('facture'));
-        }
-        // Regrouper factures par client
-        $facturesRegroupees = [];
-
-        foreach ($factures as $facture) {
-
-            $contrat = $facture->getContrat();
-            $bien    = $contrat->getBien();
-            $client  = $bien->getClient();
-            $clientId = $client->getId();
-
-            $groupeFacturation = $bien->getGroupeFacturation();
-
-                    // 🔑 clé de regroupement
-            if ($groupeFacturation) {
-                $key = 'CLIENT_'.$client->getId().'_GROUPE_'.$groupeFacturation->getId();
-                $libelle = $groupeFacturation->getNom();
-            } else {
-                $key = 'CLIENT_'.$client->getId().'_BIEN_'.$bien->getId();
-                $libelle = $bien->getNom();
-            }
-
-            if (!isset($facturesRegroupees[$key])) {
-
-                $dateOp = $facture->getDateEmission();
-
-                $facturesRegroupees[$key] = [
-                    'client'        => $client,
-                    'groupe'        => $groupeFacturation,
-                    'libelle'       => $libelle,
-                    'biens'         => [],
-                    'factures'      => [],
-                    'solde_actuel'  => $mouvementCollabRep->findSoldeCollaborateur($client),
-                    'ancien_solde'  => $mouvementCollabRep->findAncienSoldeCollaborateur($client, $dateOp),
-                    'mode'            => $facture->getContrat()->getModeFacturation(),
-                    'modeFacturation'            => $client->getModeFacturation(),
-                ];
-            }
-
-            
-
-            $facturesRegroupees[$key]['factures'][] = $facture;
-            $facturesRegroupees[$key]['biens'][$bien->getId()] = $bien;
-        }
-        // dd($facturesRegroupees);
-        /** BANQUES */
         $banques = $caisseRepository->findBy(['type' => 'banque']);
 
-       
-        $template = 'logescom/comptable/facture/facture_pdf.html.twig';
-        
-        /** RENDER HTML */
-        $html = $this->renderView($template, [
-            'facturesRegroupees'   => $facturesRegroupees,
-            'logoPath'             => $logoBase64,
-            'filigrane'            => $filigraneBase64, 
-            'site'                 => $site,
-            'banques'              => $banques,
-        ]);
-
-        /** DOMPDF CONFIG */
-        $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isPhpEnabled', true);
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        return new Response($dompdf->output(), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="facture.pdf"',
-        ]);
+        return $pdfGenerator->generate($facturesGroup, $site, $banques);
     }
 
     #[Route('/contrat/{site}', name: 'app_logescom_comptable_contrat', methods: ['GET'])]

@@ -511,7 +511,7 @@ class MouvementCaisseRepository extends ServiceEntityRepository
             ->leftJoin('m.devise', 'd')
             ->leftJoin('m.caisse', 'c')
             ->leftJoin('m.modePaie', 'mp')
-            ->groupBy('m.devise', 'm.caisse')
+            ->groupBy('d.id, d.nom, c.id, c.type, c.nom, mp.id')
             ->orderBy('d.id');
 
         // Filtre site
@@ -632,45 +632,45 @@ class MouvementCaisseRepository extends ServiceEntityRepository
 
 
 
-    /**
-     * @return array
-     */
     public function findSoldeCaisseByTypeMouvement($site = null, $personnel = null, $startDate = null, $endDate = null, $devise = null, $caisse = null): array
     {
         $qb = $this->createQueryBuilder('m')
-            ->select('SUM(m.montant) as solde, COUNT(m.id) as nbre, m as mouvement')
+            ->select(
+                'SUM(m.montant) as solde',
+                'COUNT(m.id) as nbre',
+                'm.typeMouvement as typeMouvement'
+            )
             ->groupBy('m.typeMouvement')
             ->orderBy('solde', 'DESC')
             ->addOrderBy('m.typeMouvement', 'ASC');
 
-        // Filtre site si fourni
         if ($site !== null) {
             $qb->andWhere('m.site = :site')
             ->setParameter('site', $site);
         }
 
-         if ($caisse !== null) {
+        if ($caisse !== null) {
             $qb->andWhere('m.caisse = :caisse')
             ->setParameter('caisse', $caisse);
         }
+
         if ($devise !== null) {
             $qb->andWhere('m.devise = :devise')
             ->setParameter('devise', $devise);
         }
 
-        // Filtre saisiePar si fourni
         if ($personnel !== null) {
             $qb->andWhere('m.saisiePar = :personnel')
             ->setParameter('personnel', $personnel);
         }
 
-        // Filtre dates si fourni
         if ($startDate !== null && $endDate !== null) {
             $endDateObj = (new \DateTime($endDate))->modify('+1 day');
+
             $qb->andWhere('m.dateOperation BETWEEN :startDate AND :endDate')
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDateObj);
-        } 
+        }
 
         return $qb->getQuery()->getResult();
     }
